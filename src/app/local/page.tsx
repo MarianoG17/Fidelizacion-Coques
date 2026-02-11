@@ -19,6 +19,7 @@ export default function LocalPage() {
   const [validacion, setValidacion] = useState<ValidacionResult | null>(null)
   const [ubicacion, setUbicacion] = useState<'mostrador' | 'salon' | null>(null)
   const [mesaSeleccionada, setMesaSeleccionada] = useState<MesaLayout | null>(null)
+  const [beneficioSeleccionado, setBeneficioSeleccionado] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [eventoRegistrado, setEventoRegistrado] = useState(false)
@@ -107,7 +108,7 @@ export default function LocalPage() {
     if (!decodedText || cargando) return
 
     console.log('[Local] QR escaneado:', decodedText)
-    
+
     // El QR puede contener una URL otpauth:// o solo el token de 6 dígitos
     const tokenMatch = decodedText.match(/\d{6}/)
 
@@ -132,9 +133,6 @@ export default function LocalPage() {
     if (!validacion?.cliente) return
     setCargando(true)
 
-    const tieneBeneficio = validacion.cliente.beneficiosActivos.length > 0
-    const beneficioId = tieneBeneficio ? validacion.cliente.beneficiosActivos[0].id : null
-
     try {
       await fetch('/api/eventos', {
         method: 'POST',
@@ -145,8 +143,8 @@ export default function LocalPage() {
         body: JSON.stringify({
           clienteId: validacion.cliente.id,
           mesaId: mesaSeleccionada?.id || null,
-          tipoEvento: tieneBeneficio ? 'BENEFICIO_APLICADO' : 'VISITA',
-          beneficioId,
+          tipoEvento: beneficioSeleccionado ? 'BENEFICIO_APLICADO' : 'VISITA',
+          beneficioId: beneficioSeleccionado,
           metodoValidacion: metodoInput === 'qr' ? 'QR_SCANNER' : 'OTP_MANUAL',
         }),
       })
@@ -163,7 +161,9 @@ export default function LocalPage() {
     setMetodoInput('qr')
     setOtpInput('')
     setValidacion(null)
+    setUbicacion(null)
     setMesaSeleccionada(null)
+    setBeneficioSeleccionado(null)
     setErrorMsg('')
     setEventoRegistrado(false)
     setScannerActivo(true)
@@ -353,27 +353,53 @@ export default function LocalPage() {
             </div>
           )}
 
-          {/* Beneficios activos */}
+          {/* Beneficios activos - seleccionables */}
           {c.beneficiosActivos.length > 0 ? (
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Beneficios a aplicar
+                ¿Desea canjear algún beneficio?
               </h3>
-              {c.beneficiosActivos.map((b) => (
-                <div
-                  key={b.id}
-                  className="bg-green-50 border border-green-200 rounded-xl p-4 mb-2"
-                >
-                  <p className="font-bold text-green-800">{b.nombre}</p>
-                  <p className="text-sm text-green-700 mt-1 font-mono bg-green-100 rounded p-2">
-                    → Cargar en Aires: {b.descripcionCaja}
-                  </p>
-                </div>
-              ))}
+              <div className="space-y-2 mb-3">
+                {c.beneficiosActivos.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setBeneficioSeleccionado(beneficioSeleccionado === b.id ? null : b.id)}
+                    className={`w-full text-left rounded-xl p-4 border-2 transition-all ${
+                      beneficioSeleccionado === b.id
+                        ? 'bg-green-100 border-green-500 shadow-md'
+                        : 'bg-green-50 border-green-200 hover:border-green-400'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        beneficioSeleccionado === b.id
+                          ? 'bg-green-500 border-green-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {beneficioSeleccionado === b.id && (
+                          <span className="text-white text-xs">✓</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-green-800">{b.nombre}</p>
+                        <p className="text-sm text-green-700 mt-1 font-mono bg-white/50 rounded p-2">
+                          → Cargar en Aires: {b.descripcionCaja}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setBeneficioSeleccionado(null)}
+                className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2"
+              >
+                No canjear beneficio en esta visita
+              </button>
             </div>
           ) : (
             <div className="bg-gray-100 rounded-xl p-4 mb-4 text-center">
-              <p className="text-gray-500 text-sm">Sin beneficios activos en este momento</p>
+              <p className="text-gray-500 text-sm">Sin beneficios disponibles</p>
             </div>
           )}
 
@@ -465,7 +491,7 @@ export default function LocalPage() {
                 <div className="text-3xl mb-2">🪑</div>
                 <p className="text-amber-800 font-semibold">Cliente en Mostrador</p>
               </div>
-              
+
               {/* Botón registrar */}
               <button
                 onClick={registrarEvento}
