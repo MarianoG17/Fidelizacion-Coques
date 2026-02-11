@@ -59,15 +59,20 @@ export async function POST(req: NextRequest) {
       data: {
         clienteId,
         localId: local.id,
-        mesaId: mesaId || null,
+        mesaId: mesaId || undefined,
         tipoEvento,
-        beneficioId: beneficioId || null,
+        beneficioId: beneficioId || undefined,
         metodoValidacion,
-        notas: notas || null,
+        notas: notas || undefined,
         contabilizada,
-        estadoExternoSnap: cliente.estadoAuto
-          ? { estado: cliente.estadoAuto.estado, updatedAt: cliente.estadoAuto.updatedAt.toISOString() }
-          : null,
+        ...(cliente.estadoAuto
+          ? {
+              estadoExternoSnap: {
+                estado: cliente.estadoAuto.estado,
+                updatedAt: cliente.estadoAuto.updatedAt.toISOString(),
+              },
+            }
+          : {}),
       },
     })
 
