@@ -17,6 +17,7 @@ export default function LocalPage() {
   const [metodoInput, setMetodoInput] = useState<MetodoInput>('qr')
   const [otpInput, setOtpInput] = useState('')
   const [validacion, setValidacion] = useState<ValidacionResult | null>(null)
+  const [ubicacion, setUbicacion] = useState<'mostrador' | 'salon' | null>(null)
   const [mesaSeleccionada, setMesaSeleccionada] = useState<MesaLayout | null>(null)
   const [cargando, setCargando] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -376,8 +377,39 @@ export default function LocalPage() {
             </div>
           )}
 
-          {/* Selector de mesas */}
-          {!eventoRegistrado && (
+          {/* Selección de ubicación */}
+          {!ubicacion && !eventoRegistrado && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                ¿Dónde se ubica el cliente?
+              </h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <button
+                  onClick={() => setUbicacion('mostrador')}
+                  className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105 border-2 border-transparent hover:border-amber-500"
+                >
+                  <div className="text-4xl mb-2">🪑</div>
+                  <p className="font-bold text-slate-800">Mostrador</p>
+                </button>
+                <button
+                  onClick={() => setUbicacion('salon')}
+                  className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105 border-2 border-transparent hover:border-green-500"
+                >
+                  <div className="text-4xl mb-2">🍽️</div>
+                  <p className="font-bold text-slate-800">Salón</p>
+                </button>
+              </div>
+              <button
+                onClick={resetear}
+                className="w-full mt-2 text-gray-400 py-2 text-sm"
+              >
+                Cancelar
+              </button>
+            </>
+          )}
+
+          {/* Selector de mesas (solo si eligió Salón) */}
+          {ubicacion === 'salon' && !eventoRegistrado && (
             <>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Seleccioná la mesa
@@ -412,7 +444,33 @@ export default function LocalPage() {
               <button
                 onClick={registrarEvento}
                 disabled={cargando}
-                className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-base disabled:opacity-50"
+                className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cargando ? 'Registrando...' : 'Confirmar visita'}
+              </button>
+
+              <button
+                onClick={resetear}
+                className="w-full mt-2 text-gray-400 py-2 text-sm"
+              >
+                Cancelar
+              </button>
+            </>
+          )}
+
+          {/* Mostrador - registro directo sin mesa */}
+          {ubicacion === 'mostrador' && !eventoRegistrado && (
+            <>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-center">
+                <div className="text-3xl mb-2">🪑</div>
+                <p className="text-amber-800 font-semibold">Cliente en Mostrador</p>
+              </div>
+              
+              {/* Botón registrar */}
+              <button
+                onClick={registrarEvento}
+                disabled={cargando}
+                className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {cargando ? 'Registrando...' : 'Confirmar visita'}
               </button>
