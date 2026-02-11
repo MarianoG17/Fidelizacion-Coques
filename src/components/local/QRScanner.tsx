@@ -30,31 +30,41 @@ export default function QRScanner({ onScan, onError, isActive }: QRScannerProps)
         // Inicializar el scanner
         const scanner = new Html5Qrcode('qr-reader')
         scannerRef.current = scanner
-
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } }
-
+    
+        // Configuración mejorada para mejor detección
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
+        }
+    
         scanner
-            .start(
-                { facingMode: 'environment' },
-                config,
-                (decodedText) => {
-                    // QR escaneado exitosamente
-                    onScan(decodedText)
-                },
-                (errorMessage) => {
-                    // Errores durante el escaneo (normales, se producen continuamente)
-                    // No hacemos nada aquí para evitar spam en la consola
-                }
-            )
-            .then(() => {
-                setIsScanning(true)
-                setError(null)
-            })
-            .catch((err) => {
-                console.error('Error starting scanner:', err)
-                setError('No se pudo acceder a la cámara')
-                onError?.(err)
-            })
+          .start(
+            { facingMode: 'environment' },
+            config,
+            (decodedText) => {
+              // QR escaneado exitosamente
+              console.log('[QRScanner] QR detectado:', decodedText)
+              onScan(decodedText)
+            },
+            (errorMessage) => {
+              // Errores durante el escaneo (normales, se producen continuamente)
+              // No hacemos nada aquí para evitar spam en la consola
+            }
+          )
+          .then(() => {
+            console.log('[QRScanner] Scanner iniciado correctamente')
+            setIsScanning(true)
+            setError(null)
+          })
+          .catch((err) => {
+            console.error('[QRScanner] Error starting scanner:', err)
+            setError('No se pudo acceder a la cámara. Asegurate de dar permisos.')
+            onError?.(err.toString())
+          })
 
         return () => {
             if (scannerRef.current && isScanning) {

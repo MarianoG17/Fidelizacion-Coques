@@ -1,13 +1,25 @@
 // src/app/page.tsx
+'use client'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export default function HomePage() {
-  const fecha = new Date().toLocaleDateString('es-AR', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(true)
+  
+  const fecha = new Date().toLocaleDateString('es-AR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })
+
+  useEffect(() => {
+    // Verificar si el usuario tiene token
+    const token = localStorage.getItem('fidelizacion_token')
+    setIsLoggedIn(!!token)
+    setLoading(false)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 p-6 md:p-12">
@@ -20,14 +32,15 @@ export default function HomePage() {
         </div>
 
         {/* Sección Clientes */}
-        <div className="mb-8">
-          <h2 className="text-white text-2xl font-bold mb-6 flex items-center gap-2">
-            <span>👥</span> Para Clientes
-          </h2>
-          
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Mi Pass */}
-            <Link href="/pass" className="group">
+        {!loading && (
+          <div className="mb-8">
+            <h2 className="text-white text-2xl font-bold mb-6 flex items-center gap-2">
+              <span>👥</span> Para Clientes
+            </h2>
+            
+            <div className={`grid ${isLoggedIn ? 'md:grid-cols-1 max-w-xl' : 'md:grid-cols-2'} gap-6 mb-8`}>
+              {/* Mi Pass */}
+              <Link href="/pass" className="group">
               <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] h-full">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-4">
@@ -49,41 +62,44 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-            </Link>
+              </Link>
 
-            {/* Activar Cuenta */}
-            <Link href="/activar" className="group">
-              <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] h-full">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="text-5xl">✨</div>
-                    <div>
-                      <h3 className="text-3xl font-bold text-green-600 mb-1">Activar Cuenta</h3>
-                      <p className="text-gray-600">Registrate gratis</p>
+              {/* Activar Cuenta - Solo si NO está logueado */}
+              {!isLoggedIn && (
+                <Link href="/activar" className="group">
+                  <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] h-full">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="text-5xl">✨</div>
+                        <div>
+                          <h3 className="text-3xl font-bold text-green-600 mb-1">Activar Cuenta</h3>
+                          <p className="text-gray-600">Registrate gratis</p>
+                        </div>
+                      </div>
+                      <div className="text-4xl text-green-400 group-hover:scale-110 transition-transform">
+                        →
+                      </div>
+                    </div>
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <p className="text-sm text-green-700">
+                        ✓ Sin costos de inscripción<br />
+                        ✓ Beneficios desde el primer día<br />
+                        ✓ Acumulá puntos por cada visita
+                      </p>
                     </div>
                   </div>
-                  <div className="text-4xl text-green-400 group-hover:scale-110 transition-transform">
-                    →
-                  </div>
-                </div>
-                <div className="bg-green-50 rounded-xl p-4">
-                  <p className="text-sm text-green-700">
-                    ✓ Sin costos de inscripción<br />
-                    ✓ Beneficios desde el primer día<br />
-                    ✓ Acumulá puntos por cada visita
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
+                </Link>
+              )}
+            </div>
 
-          {/* Info de prueba */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
-            <p className="text-white/90 text-sm">
-              <strong className="text-white">Cliente de prueba:</strong> Juan Pérez • Tel: <code className="bg-black/20 px-2 py-1 rounded ml-1">+5491112345678</code>
-            </p>
+            {/* Info de prueba */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
+              <p className="text-white/90 text-sm">
+                <strong className="text-white">Cliente de prueba:</strong> Juan Pérez • Tel: <code className="bg-black/20 px-2 py-1 rounded ml-1">+5491112345678</code>
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Sección Staff */}
         <div>

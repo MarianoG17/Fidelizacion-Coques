@@ -40,6 +40,8 @@ export default function LocalPage() {
     setCargando(true)
     setErrorMsg('')
 
+    console.log('[Local] Validando OTP:', otp)
+
     try {
       const res = await fetch('/api/otp/validar', {
         method: 'POST',
@@ -51,6 +53,8 @@ export default function LocalPage() {
       })
       const json = await res.json()
 
+      console.log('[Local] Respuesta validación:', json)
+
       if (json.valido) {
         setValidacion(json)
         setPantalla('cliente')
@@ -59,9 +63,12 @@ export default function LocalPage() {
         setErrorMsg(json.error || 'Código inválido o vencido')
         setOtpInput('')
         inputRef.current?.focus()
+        setScannerActivo(true)
       }
-    } catch {
+    } catch (error) {
+      console.error('[Local] Error de conexión:', error)
       setErrorMsg('Error de conexión')
+      setScannerActivo(true)
     } finally {
       setCargando(false)
     }
@@ -70,13 +77,20 @@ export default function LocalPage() {
   function handleQrScan(decodedText: string) {
     if (!decodedText || cargando) return
 
+    console.log('[Local] QR escaneado:', decodedText)
+    
     // El QR puede contener una URL otpauth:// o solo el token de 6 dígitos
     const tokenMatch = decodedText.match(/\d{6}/)
 
     if (tokenMatch) {
       const token = tokenMatch[0]
+      console.log('[Local] Token extraído:', token)
       setScannerActivo(false)
       validarOTP(token)
+    } else {
+      console.warn('[Local] No se encontró token de 6 dígitos en el QR')
+      setErrorMsg('QR no válido. Asegurate de escanear el QR del cliente.')
+      setScannerActivo(true)
     }
   }
 
