@@ -24,15 +24,43 @@ export default function LocalPage() {
   const [scannerActivo, setScannerActivo] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Mesas hardcodeadas para MVP — en prod vienen de /api/mesas
+  // Layout del salón según imagen - Coordenadas aproximadas en %
   const mesas: MesaLayout[] = [
-    { id: 'm1', nombre: '1', posX: 5, posY: 5, ancho: 18, alto: 18, activa: true },
-    { id: 'm2', nombre: '2', posX: 28, posY: 5, ancho: 18, alto: 18, activa: true },
-    { id: 'm3', nombre: '3', posX: 51, posY: 5, ancho: 18, alto: 18, activa: true },
-    { id: 'm4', nombre: '4', posX: 5, posY: 30, ancho: 18, alto: 18, activa: true },
-    { id: 'm5', nombre: '5', posX: 28, posY: 30, ancho: 18, alto: 18, activa: true },
-    { id: 'm6', nombre: '6', posX: 51, posY: 30, ancho: 18, alto: 18, activa: true },
-    { id: 'barra', nombre: 'Barra', posX: 5, posY: 58, ancho: 64, alto: 12, activa: true },
+    // Fila superior izquierda
+    { id: 's1', nombre: 'S1', posX: 2, posY: 2, ancho: 8, alto: 8, activa: true },
+    { id: 's3', nombre: 'S3', posX: 12, posY: 2, ancho: 8, alto: 8, activa: true },
+    { id: 's5', nombre: 'S5', posX: 22, posY: 2, ancho: 8, alto: 8, activa: true },
+    { id: 's7', nombre: 'S7', posX: 32, posY: 2, ancho: 8, alto: 8, activa: true },
+    // Fila 2 izquierda
+    { id: 's2', nombre: 'S2', posX: 2, posY: 12, ancho: 8, alto: 8, activa: true },
+    { id: 's4', nombre: 'S4', posX: 12, posY: 12, ancho: 8, alto: 8, activa: true },
+    { id: 's6', nombre: 'S6', posX: 22, posY: 12, ancho: 8, alto: 8, activa: true },
+    // Columna central
+    { id: 's8', nombre: 'S8', posX: 45, posY: 5, ancho: 8, alto: 8, activa: true },
+    { id: 's9', nombre: 'S9', posX: 42, posY: 15, ancho: 8, alto: 8, activa: true },
+    { id: 's10', nombre: 'S10', posX: 42, posY: 25, ancho: 8, alto: 8, activa: true },
+    { id: 's11', nombre: 'S11', posX: 38, posY: 35, ancho: 8, alto: 8, activa: true },
+    { id: 's12', nombre: 'S12', posX: 38, posY: 45, ancho: 8, alto: 8, activa: true },
+    // Columna derecha
+    { id: 'g21', nombre: 'G21', posX: 70, posY: 12, ancho: 8, alto: 8, activa: true },
+    { id: 'g22', nombre: 'G22', posX: 70, posY: 24, ancho: 8, alto: 8, activa: true },
+    { id: 'g23', nombre: 'G23', posX: 82, posY: 18, ancho: 8, alto: 8, activa: true },
+    // Mesa individual centro
+    { id: 's13', nombre: 'S13', posX: 48, posY: 58, ancho: 8, alto: 8, activa: true },
+    // Zona inferior - Grupo de mesas 4x2
+    { id: 's25', nombre: 'S25', posX: 38, posY: 75, ancho: 7, alto: 7, activa: true },
+    { id: 's21', nombre: 'S21', posX: 46, posY: 75, ancho: 7, alto: 7, activa: true },
+    { id: 's24', nombre: 'S24', posX: 38, posY: 83, ancho: 7, alto: 7, activa: true },
+    { id: 's20', nombre: 'S20', posX: 46, posY: 83, ancho: 7, alto: 7, activa: true },
+    { id: 's23', nombre: 'S23', posX: 38, posY: 91, ancho: 7, alto: 7, activa: true },
+    { id: 's19', nombre: 'S19', posX: 46, posY: 91, ancho: 7, alto: 7, activa: true },
+    { id: 's22', nombre: 'S22', posX: 38, posY: 99, ancho: 7, alto: 7, activa: true },
+    { id: 's18', nombre: 'S18', posX: 46, posY: 99, ancho: 7, alto: 7, activa: true },
+    // Mesas laterales inferiores
+    { id: 's17', nombre: 'S17', posX: 26, posY: 82, ancho: 7, alto: 7, activa: true },
+    { id: 's16', nombre: 'S16', posX: 26, posY: 95, ancho: 7, alto: 7, activa: true },
+    { id: 's14', nombre: 'S14', posX: 58, posY: 72, ancho: 7, alto: 7, activa: true },
+    { id: 's15', nombre: 'S15', posX: 65, posY: 92, ancho: 7, alto: 7, activa: true },
   ]
 
   async function validarOTP(otp: string) {
@@ -356,7 +384,7 @@ export default function LocalPage() {
               </h3>
               <div
                 className="relative bg-slate-100 rounded-2xl mb-4 overflow-hidden"
-                style={{ paddingBottom: '75%' }}
+                style={{ paddingBottom: '120%' }}
               >
                 <div className="absolute inset-0 p-3">
                   {mesas.map((mesa) => (
