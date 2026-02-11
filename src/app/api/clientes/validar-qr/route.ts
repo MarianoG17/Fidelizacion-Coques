@@ -1,0 +1,102 @@
+// src/app/api/clientes/validar-qr/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getBeneficiosActivos } from '@/lib/beneficios'
+import { ESTADO_AUTO_LABELS } from '@/types'
+
+export const dynamic = 'force-dynamic'
+
+// POST /api/clientes/validar-qr
+// Valida el QR de identificación del cliente y devuelve su información
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { qrData } = body
+
+    if (!qrData) {
+      return NextResponse.json(
+        { error: 'QR data requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Parsear el QR data
+    let parsedData
+    try {
+      parsedData = JSON.parse(qrData)
+    } catch {
+      return NextResponse.json(
+        { error: 'QR inválido' },
+        { status: 400 }
+      )
+    }
+
+    // Validar que sea un QR de cliente fidelización
+    if (parsedData.type !== 'cliente_fidelizacion' || !parsedData.clienteId) {
+      return NextResponse.json(
+        { error: 'QR no es de cliente fidelización' },
+        { status: 400 }
+      )
+    }
+
+    // Buscar el cliente
+    const cliente = await prisma.cliente.findUnique({
+      where: { 
+        id: parsedData.clienteId,
+        estado: 'ACTIVO' 
+      },
+      include: {
+        nivel: true,
+        estadoAuto: true,
+      },
+    })
+
+    if (!cliente) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado o inactivo' },
+        { status: 404 }
+      )
+    }
+
+    // Obtener beneficios activos
+    const beneficios = await getBeneficiosActivos(cliente.id)
+
+    // Retornar información del cliente
+    return NextResponse.json({
+      data: {
+        id: cliente.id,
+        nombre: cliente.nombre || 'Cliente',
+        phone: cliente.phone,
+        puntos: cliente.puntos,
+        nivel: cliente.nivel
+          ? { 
+              nombre: cliente.nivel.nombre, 
+              orden: cliente.nivel.orden 
+            }
+          : null,
+        beneficiosActivos: beneficios.map((b) => ({
+          id: b!.id,
+          nombre: b!.nombre,
+          descripcionCaja: b!.descripcionCaja,
+          requiereEstadoExterno: b!.requiereEstadoExterno,
+          condiciones: b!.condiciones,
+        })),
+        estadoAuto: cliente.estadoAuto
+          ? {
+              estado: cliente.estadoAuto.estado,
+              label: ESTADO_AUTO_LABELS[cliente.estadoAuto.estado],
+              updatedAt: cliente.estadoAuto.updatedAt.toISOString(),
+            }
+          : null,
+        createdAt: cliente.createdAt.toISOString(),
+        lastVisit: cliente.updatedAt.toISOString(),
+      },
+    })
+  } catch (error) {
+    console.error('[POST /api/clientes/validar-qr]', error)
+    return NextResponse.json(
+      { error: 'Error al validar QR' },
+      { status: 500 }
+    )
+  }
+}

@@ -1,20 +1,27 @@
 'use client'
 // src/app/local/page.tsx
 import { useState, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { ValidacionResult, MesaLayout, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 
 const LOCAL_API_KEY = process.env.NEXT_PUBLIC_LOCAL_API_KEY || ''
 
+// Importar QR Scanner dinámicamente (solo en cliente)
+const QRScanner = dynamic(() => import('@/components/local/QRScanner'), { ssr: false })
+
 type Pantalla = 'scanner' | 'cliente' | 'confirmar'
+type MetodoInput = 'qr' | 'manual'
 
 export default function LocalPage() {
   const [pantalla, setPantalla] = useState<Pantalla>('scanner')
+  const [metodoInput, setMetodoInput] = useState<MetodoInput>('qr')
   const [otpInput, setOtpInput] = useState('')
   const [validacion, setValidacion] = useState<ValidacionResult | null>(null)
   const [mesaSeleccionada, setMesaSeleccionada] = useState<MesaLayout | null>(null)
   const [cargando, setCargando] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [eventoRegistrado, setEventoRegistrado] = useState(false)
+  const [scannerActivo, setScannerActivo] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Mesas hardcodeadas para MVP — en prod vienen de /api/mesas
@@ -47,6 +54,7 @@ export default function LocalPage() {
       if (json.valido) {
         setValidacion(json)
         setPantalla('cliente')
+        setScannerActivo(false)
       } else {
         setErrorMsg(json.error || 'Código inválido o vencido')
         setOtpInput('')
@@ -57,6 +65,24 @@ export default function LocalPage() {
     } finally {
       setCargando(false)
     }
+  }
+
+  function handleQrScan(decodedText: string) {
+    if (!decodedText || cargando) return
+
+    // El QR puede contener una URL otpauth:// o solo el token de 6 dígitos
+    const tokenMatch = decodedText.match(/\d{6}/)
+
+    if (tokenMatch) {
+      const token = tokenMatch[0]
+      setScannerActivo(false)
+      validarOTP(token)
+    }
+  }
+
+  function handleQrError(error: string) {
+    console.error('[QR Scanner Error]', error)
+    setErrorMsg('Error al acceder a la cámara')
   }
 
   async function registrarEvento() {
@@ -78,7 +104,7 @@ export default function LocalPage() {
           mesaId: mesaSeleccionada?.id || null,
           tipoEvento: tieneBeneficio ? 'BENEFICIO_APLICADO' : 'VISITA',
           beneficioId,
-          metodoValidacion: 'OTP_MANUAL',
+          metodoValidacion: metodoInput === 'qr' ? 'QR_SCANNER' : 'OTP_MANUAL',
         }),
       })
       setEventoRegistrado(true)
@@ -91,11 +117,25 @@ export default function LocalPage() {
 
   function resetear() {
     setPantalla('scanner')
+    setMetodoInput('qr')
     setOtpInput('')
     setValidacion(null)
     setMesaSeleccionada(null)
     setErrorMsg('')
     setEventoRegistrado(false)
+    setScannerActivo(true)
+  }
+
+  function cambiarMetodo(metodo: MetodoInput) {
+    setMetodoInput(metodo)
+    setErrorMsg('')
+    setOtpInput('')
+    if (metodo === 'qr') {
+      setScannerActivo(true)
+    } else {
+      setScannerActivo(false)
+      setTimeout(() => inputRef.current?.focus(), 100)
+    }
   }
 
   // ─── Pantalla Scanner ─────────────────────────────────────────────────────
@@ -103,46 +143,118 @@ export default function LocalPage() {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
-        <p className="text-slate-400 text-sm mb-8">Coques</p>
+        <p className="text-slate-400 text-sm mb-8">Coques - Empleados</p>
 
-        {/* Input OTP manual */}
-        <div className="w-full max-w-sm">
-          <div className="bg-slate-800 rounded-2xl p-6">
-            <p className="text-slate-300 text-sm text-center mb-4">
-              Ingresá el código del cliente
-            </p>
-            <input
-              ref={inputRef}
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              value={otpInput}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '')
-                setOtpInput(val)
-                setErrorMsg('')
-                if (val.length === 6) validarOTP(val)
-              }}
-              placeholder="_ _ _ _ _ _"
-              className="w-full text-center text-4xl font-mono tracking-[0.4em] bg-slate-700 text-white rounded-xl py-4 px-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
-              autoFocus
-              disabled={cargando}
-            />
-
-            {errorMsg && (
-              <p className="text-red-400 text-sm text-center mt-3">{errorMsg}</p>
-            )}
-
-            {cargando && (
-              <div className="flex justify-center mt-4">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
+        {/* Selector de método */}
+        <div className="w-full max-w-sm mb-4">
+          <div className="bg-slate-800 rounded-xl p-1 flex gap-1">
+            <button
+              onClick={() => cambiarMetodo('qr')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'qr'
+                ? 'bg-blue-500 text-white'
+                : 'text-slate-400 hover:text-slate-200'
+                }`}
+            >
+              📷 Escanear QR
+            </button>
+            <button
+              onClick={() => cambiarMetodo('manual')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'manual'
+                ? 'bg-blue-500 text-white'
+                : 'text-slate-400 hover:text-slate-200'
+                }`}
+            >
+              ⌨️ Código manual
+            </button>
           </div>
+        </div>
+
+        <div className="w-full max-w-sm">
+          {metodoInput === 'qr' ? (
+            // ─── Scanner QR ───
+            <div className="bg-slate-800 rounded-2xl p-6">
+              <p className="text-slate-300 text-sm text-center mb-4">
+                Pedile al cliente que muestre su QR
+              </p>
+
+              {scannerActivo ? (
+                <QRScanner
+                  onScan={handleQrScan}
+                  onError={handleQrError}
+                  isActive={scannerActivo}
+                />
+              ) : (
+                <div className="aspect-square bg-slate-700 rounded-xl flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-slate-400 text-sm">Validando...</p>
+                  </div>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="mt-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+                  <p className="text-red-300 text-sm text-center">{errorMsg}</p>
+                  <button
+                    onClick={() => {
+                      setErrorMsg('')
+                      setScannerActivo(true)
+                    }}
+                    className="w-full mt-2 text-red-300 text-xs underline"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              )}
+
+              {cargando && (
+                <div className="flex justify-center mt-4">
+                  <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+          ) : (
+            // ─── Input Manual ───
+            <div className="bg-slate-800 rounded-2xl p-6">
+              <p className="text-slate-300 text-sm text-center mb-4">
+                Ingresá el código del cliente
+              </p>
+              <input
+                ref={inputRef}
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={otpInput}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '')
+                  setOtpInput(val)
+                  setErrorMsg('')
+                  if (val.length === 6) validarOTP(val)
+                }}
+                placeholder="_ _ _ _ _ _"
+                className="w-full text-center text-4xl font-mono tracking-[0.4em] bg-slate-700 text-white rounded-xl py-4 px-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
+                autoFocus
+                disabled={cargando}
+              />
+
+              {errorMsg && (
+                <p className="text-red-400 text-sm text-center mt-3">{errorMsg}</p>
+              )}
+
+              {cargando && (
+                <div className="flex justify-center mt-4">
+                  <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="text-slate-500 text-xs text-center mt-4">
-            El cliente muestra el código de 6 dígitos desde su app
+            {metodoInput === 'qr'
+              ? 'El cliente muestra su QR desde la app /pass'
+              : 'El cliente muestra el código de 6 dígitos'
+            }
           </p>
         </div>
       </div>
@@ -173,7 +285,9 @@ export default function LocalPage() {
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <p className="text-green-600 text-sm font-medium">Código válido ✓</p>
+              <p className="text-green-600 text-sm font-medium">
+                Código válido ✓ ({metodoInput === 'qr' ? 'QR' : 'Manual'})
+              </p>
             </div>
           </div>
 
@@ -235,11 +349,10 @@ export default function LocalPage() {
                     <button
                       key={mesa.id}
                       onClick={() => setMesaSeleccionada(mesa)}
-                      className={`absolute rounded-lg text-xs font-bold transition-all ${
-                        mesaSeleccionada?.id === mesa.id
-                          ? 'bg-slate-800 text-white shadow-lg scale-105'
-                          : 'bg-white text-slate-700 shadow hover:bg-slate-200'
-                      }`}
+                      className={`absolute rounded-lg text-xs font-bold transition-all ${mesaSeleccionada?.id === mesa.id
+                        ? 'bg-slate-800 text-white shadow-lg scale-105'
+                        : 'bg-white text-slate-700 shadow hover:bg-slate-200'
+                        }`}
                       style={{
                         left: `${mesa.posX}%`,
                         top: `${mesa.posY}%`,
