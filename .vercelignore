@@ -1,3 +1,6 @@
 # Force clean build
 .next
 node_modules
+
+# Scripts de migración (no deben compilarse en el build)
+scripts/
