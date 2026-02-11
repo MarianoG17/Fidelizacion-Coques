@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
           orderBy: { updatedAt: 'desc' },
         },
       },
-    })
+    }) as any
 
     if (!cliente) return badRequest('Cliente no encontrado')
 
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
           requiereEstadoExterno: b!.requiereEstadoExterno,
           condiciones: b!.condiciones,
         })),
-        autos: cliente.autos.map((auto) => ({
+        autos: cliente.autos.map((auto: any) => ({
           id: auto.id,
           patente: auto.patente,
           marca: auto.marca,
