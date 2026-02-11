@@ -2,132 +2,172 @@
 import Link from 'next/link'
 
 export default function HomePage() {
+  const fecha = new Date().toLocaleDateString('es-AR', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center px-4 py-12">
-      <div className="max-w-6xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 p-6 md:p-12">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-16 animate-fade-in">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <span className="text-7xl">☕</span>
-            <span className="text-7xl">🚗</span>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-black text-white mb-4 drop-shadow-2xl">
-            Fidelización Zona
-          </h1>
-          <p className="text-xl text-white/90 font-medium">
-            Sistema integrado Coques + Lavadero
-          </p>
+        <div className="mb-12">
+          <h2 className="text-white/80 text-lg mb-2">Bienvenido/a</h2>
+          <h1 className="text-white text-4xl md:text-5xl font-bold mb-3">Fidelización Zona</h1>
+          <p className="text-white/70 capitalize">{fecha}</p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto">
-          {/* ========== SECCIÓN CLIENTES ========== */}
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-6 text-center">
-              👥 Para Clientes
-            </h2>
-            <div className="space-y-4">
-              <Link
-                href="/pass"
-                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative">
-                  <div className="text-5xl mb-4">🎫</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    Mi Pass
-                  </h3>
-                  <p className="text-gray-600">
-                    Accedé a tu tarjeta de fidelización digital con QR
+        {/* Sección Clientes */}
+        <div className="mb-8">
+          <h2 className="text-white text-2xl font-bold mb-6 flex items-center gap-2">
+            <span>👥</span> Para Clientes
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Mi Pass */}
+            <Link href="/pass" className="group">
+              <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="text-5xl">🎫</div>
+                    <div>
+                      <h3 className="text-3xl font-bold text-purple-600 mb-1">Mi Pass</h3>
+                      <p className="text-gray-600">Accedé a tu tarjeta digital</p>
+                    </div>
+                  </div>
+                  <div className="text-4xl text-purple-400 group-hover:scale-110 transition-transform">
+                    →
+                  </div>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-4">
+                  <p className="text-sm text-purple-700">
+                    ✓ Ver tu QR code dinámico<br />
+                    ✓ Consultar beneficios activos<br />
+                    ✓ Estado de tu auto en el lavadero
                   </p>
                 </div>
-              </Link>
+              </div>
+            </Link>
 
-              <Link
-                href="/activar"
-                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative">
-                  <div className="text-5xl mb-4">✨</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    Activar Cuenta
-                  </h3>
-                  <p className="text-gray-600">
-                    Registrate y empezá a acumular beneficios
+            {/* Activar Cuenta */}
+            <Link href="/activar" className="group">
+              <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="text-5xl">✨</div>
+                    <div>
+                      <h3 className="text-3xl font-bold text-green-600 mb-1">Activar Cuenta</h3>
+                      <p className="text-gray-600">Registrate gratis</p>
+                    </div>
+                  </div>
+                  <div className="text-4xl text-green-400 group-hover:scale-110 transition-transform">
+                    →
+                  </div>
+                </div>
+                <div className="bg-green-50 rounded-xl p-4">
+                  <p className="text-sm text-green-700">
+                    ✓ Sin costos de inscripción<br />
+                    ✓ Beneficios desde el primer día<br />
+                    ✓ Acumulá puntos por cada visita
                   </p>
                 </div>
-              </Link>
-            </div>
-
-            <div className="mt-6 bg-white/10 backdrop-blur-lg rounded-2xl p-5 border border-white/30">
-              <h4 className="text-white font-bold text-sm mb-2">📱 Cliente de prueba</h4>
-              <p className="text-white/80 text-sm">
-                Tel: <code className="bg-black/20 px-2 py-1 rounded">+5491112345678</code>
-              </p>
-            </div>
+              </div>
+            </Link>
           </div>
 
-          {/* ========== SECCIÓN STAFF ========== */}
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-6 text-center">
-              👨‍💼 Para Staff
-            </h2>
-            <div className="space-y-4">
-              <Link
-                href="/local"
-                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative">
-                  <div className="text-5xl mb-4">☕</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    App Coques
-                  </h3>
-                  <p className="text-gray-600">
-                    Scanner QR y registro de visitas
-                  </p>
-                </div>
-              </Link>
+          {/* Info de prueba */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
+            <p className="text-white/90 text-sm">
+              <strong className="text-white">Cliente de prueba:</strong> Juan Pérez • Tel: <code className="bg-black/20 px-2 py-1 rounded ml-1">+5491112345678</code>
+            </p>
+          </div>
+        </div>
 
-              <Link
-                href="/lavadero"
-                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative">
-                  <div className="text-5xl mb-4">🚗</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    Panel Lavadero
-                  </h3>
-                  <p className="text-gray-600">
-                    Gestión de estados de autos
-                  </p>
+        {/* Sección Staff */}
+        <div>
+          <h2 className="text-white text-2xl font-bold mb-6 flex items-center gap-2">
+            <span>👨‍💼</span> Panel de Gestión
+          </h2>
+          
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {/* App Coques */}
+            <Link href="/local" className="group">
+              <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-5xl">☕</div>
+                  <h3 className="text-2xl font-bold text-amber-600">App Coques</h3>
                 </div>
-              </Link>
+                <p className="text-gray-600 mb-4">Validar clientes y registrar visitas</p>
+                <div className="flex items-center gap-2 text-amber-600 font-semibold group-hover:gap-3 transition-all">
+                  <span>Abrir</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
 
-              <Link
-                href="/admin"
-                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative">
-                  <div className="text-5xl mb-4">⚙️</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    Administración
-                  </h3>
-                  <p className="text-gray-600">
-                    Métricas, clientes y eventos
-                  </p>
+            {/* Panel Lavadero */}
+            <Link href="/lavadero" className="group">
+              <div className="bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-5xl">🚗</div>
+                  <h3 className="text-2xl font-bold text-cyan-600">Lavadero</h3>
                 </div>
-              </Link>
+                <p className="text-gray-600 mb-4">Gestión de estados de autos</p>
+                <div className="flex items-center gap-2 text-cyan-600 font-semibold group-hover:gap-3 transition-all">
+                  <span>Abrir</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Panel Admin */}
+            <Link href="/admin" className="group">
+              <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] text-white">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="text-5xl">⚙️</div>
+                  <h3 className="text-2xl font-bold">Admin</h3>
+                </div>
+                <p className="text-white/90 mb-4">Métricas, clientes y eventos</p>
+                <div className="flex items-center gap-2 font-semibold group-hover:gap-3 transition-all">
+                  <span>Abrir</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Credenciales */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
+              <h4 className="text-white font-bold mb-3 flex items-center gap-2">
+                <span>🔑</span> API Keys de Prueba
+              </h4>
+              <div className="space-y-2 text-sm">
+                <p className="text-white/80">
+                  <strong className="text-white">Coques:</strong><br />
+                  <code className="bg-black/20 px-2 py-1 rounded text-xs break-all">coques-api-key-dev-change-in-prod</code>
+                </p>
+                <p className="text-white/80">
+                  <strong className="text-white">Lavadero:</strong><br />
+                  <code className="bg-black/20 px-2 py-1 rounded text-xs break-all">lavadero-api-key-dev-change-in-prod</code>
+                </p>
+              </div>
             </div>
 
-            <div className="mt-6 bg-white/10 backdrop-blur-lg rounded-2xl p-5 border border-white/30">
-              <h4 className="text-white font-bold text-sm mb-2">🔑 API Keys de prueba</h4>
-              <div className="space-y-1 text-white/80 text-xs">
-                <p><strong>Coques:</strong> <code className="bg-black/20 px-1.5 py-0.5 rounded text-[10px]">coques-api-key-dev-change-in-prod</code></p>
-                <p><strong>Lavadero:</strong> <code className="bg-black/20 px-1.5 py-0.5 rounded text-[10px]">lavadero-api-key-dev-change-in-prod</code></p>
-                <p><strong>Admin:</strong> Header <code className="bg-black/20 px-1.5 py-0.5 rounded text-[10px]">x-admin-key</code></p>
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
+              <h4 className="text-white font-bold mb-3 flex items-center gap-2">
+                <span>🔐</span> Acceso Admin
+              </h4>
+              <p className="text-white/80 text-sm mb-2">
+                Usar extensión ModHeader para agregar:
+              </p>
+              <div className="bg-black/20 rounded px-3 py-2">
+                <p className="text-white/90 text-xs font-mono">
+                  Header: <strong>x-admin-key</strong><br />
+                  Value: [tu ADMIN_KEY de Vercel]
+                </p>
               </div>
             </div>
           </div>
