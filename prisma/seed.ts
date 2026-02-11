@@ -80,7 +80,6 @@ async function main() {
       nombre: 'Lavadero',
       tipo: 'lavadero',
       apiKey: 'lavadero-api-key-dev-change-in-prod',
-      layoutMesas: null,
     },
   })
 
