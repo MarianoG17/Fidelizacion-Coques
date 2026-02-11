@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         id: cliente.id,
         nombre: cliente.nombre || 'Cliente',
         nivel: cliente.nivel?.nombre || null,
-        beneficiosActivos: beneficios.map((b) => ({
+        beneficiosActivos: beneficios.map((b: any) => ({
           id: b!.id,
           nombre: b!.nombre,
           descripcionCaja: b!.descripcionCaja,

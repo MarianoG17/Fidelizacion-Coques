@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         },
         estadoAuto,
       },
-      beneficiosDisparados: beneficiosTriggereados.map((b) => ({
+      beneficiosDisparados: beneficiosTriggereados.map((b: any) => ({
         id: b.id,
         nombre: b.nombre,
       })),

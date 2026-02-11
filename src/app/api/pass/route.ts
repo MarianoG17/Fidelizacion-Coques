@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         nivel: cliente.nivel
           ? { nombre: cliente.nivel.nombre, orden: cliente.nivel.orden }
           : null,
-        beneficiosActivos: beneficios.map((b) => ({
+        beneficiosActivos: beneficios.map((b: any) => ({
           id: b!.id,
           nombre: b!.nombre,
           descripcionCaja: b!.descripcionCaja,
