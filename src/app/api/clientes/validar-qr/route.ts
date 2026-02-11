@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Buscar el cliente
+    // Buscar el cliente con sus autos
     const cliente = await prisma.cliente.findUnique({
       where: {
         id: parsedData.clienteId,
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
           include: { estadoActual: true },
         },
       },
-    })
+    }) as any
 
     if (!cliente) {
       return NextResponse.json(
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
           requiereEstadoExterno: b!.requiereEstadoExterno,
           condiciones: b!.condiciones,
         })),
-        autos: cliente.autos.map((auto) => ({
+        autos: cliente.autos.map((auto: any) => ({
           id: auto.id,
           patente: auto.patente,
           marca: auto.marca,
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
           estadoActual: auto.estadoActual
             ? {
                 estado: auto.estadoActual.estado,
-                label: ESTADO_AUTO_LABELS[auto.estadoActual.estado],
+                label: ESTADO_AUTO_LABELS[auto.estadoActual.estado as keyof typeof ESTADO_AUTO_LABELS],
                 updatedAt: auto.estadoActual.updatedAt.toISOString(),
               }
             : null,
