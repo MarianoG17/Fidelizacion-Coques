@@ -1,0 +1,212 @@
+'use client'
+// src/app/pass/page.tsx
+import { useEffect, useState, useCallback } from 'react'
+import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
+
+const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
+
+export default function PassPage() {
+  const [pass, setPass] = useState<PassData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [countdown, setCountdown] = useState(30)
+
+  const fetchPass = useCallback(async () => {
+    const token = localStorage.getItem('fidelizacion_token')
+    if (!token) {
+      setError('no_auth')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/pass', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 401) {
+        setError('no_auth')
+        return
+      }
+      const json = await res.json()
+      setPass(json.data)
+      setCountdown(json.data.otp.tiempoRestante)
+    } catch {
+      setError('Error de conexión')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Refresco periódico del OTP
+  useEffect(() => {
+    fetchPass()
+    const interval = setInterval(fetchPass, REFRESH_INTERVAL)
+    return () => clearInterval(interval)
+  }, [fetchPass])
+
+  // Countdown visual
+  useEffect(() => {
+    if (!pass) return
+    setCountdown(pass.otp.tiempoRestante)
+    const tick = setInterval(() => {
+      setCountdown((c) => (c <= 1 ? pass.otp.tiempoRestante : c - 1))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [pass?.otp.token])
+
+  if (loading) return <LoadingScreen />
+  if (error === 'no_auth') return <NoAuthScreen />
+  if (error) return <ErrorScreen message={error} />
+  if (!pass) return null
+
+  const nivelColor = pass.nivel ? NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' : '#6b7280'
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4">
+      {/* Header */}
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-slate-800">Hola, {pass.nombre} 👋</h1>
+          {pass.nivel && (
+            <span
+              className="inline-block mt-1 px-3 py-1 rounded-full text-white text-sm font-semibold"
+              style={{ backgroundColor: nivelColor }}
+            >
+              {pass.nivel.nombre}
+            </span>
+          )}
+        </div>
+
+        {/* Card del QR */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+          <div className="flex flex-col items-center">
+            {/* QR */}
+            <div className="relative">
+              <img
+                src={pass.otp.qrDataUrl}
+                alt="QR de validación"
+                className="w-52 h-52 rounded-xl"
+              />
+              {/* Countdown ring */}
+              <div className="absolute -bottom-2 -right-2 bg-slate-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold">
+                {countdown}
+              </div>
+            </div>
+
+            {/* Código numérico para fallback manual */}
+            <div className="mt-5 w-full">
+              <p className="text-xs text-center text-gray-400 mb-1">Código manual</p>
+              <div className="bg-gray-100 rounded-xl p-3 text-center">
+                <span className="text-3xl font-mono font-bold tracking-[0.3em] text-slate-800">
+                  {pass.otp.token}
+                </span>
+              </div>
+              <p className="text-xs text-center text-gray-400 mt-1">
+                Vence en {countdown}s · se actualiza automáticamente
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Estado del auto */}
+        {pass.estadoAuto && pass.estadoAuto.estado !== 'ENTREGADO' && (
+          <div
+            className="rounded-2xl p-4 mb-4 flex items-center gap-3"
+            style={{ backgroundColor: ESTADO_AUTO_COLORS[pass.estadoAuto.estado] + '22' }}
+          >
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: ESTADO_AUTO_COLORS[pass.estadoAuto.estado] }}
+            />
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">Tu auto</p>
+              <p className="text-slate-600 text-sm">
+                {ESTADO_AUTO_LABELS[pass.estadoAuto.estado]}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Beneficios activos */}
+        {pass.beneficiosActivos.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Beneficios disponibles
+            </h2>
+            <div className="space-y-2">
+              {pass.beneficiosActivos.map((b) => (
+                <div
+                  key={b.id}
+                  className="bg-white rounded-xl p-4 shadow-sm border border-green-100"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm">{b.nombre}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Mostrá este código al empleado
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-400 mt-4">
+          Fidelización Zona · {pass.phone}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-slate-800 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-500">Cargando tu pass...</p>
+      </div>
+    </div>
+  )
+}
+
+function NoAuthScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+      <div className="text-center max-w-xs">
+        <div className="text-5xl mb-4">🔒</div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Activá tu pass</h2>
+        <p className="text-gray-500 text-sm mb-6">
+          Para acceder a tu pass de fidelización necesitás activar tu cuenta primero.
+        </p>
+        <a
+          href="/activar"
+          className="block w-full bg-slate-800 text-white py-3 rounded-xl font-semibold text-center"
+        >
+          Activar mi cuenta
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+      <div className="text-center">
+        <div className="text-4xl mb-3">⚠️</div>
+        <p className="text-gray-600">{message}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 text-slate-800 underline text-sm"
+        >
+          Reintentar
+        </button>
+      </div>
+    </div>
+  )
+}

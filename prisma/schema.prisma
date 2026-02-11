@@ -1,0 +1,251 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────────
+
+enum EstadoCliente {
+  ACTIVO
+  PRE_REGISTRADO
+  INACTIVO
+}
+
+enum FuenteOrigen {
+  AIRES
+  LAVADERO
+  AUTOREGISTRO
+  MANUAL
+}
+
+enum TipoEvento {
+  VISITA
+  BENEFICIO_APLICADO
+  ESTADO_EXTERNO
+  ACTIVACION
+  ASISTENCIA_EVENTO
+}
+
+enum MetodoValidacion {
+  QR
+  OTP_MANUAL
+}
+
+enum EstadoAutoEnum {
+  RECIBIDO
+  EN_LAVADO
+  EN_SECADO
+  LISTO
+  ENTREGADO
+}
+
+enum EstadoEventoEspecial {
+  BORRADOR
+  PUBLICADO
+  CANCELADO
+  FINALIZADO
+}
+
+enum EstadoInscripcion {
+  CONFIRMADA
+  CANCELADA_SIN_PENALIDAD
+  CANCELADA_CON_PENALIDAD
+  ASISTIO
+  NO_ASISTIO
+}
+
+enum TipoNoticia {
+  INFO
+  BENEFICIO
+  NIVEL
+  EVENTO
+  ADVERTENCIA
+}
+
+// ─── Modelos ───────────────────────────────────────────────────────────────────
+
+model Cliente {
+  id               String        @id @default(uuid())
+  phone            String        @unique   // E.164: +5491112345678
+  nombre           String?
+  email            String?       @unique
+  estado           EstadoCliente @default(PRE_REGISTRADO)
+  nivelId          String?
+  nivel            Nivel?        @relation(fields: [nivelId], references: [id])
+  fuenteOrigen     FuenteOrigen  @default(AUTOREGISTRO)
+  consentimientoAt DateTime?
+  otpSecret        String?       // TOTP secret encriptado, se asigna al activar
+  pushSub          Json?         // Web Push subscription object
+  eventos          EventoScan[]
+  estadoAuto       EstadoAuto?
+  inscripciones    Inscripcion[]
+  noticias         Noticia[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([phone])
+  @@index([nivelId])
+}
+
+model Local {
+  id          String       @id @default(uuid())
+  nombre      String
+  tipo        String       // "cafeteria" | "lavadero" | "otro"
+  apiKey      String       @unique  // para autenticar requests del dispositivo del local
+  layoutMesas Json?        // JSON con coordenadas del mapa visual
+  activo      Boolean      @default(true)
+  eventos     EventoScan[]
+  mesas       Mesa[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Mesa {
+  id       String       @id @default(uuid())
+  localId  String
+  local    Local        @relation(fields: [localId], references: [id])
+  nombre   String       // "1", "2", "Barra", "Terraza 3"
+  posX     Float        // coordenada X en el layout visual (%)
+  posY     Float        // coordenada Y en el layout visual (%)
+  ancho    Float        // ancho en el layout (%)
+  alto     Float        // alto en el layout (%)
+  activa   Boolean      @default(true)
+  eventos  EventoScan[]
+
+  @@index([localId])
+}
+
+model Nivel {
+  id         String           @id @default(uuid())
+  nombre     String           @unique  // "Bronce" | "Plata" | "Oro" | "Platino"
+  orden      Int              @unique  // 1, 2, 3, 4 — para comparar
+  criterios  Json
+  // criterios: { visitas: 6, diasVentana: 30, usosCruzados: 0, visitasTotal: 0 }
+  clientes         Cliente[]
+  beneficios       NivelBeneficio[]
+  eventosEspeciales EventoEspecial[]
+  createdAt        DateTime         @default(now())
+}
+
+model Beneficio {
+  id                    String           @id @default(uuid())
+  nombre                String
+  descripcionCaja       String           // texto exacto para cargar en Aires
+  condiciones           Json
+  // condiciones: { maxPorDia: 1, maxPorMes: 3, duracionMinutos: 120 }
+  requiereEstadoExterno Boolean          @default(false)
+  estadoExternoTrigger  String?          // "EN_LAVADO" | "EN_SECADO"
+  localDestinoId        String?          // null = todos los locales
+  activo                Boolean          @default(true)
+  niveles               NivelBeneficio[]
+  eventos               EventoScan[]
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+}
+
+model NivelBeneficio {
+  nivelId     String
+  beneficioId String
+  nivel       Nivel     @relation(fields: [nivelId], references: [id])
+  beneficio   Beneficio @relation(fields: [beneficioId], references: [id])
+
+  @@id([nivelId, beneficioId])
+}
+
+model EventoScan {
+  id                 String           @id @default(uuid())
+  clienteId          String
+  cliente            Cliente          @relation(fields: [clienteId], references: [id])
+  localId            String
+  local              Local            @relation(fields: [localId], references: [id])
+  mesaId             String?
+  mesa               Mesa?            @relation(fields: [mesaId], references: [id])
+  timestamp          DateTime         @default(now())   // server-side, TZ fija
+  tipoEvento         TipoEvento
+  beneficioId        String?
+  beneficio          Beneficio?       @relation(fields: [beneficioId], references: [id])
+  metodoValidacion   MetodoValidacion
+  estadoExternoSnap  Json?            // snapshot del EstadoAuto al momento del scan
+  notas              String?
+  // false si supera el límite de 1 visita/día — se registra pero no cuenta para niveles
+  contabilizada      Boolean          @default(true)
+
+  @@index([clienteId])
+  @@index([localId])
+  @@index([timestamp])
+  @@index([clienteId, timestamp])       // para consultas de frecuencia/niveles
+  @@index([clienteId, contabilizada])   // para contar visitas reales
+}
+
+model EventoEspecial {
+  id               String               @id @default(uuid())
+  titulo           String
+  descripcion      String               // detalle del evento (markdown soportado)
+  fechaEvento      DateTime
+  lugarDetalle     String?              // "Salón principal de Coques"
+  nivelMinimoId    String               // nivel mínimo para inscribirse
+  nivelMinimo      Nivel                @relation(fields: [nivelMinimoId], references: [id])
+  cupoMaximo       Int
+  inscriptosCount  Int                  @default(0)  // contador para control de concurrencia
+  estado           EstadoEventoEspecial @default(BORRADOR)
+  imagenUrl        String?
+  inscripciones    Inscripcion[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([fechaEvento])
+  @@index([estado])
+}
+
+model Inscripcion {
+  id                String            @id @default(uuid())
+  clienteId         String
+  cliente           Cliente           @relation(fields: [clienteId], references: [id])
+  eventoId          String
+  evento            EventoEspecial    @relation(fields: [eventoId], references: [id])
+  estado            EstadoInscripcion @default(CONFIRMADA)
+  penalizadoAt      DateTime?         // cuando se aplicó la penalidad
+  visitasDescontadas Int              @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([clienteId, eventoId])     // un cliente solo se inscribe una vez por evento
+  @@index([eventoId])
+  @@index([clienteId])
+}
+
+model Noticia {
+  id         String      @id @default(uuid())
+  clienteId  String
+  cliente    Cliente     @relation(fields: [clienteId], references: [id])
+  titulo     String
+  cuerpo     String?
+  tipo       TipoNoticia @default(INFO)
+  leida      Boolean     @default(false)
+  accionUrl  String?     // link opcional dentro de la app
+  createdAt  DateTime    @default(now())
+
+  @@index([clienteId, leida])
+  @@index([clienteId, createdAt])
+}
+
+model EstadoAuto {
+  id            String         @id @default(uuid())
+  clienteId     String         @unique
+  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  estado        EstadoAutoEnum
+  localOrigenId String
+  patente       String?
+  notas         String?
+  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now())
+
+  @@index([clienteId])
+}
