@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
     // Generar OTP y QR
     const token = generarToken(cliente.otpSecret)
     const otpauthUrl = generarOtpauthUrl(cliente.otpSecret, cliente.nombre || cliente.phone)
-    const qrDataUrl = await QRCode.toDataURL(otpauthUrl, {
+    
+    // Generar QR con el token directamente (para scanner del local)
+    const qrDataUrl = await QRCode.toDataURL(token, {
       width: 280,
       margin: 2,
       color: { dark: '#1A3C5E', light: '#FFFFFF' },
