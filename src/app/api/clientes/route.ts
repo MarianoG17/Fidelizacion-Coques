@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { badRequest, serverError } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const crearClienteSchema = z.object({
   phone: z.string().regex(/^\+[1-9]\d{7,14}$/, 'El celular debe estar en formato E.164 (+5491112345678)'),
   nombre: z.string().min(1).optional(),

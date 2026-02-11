@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireLocalAuth, unauthorized, badRequest, serverError } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/mesas?localId=...
 // Requiere X-Local-Api-Key — el local solo ve sus propias mesas
 export async function GET(req: NextRequest) {

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { signClienteJWT, serverError, notFound, badRequest } from '@/lib/auth'
 import { generarSecretoOTP } from '@/lib/otp'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/clientes/:id/activar
 // El cliente confirma explícitamente su consentimiento
 export async function POST(

@@ -7,6 +7,8 @@ import { generarToken, generarOtpauthUrl, tiempoRestante } from '@/lib/otp'
 import { getBeneficiosActivos } from '@/lib/beneficios'
 import { ESTADO_AUTO_LABELS } from '@/types'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/pass — datos completos del Pass del cliente
 // Requiere Authorization: Bearer <jwt>
 export async function GET(req: NextRequest) {

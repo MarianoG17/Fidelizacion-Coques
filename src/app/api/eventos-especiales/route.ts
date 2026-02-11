@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireClienteAuth, serverError, badRequest } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const crearEventoSchema = z.object({
   titulo: z.string().min(3).max(100),
   descripcion: z.string().min(10),

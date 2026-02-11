@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getHaceNDias } from '@/lib/timezone'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 const DIAS_INACTIVIDAD = 90
 const JOB_SECRET = process.env.JOB_SECRET || 'dev-job-secret'
 

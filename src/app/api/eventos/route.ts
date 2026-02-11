@@ -6,6 +6,8 @@ import { requireLocalAuth, unauthorized, badRequest, serverError } from '@/lib/a
 import { evaluarNivel } from '@/lib/beneficios'
 import { getInicioHoyArgentina, getInicioMananaArgentina } from '@/lib/timezone'
 
+export const dynamic = 'force-dynamic'
+
 const crearEventoSchema = z.object({
   clienteId: z.string().uuid(),
   mesaId: z.string().uuid().optional().nullable(),

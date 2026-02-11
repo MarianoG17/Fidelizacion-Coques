@@ -7,6 +7,8 @@ import { validarToken } from '@/lib/otp'
 import { getBeneficiosActivos } from '@/lib/beneficios'
 import { ESTADO_AUTO_LABELS } from '@/types'
 
+export const dynamic = 'force-dynamic'
+
 const validarSchema = z.object({
   otp: z.string().length(6, 'El OTP debe tener 6 dígitos'),
   // localId se saca del auth, no del body — más seguro

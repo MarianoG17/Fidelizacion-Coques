@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireClienteAuth, unauthorized, badRequest, serverError } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const inscribirseSchema = z.object({
   eventoId: z.string().uuid(),
 })

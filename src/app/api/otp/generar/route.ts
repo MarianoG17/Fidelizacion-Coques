@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { requireClienteAuth, unauthorized, serverError } from '@/lib/auth'
 import { generarToken, generarOtpauthUrl, tiempoRestante } from '@/lib/otp'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/otp/generar
 // Requiere JWT del cliente en Authorization: Bearer <token>
 export async function GET(req: NextRequest) {

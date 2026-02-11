@@ -6,6 +6,8 @@ import { requireLavaderoAuth, unauthorized, badRequest, serverError } from '@/li
 import { triggerBeneficiosPorEstado } from '@/lib/beneficios'
 import { EstadoAutoEnum } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 const updateEstadoSchema = z.object({
   phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
   estado: z.enum(['RECIBIDO', 'EN_LAVADO', 'EN_SECADO', 'LISTO', 'ENTREGADO']),
