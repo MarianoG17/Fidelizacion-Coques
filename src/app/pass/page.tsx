@@ -80,21 +80,25 @@ export default function PassPage() {
         {/* Card del QR */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
           <div className="flex flex-col items-center">
-            {/* QR */}
-            <div className="relative">
+            {/* QR - SIN countdown sobre el QR para no interferir con el scanner */}
+            <div className="relative mb-3">
               <img
                 src={pass.otp.qrDataUrl}
                 alt="QR de validación"
-                className="w-52 h-52 rounded-xl"
+                className="w-56 h-56 rounded-xl"
               />
-              {/* Countdown ring */}
-              <div className="absolute -bottom-2 -right-2 bg-slate-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold">
+            </div>
+
+            {/* Countdown debajo del QR */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="bg-slate-800 text-white rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold">
                 {countdown}
               </div>
+              <span className="text-slate-600 text-sm">segundos restantes</span>
             </div>
 
             {/* Código numérico para fallback manual */}
-            <div className="mt-5 w-full">
+            <div className="w-full">
               <p className="text-xs text-center text-gray-400 mb-1">Código manual</p>
               <div className="bg-gray-100 rounded-xl p-3 text-center">
                 <span className="text-3xl font-mono font-bold tracking-[0.3em] text-slate-800">
@@ -102,7 +106,7 @@ export default function PassPage() {
                 </span>
               </div>
               <p className="text-xs text-center text-gray-400 mt-1">
-                Vence en {countdown}s · se actualiza automáticamente
+                Se actualiza automáticamente cada 30 segundos
               </p>
             </div>
           </div>
