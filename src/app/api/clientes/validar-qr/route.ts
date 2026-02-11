@@ -67,11 +67,10 @@ export async function POST(req: NextRequest) {
         id: cliente.id,
         nombre: cliente.nombre || 'Cliente',
         phone: cliente.phone,
-        puntos: cliente.puntos,
         nivel: cliente.nivel
-          ? { 
-              nombre: cliente.nivel.nombre, 
-              orden: cliente.nivel.orden 
+          ? {
+              nombre: cliente.nivel.nombre,
+              orden: cliente.nivel.orden
             }
           : null,
         beneficiosActivos: beneficios.map((b) => ({
