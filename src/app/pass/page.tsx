@@ -2,6 +2,7 @@
 // src/app/pass/page.tsx
 import { useEffect, useState, useCallback } from 'react'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
+import { formatearPatenteDisplay } from '@/lib/patente'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
@@ -65,6 +66,17 @@ export default function PassPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4">
       {/* Header */}
       <div className="w-full max-w-sm">
+        {/* Botón Volver */}
+        <button
+          onClick={() => (window.location.href = '/')}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-4 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="font-medium">Volver</span>
+        </button>
+
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Hola, {pass.nombre} 👋</h1>
           {pass.nivel && (
@@ -112,21 +124,63 @@ export default function PassPage() {
           </div>
         </div>
 
-        {/* Estado del auto */}
-        {pass.estadoAuto && pass.estadoAuto.estado !== 'ENTREGADO' && (
-          <div
-            className="rounded-2xl p-4 mb-4 flex items-center gap-3"
-            style={{ backgroundColor: ESTADO_AUTO_COLORS[pass.estadoAuto.estado] + '22' }}
-          >
-            <div
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: ESTADO_AUTO_COLORS[pass.estadoAuto.estado] }}
-            />
-            <div>
-              <p className="font-semibold text-slate-800 text-sm">Tu auto</p>
-              <p className="text-slate-600 text-sm">
-                {ESTADO_AUTO_LABELS[pass.estadoAuto.estado]}
-              </p>
+        {/* Autos del cliente */}
+        {pass.autos && pass.autos.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Mis autos
+            </h2>
+            <div className="space-y-2">
+              {pass.autos.map((auto) => (
+                <div
+                  key={auto.id}
+                  className={`rounded-2xl p-4 ${
+                    auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
+                      ? 'bg-white border-2 shadow-sm'
+                      : 'bg-gray-50 border border-gray-200'
+                  }`}
+                  style={
+                    auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
+                      ? { borderColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }
+                      : {}
+                  }
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-bold text-slate-800 text-lg">
+                          {formatearPatenteDisplay(auto.patente)}
+                        </p>
+                        {auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO' && (
+                          <div
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }}
+                          />
+                        )}
+                      </div>
+                      {(auto.marca || auto.modelo) && (
+                        <p className="text-sm text-gray-600">
+                          {[auto.marca, auto.modelo].filter(Boolean).join(' ')}
+                        </p>
+                      )}
+                      {auto.alias && (
+                        <p className="text-xs text-gray-500 italic mt-1">{auto.alias}</p>
+                      )}
+                    </div>
+                    {auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO' && (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">En lavadero</p>
+                        <p
+                          className="text-sm font-semibold"
+                          style={{ color: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }}
+                        >
+                          {ESTADO_AUTO_LABELS[auto.estadoActual.estado]}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

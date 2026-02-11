@@ -80,6 +80,17 @@ function ActivarContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-6">
       <div className="w-full max-w-sm">
+        {/* Botón Volver */}
+        <button
+          onClick={() => router.push('/')}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-6 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="font-medium">Volver</span>
+        </button>
+
         {/* Logo / marca */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">☕</div>

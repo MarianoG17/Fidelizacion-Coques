@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma'
 import { requireLocalAuth, unauthorized, badRequest, serverError } from '@/lib/auth'
 import { validarToken } from '@/lib/otp'
 import { getBeneficiosActivos } from '@/lib/beneficios'
-import { ESTADO_AUTO_LABELS } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +56,11 @@ export async function POST(req: NextRequest) {
       where: { id: clienteValido.id },
       include: {
         nivel: true,
-        estadoAuto: true,
+        autos: {
+          where: { activo: true },
+          include: { estadoActual: true },
+          orderBy: { updatedAt: 'desc' },
+        },
       },
     })
 
@@ -79,13 +82,19 @@ export async function POST(req: NextRequest) {
           requiereEstadoExterno: b!.requiereEstadoExterno,
           condiciones: b!.condiciones,
         })),
-        estadoAuto: cliente.estadoAuto
-          ? {
-              estado: cliente.estadoAuto.estado,
-              label: ESTADO_AUTO_LABELS[cliente.estadoAuto.estado],
-              updatedAt: cliente.estadoAuto.updatedAt.toISOString(),
-            }
-          : null,
+        autos: cliente.autos.map((auto) => ({
+          id: auto.id,
+          patente: auto.patente,
+          marca: auto.marca,
+          modelo: auto.modelo,
+          alias: auto.alias,
+          estadoActual: auto.estadoActual
+            ? {
+                estado: auto.estadoActual.estado,
+                updatedAt: auto.estadoActual.updatedAt.toISOString(),
+              }
+            : null,
+        })),
       },
     })
   } catch (error) {

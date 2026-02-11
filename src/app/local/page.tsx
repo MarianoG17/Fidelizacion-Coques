@@ -185,6 +185,18 @@ export default function LocalPage() {
   if (pantalla === 'scanner') {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
+        <div className="w-full max-w-sm mb-4">
+          <button
+            onClick={() => (window.location.href = '/')}
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="font-medium">Volver</span>
+          </button>
+        </div>
+
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
         <p className="text-slate-400 text-sm mb-8">Coques - Empleados</p>
 
@@ -334,22 +346,56 @@ export default function LocalPage() {
             </div>
           </div>
 
-          {/* Estado del auto */}
-          {c.estadoAuto && c.estadoAuto.estado !== 'ENTREGADO' && (
-            <div
-              className="rounded-2xl p-4 mb-4 border-2"
-              style={{
-                backgroundColor: ESTADO_AUTO_COLORS[c.estadoAuto.estado] + '15',
-                borderColor: ESTADO_AUTO_COLORS[c.estadoAuto.estado],
-              }}
-            >
-              <p className="font-bold text-slate-800 text-sm">🚗 Auto en el lavadero</p>
-              <p
-                className="font-semibold text-base mt-1"
-                style={{ color: ESTADO_AUTO_COLORS[c.estadoAuto.estado] }}
-              >
-                {ESTADO_AUTO_LABELS[c.estadoAuto.estado]}
-              </p>
+          {/* Autos del cliente */}
+          {c.autos && c.autos.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Autos registrados
+              </h3>
+              <div className="space-y-2">
+                {c.autos.map((auto) => (
+                  <div
+                    key={auto.id}
+                    className={`rounded-xl p-3 ${
+                      auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
+                        ? 'border-2'
+                        : 'border border-gray-200 bg-gray-50'
+                    }`}
+                    style={
+                      auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
+                        ? {
+                            backgroundColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] + '15',
+                            borderColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado],
+                          }
+                        : {}
+                    }
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {formatearPatenteDisplay(auto.patente)}
+                        </p>
+                        {(auto.marca || auto.modelo) && (
+                          <p className="text-sm text-gray-600">
+                            {[auto.marca, auto.modelo].filter(Boolean).join(' ')}
+                          </p>
+                        )}
+                      </div>
+                      {auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO' && (
+                        <div className="text-right">
+                          <p className="text-xs text-gray-600">En lavadero</p>
+                          <p
+                            className="font-semibold text-sm"
+                            style={{ color: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }}
+                          >
+                            {ESTADO_AUTO_LABELS[auto.estadoActual.estado]}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

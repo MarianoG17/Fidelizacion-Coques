@@ -1,12 +1,26 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+interface VisitaReciente {
+    id: string
+    clienteNombre: string
+    clienteNivel: string
+    mesa: string
+    local: string
+    fecha: string
+    tipoEvento: string
+    beneficio: string | null
+    beneficioDescripcion: string | null
+    contabilizada: boolean
+}
+
 interface MetricasData {
     totalClientes: number
     clientesActivos: number
     visitasUltimos30Dias: number
     distribucionNiveles: { nivel: string; count: number }[]
     eventosProximos: number
+    visitasRecientes: VisitaReciente[]
 }
 
 export function Metricas({ adminKey }: { adminKey: string }) {
@@ -103,6 +117,60 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                             </div>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            {/* Visitas recientes */}
+            <div className="bg-slate-800 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                    Visitas Recientes (últimas 50)
+                </h3>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-slate-700">
+                                <th className="text-left py-3 px-2 text-slate-400 font-medium">Cliente</th>
+                                <th className="text-left py-3 px-2 text-slate-400 font-medium">Nivel</th>
+                                <th className="text-left py-3 px-2 text-slate-400 font-medium">Mesa</th>
+                                <th className="text-left py-3 px-2 text-slate-400 font-medium">Fecha y Hora</th>
+                                <th className="text-left py-3 px-2 text-slate-400 font-medium">Beneficio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.visitasRecientes.map((visita) => (
+                                <tr key={visita.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                    <td className="py-3 px-2 text-white">{visita.clienteNombre}</td>
+                                    <td className="py-3 px-2">
+                                        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300">
+                                            {visita.clienteNivel}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-2 text-slate-300">{visita.mesa}</td>
+                                    <td className="py-3 px-2 text-slate-300">
+                                        {new Date(visita.fecha).toLocaleString('es-AR', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}
+                                    </td>
+                                    <td className="py-3 px-2">
+                                        {visita.beneficio ? (
+                                            <div>
+                                                <span className="text-green-400 font-medium">✓ {visita.beneficio}</span>
+                                                {visita.beneficioDescripcion && (
+                                                    <div className="text-xs text-slate-400 mt-1">{visita.beneficioDescripcion}</div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-500">-</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

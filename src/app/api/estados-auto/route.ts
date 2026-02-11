@@ -5,18 +5,22 @@ import { prisma } from '@/lib/prisma'
 import { requireLavaderoAuth, unauthorized, badRequest, serverError } from '@/lib/auth'
 import { triggerBeneficiosPorEstado } from '@/lib/beneficios'
 import { EstadoAutoEnum } from '@prisma/client'
+import { normalizarPatente } from '@/lib/patente'
 
 export const dynamic = 'force-dynamic'
 
 const updateEstadoSchema = z.object({
   phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
+  patente: z.string().min(1, 'Patente es requerida'),  // ahora es obligatoria
   estado: z.enum(['RECIBIDO', 'EN_LAVADO', 'EN_SECADO', 'LISTO', 'ENTREGADO']),
-  patente: z.string().optional(),
+  marca: z.string().optional(),
+  modelo: z.string().optional(),
   notas: z.string().optional(),
 })
 
 // POST /api/estados-auto — actualizar estado del auto desde el lavadero
 // Requiere header X-Api-Key con la API key del lavadero
+// Ahora trabaja con múltiples autos por cliente (phone + patente)
 export async function POST(req: NextRequest) {
   try {
     const local = await requireLavaderoAuth(req)
@@ -26,7 +30,11 @@ export async function POST(req: NextRequest) {
     const parsed = updateEstadoSchema.safeParse(body)
     if (!parsed.success) return badRequest(parsed.error.errors[0].message)
 
-    const { phone, estado, patente, notas } = parsed.data
+    const { phone, estado, patente, marca, modelo, notas } = parsed.data
+
+    // Normalizar patente
+    const patenteNormalizada = normalizarPatente(patente)
+    if (!patenteNormalizada) return badRequest('Patente inválida')
 
     // Buscar cliente por teléfono
     const cliente = await prisma.cliente.findUnique({
@@ -35,26 +43,56 @@ export async function POST(req: NextRequest) {
 
     if (!cliente) {
       // Si el cliente no existe en el sistema de fidelización,
-      // igualmente registramos el estado (puede activarse después)
+      // no podemos asignar el auto
       return NextResponse.json({
         data: null,
         message: 'Cliente no registrado en el sistema de fidelización',
       })
     }
 
+    // Buscar o crear el auto del cliente
+    let auto = await prisma.auto.findUnique({
+      where: {
+        clienteId_patente: {
+          clienteId: cliente.id,
+          patente: patenteNormalizada
+        }
+      },
+    })
+
+    if (!auto) {
+      // Crear nuevo auto para el cliente
+      auto = await prisma.auto.create({
+        data: {
+          clienteId: cliente.id,
+          patente: patenteNormalizada,
+          marca: marca || null,
+          modelo: modelo || null,
+        },
+      })
+      console.log(`[AUTO] Nuevo auto registrado: ${patenteNormalizada} para ${cliente.phone}`)
+    } else if (marca || modelo) {
+      // Actualizar marca/modelo si se proporcionan
+      auto = await prisma.auto.update({
+        where: { id: auto.id },
+        data: {
+          marca: marca || auto.marca,
+          modelo: modelo || auto.modelo,
+        },
+      })
+    }
+
     // Upsert del estado del auto
     const estadoAuto = await prisma.estadoAuto.upsert({
-      where: { clienteId: cliente.id },
+      where: { autoId: auto.id },
       update: {
         estado: estado as EstadoAutoEnum,
-        patente: patente || undefined,
         notas: notas || undefined,
         localOrigenId: local.id,
       },
       create: {
-        clienteId: cliente.id,
+        autoId: auto.id,
         estado: estado as EstadoAutoEnum,
-        patente: patente || null,
         notas: notas || null,
         localOrigenId: local.id,
       },
@@ -73,8 +111,8 @@ export async function POST(req: NextRequest) {
         localId: local.id,
         tipoEvento: 'ESTADO_EXTERNO',
         metodoValidacion: 'QR',
-        estadoExternoSnap: { estado, timestamp: new Date().toISOString() },
-        notas: `Estado actualizado a: ${estado}`,
+        estadoExternoSnap: { estado, patente: patenteNormalizada, timestamp: new Date().toISOString() },
+        notas: `Auto ${patenteNormalizada}: ${estado}`,
       },
     })
 
@@ -87,12 +125,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (estado === 'LISTO') {
-      console.log(`[NOTIF] Auto de ${cliente.phone} listo para retirar`)
-      // notifPush(cliente.id, '🚗 Tu auto está listo para retirar')
+      console.log(`[NOTIF] Auto ${patenteNormalizada} de ${cliente.phone} listo para retirar`)
+      // notifPush(cliente.id, `🚗 Tu auto ${patenteNormalizada} está listo para retirar`)
     }
 
     return NextResponse.json({
-      data: estadoAuto,
+      data: {
+        auto: {
+          id: auto.id,
+          patente: auto.patente,
+          marca: auto.marca,
+          modelo: auto.modelo,
+        },
+        estadoAuto,
+      },
       beneficiosDisparados: beneficiosTriggereados.map((b) => ({
         id: b.id,
         nombre: b.nombre,
@@ -104,7 +150,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/estados-auto?clienteId=...
+// GET /api/estados-auto?clienteId=... — obtener todos los autos del cliente
 export async function GET(req: NextRequest) {
   try {
     const clienteId = req.nextUrl.searchParams.get('clienteId')
@@ -112,14 +158,23 @@ export async function GET(req: NextRequest) {
 
     if (!clienteId && !phone) return badRequest('Se requiere clienteId o phone')
 
-    const where = clienteId ? { clienteId } : { cliente: { phone: phone! } }
+    // Buscar cliente
+    const cliente = clienteId
+      ? await prisma.cliente.findUnique({ where: { id: clienteId } })
+      : await prisma.cliente.findUnique({ where: { phone: phone! } })
 
-    const estadoAuto = await prisma.estadoAuto.findFirst({
-      where,
-      include: { cliente: { select: { nombre: true, phone: true } } },
+    if (!cliente) return badRequest('Cliente no encontrado')
+
+    // Obtener todos los autos del cliente con sus estados
+    const autos = await prisma.auto.findMany({
+      where: { clienteId: cliente.id, activo: true },
+      include: {
+        estadoActual: true,
+      },
+      orderBy: { updatedAt: 'desc' },
     })
 
-    return NextResponse.json({ data: estadoAuto })
+    return NextResponse.json({ data: autos })
   } catch (error) {
     console.error('[GET /api/estados-auto]', error)
     return serverError()

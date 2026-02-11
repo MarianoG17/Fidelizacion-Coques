@@ -72,7 +72,18 @@ export default function AdminPage() {
             {/* Header */}
             <div className="bg-slate-800 border-b border-slate-700">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <h1 className="text-xl font-bold text-white">Panel Admin - Coques Points</h1>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => (window.location.href = '/')}
+                            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            <span className="font-medium">Volver</span>
+                        </button>
+                        <h1 className="text-xl font-bold text-white">Panel Admin - Coques Points</h1>
+                    </div>
                     <button
                         onClick={logout}
                         className="text-slate-400 hover:text-white text-sm transition"

@@ -19,7 +19,7 @@ export interface PassData {
     orden: number
   } | null
   beneficiosActivos: BeneficioActivo[]
-  estadoAuto: EstadoAutoData | null
+  autos: AutoData[]  // todos los autos del cliente
   otp: {
     token: string
     qrDataUrl: string       // base64 del QR
@@ -36,6 +36,15 @@ export interface BeneficioActivo {
   condiciones: Record<string, unknown>
 }
 
+export interface AutoData {
+  id: string
+  patente: string
+  marca?: string
+  modelo?: string
+  alias?: string
+  estadoActual?: EstadoAutoData | null
+}
+
 export interface EstadoAutoData {
   estado: 'RECIBIDO' | 'EN_LAVADO' | 'EN_SECADO' | 'LISTO' | 'ENTREGADO'
   updatedAt: string
@@ -50,7 +59,7 @@ export interface ValidacionResult {
     nombre: string
     nivel: string | null
     beneficiosActivos: BeneficioActivo[]
-    estadoAuto: EstadoAutoData | null
+    autos: AutoData[]  // todos los autos del cliente
   }
   error?: string
 }

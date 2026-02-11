@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
             visitasUltimos30Dias,
             distribucionNiveles,
             eventosProximos,
+            visitasRecientes,
         ] = await Promise.all([
             // Total clientes
             prisma.cliente.count(),
@@ -48,6 +49,36 @@ export async function GET(req: NextRequest) {
                     fechaEvento: { gte: new Date() },
                 },
             }),
+
+            // Visitas recientes con detalles (últimas 50)
+            prisma.eventoScan.findMany({
+                where: {
+                    tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
+                },
+                include: {
+                    cliente: {
+                        select: {
+                            nombre: true,
+                            phone: true,
+                            nivel: { select: { nombre: true } },
+                        },
+                    },
+                    mesa: {
+                        select: { nombre: true },
+                    },
+                    local: {
+                        select: { nombre: true },
+                    },
+                    beneficio: {
+                        select: {
+                            nombre: true,
+                            descripcionCaja: true,
+                        },
+                    },
+                },
+                orderBy: { timestamp: 'desc' },
+                take: 50,
+            }),
         ])
 
         return NextResponse.json({
@@ -59,6 +90,18 @@ export async function GET(req: NextRequest) {
                 distribucionNiveles: distribucionNiveles.map((n) => ({
                     nivel: n.nombre,
                     count: n._count.clientes,
+                })),
+                visitasRecientes: visitasRecientes.map((v) => ({
+                    id: v.id,
+                    clienteNombre: v.cliente.nombre || v.cliente.phone,
+                    clienteNivel: v.cliente.nivel?.nombre || 'Sin nivel',
+                    mesa: v.mesa?.nombre || 'Sin mesa',
+                    local: v.local.nombre,
+                    fecha: v.timestamp.toISOString(),
+                    tipoEvento: v.tipoEvento,
+                    beneficio: v.beneficio?.nombre || null,
+                    beneficioDescripcion: v.beneficio?.descripcionCaja || null,
+                    contabilizada: v.contabilizada,
                 })),
             },
         })

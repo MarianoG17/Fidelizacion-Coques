@@ -14,12 +14,15 @@ export default function QRScanner({ onScan, onError, isActive }: QRScannerProps)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        // Si no está activo, detener y limpiar
         if (!isActive) {
-            // Detener el scanner si está inactivo
             if (scannerRef.current && isScanning) {
+                console.log('[QRScanner] Deteniendo scanner...')
                 scannerRef.current
                     .stop()
                     .then(() => {
+                        console.log('[QRScanner] Scanner detenido')
+                        scannerRef.current = null
                         setIsScanning(false)
                     })
                     .catch((err) => console.error('Error stopping scanner:', err))
@@ -27,7 +30,14 @@ export default function QRScanner({ onScan, onError, isActive }: QRScannerProps)
             return
         }
 
+        // Si ya hay un scanner activo, no crear otro
+        if (scannerRef.current || isScanning) {
+            console.log('[QRScanner] Scanner ya está activo, evitando duplicado')
+            return
+        }
+
         // Inicializar el scanner
+        console.log('[QRScanner] Iniciando scanner...')
         const scanner = new Html5Qrcode('qr-reader')
         scannerRef.current = scanner
     
@@ -64,14 +74,19 @@ export default function QRScanner({ onScan, onError, isActive }: QRScannerProps)
             console.error('[QRScanner] Error starting scanner:', err)
             setError('No se pudo acceder a la cámara. Asegurate de dar permisos.')
             onError?.(err.toString())
+            scannerRef.current = null
           })
 
+        // Cleanup al desmontar o cuando isActive cambia
         return () => {
-            if (scannerRef.current && isScanning) {
+            if (scannerRef.current) {
+                console.log('[QRScanner] Limpiando scanner...')
                 scannerRef.current
                     .stop()
                     .then(() => {
+                        console.log('[QRScanner] Scanner limpiado')
                         scannerRef.current = null
+                        setIsScanning(false)
                     })
                     .catch((err) => console.error('Error cleaning up scanner:', err))
             }

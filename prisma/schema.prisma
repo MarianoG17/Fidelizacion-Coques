@@ -84,7 +84,7 @@ model Cliente {
   otpSecret        String?       // TOTP secret encriptado, se asigna al activar
   pushSub          Json?         // Web Push subscription object
   eventos          EventoScan[]
-  estadoAuto       EstadoAuto?
+  autos            Auto[]        // un cliente puede tener múltiples autos
   inscripciones    Inscripcion[]
   noticias         Noticia[]
   createdAt        DateTime      @default(now())
@@ -236,16 +236,36 @@ model Noticia {
   @@index([clienteId, createdAt])
 }
 
+// Modelo Auto — permite múltiples autos por cliente
+model Auto {
+  id            String         @id @default(uuid())
+  clienteId     String
+  cliente       Cliente        @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  patente       String         // patente normalizada (ABC123)
+  marca         String?        // ej: Toyota, Ford
+  modelo        String?        // ej: Corolla, Fiesta
+  alias         String?        // nombre que le pone el cliente: "Auto de trabajo"
+  activo        Boolean        @default(true)
+  estadoActual  EstadoAuto?    // relación 1:1 con el estado actual
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([clienteId, patente])  // un cliente no puede tener dos autos con la misma patente
+  @@index([clienteId])
+  @@index([patente])
+}
+
+// Estado actual del auto en el lavadero
 model EstadoAuto {
   id            String         @id @default(uuid())
-  clienteId     String         @unique
-  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  autoId        String         @unique
+  auto          Auto           @relation(fields: [autoId], references: [id], onDelete: Cascade)
   estado        EstadoAutoEnum
   localOrigenId String
-  patente       String?
   notas         String?
   updatedAt     DateTime       @updatedAt
   createdAt     DateTime       @default(now())
 
-  @@index([clienteId])
+  @@index([autoId])
+  @@index([estado])
 }
