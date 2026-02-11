@@ -1,10 +1,10 @@
 'use client'
 // src/app/activar/page.tsx
 // Página de onboarding — el cliente activa su cuenta con consentimiento explícito
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function ActivarPage() {
+function ActivarContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const clienteId = searchParams.get('id')
@@ -169,5 +169,17 @@ export default function ActivarPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function ActivarPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-500">Cargando...</div>
+      </div>
+    }>
+      <ActivarContent />
+    </Suspense>
   )
 }
