@@ -30,8 +30,13 @@ export async function POST(req: NextRequest) {
 
     const cliente = await prisma.cliente.findUnique({
       where: { id: clienteId, estado: 'ACTIVO' },
-      include: { estadoAuto: true },
-    })
+      include: {
+        autos: {
+          where: { activo: true },
+          include: { estadoActual: true },
+        }
+      },
+    }) as any
     if (!cliente) return badRequest('Cliente no encontrado o inactivo')
 
     // Límite 1 visita por día en TZ Argentina
@@ -67,11 +72,12 @@ export async function POST(req: NextRequest) {
         metodoValidacion,
         notas: notas || undefined,
         contabilizada,
-        ...(cliente.estadoAuto
+        ...(cliente.autos && cliente.autos.length > 0 && cliente.autos[0].estadoActual
           ? {
               estadoExternoSnap: {
-                estado: cliente.estadoAuto.estado,
-                updatedAt: cliente.estadoAuto.updatedAt.toISOString(),
+                estado: cliente.autos[0].estadoActual.estado,
+                updatedAt: cliente.autos[0].estadoActual.updatedAt.toISOString(),
+                patente: cliente.autos[0].patente,
               },
             }
           : {}),
