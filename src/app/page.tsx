@@ -3,97 +3,134 @@ import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-6">
-      <div className="max-w-2xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center px-4 py-12">
+      <div className="max-w-6xl w-full">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="text-6xl mb-4">☕🚗</div>
-          <h1 className="text-4xl font-bold text-white mb-3">
+        <div className="text-center mb-16 animate-fade-in">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <span className="text-7xl">☕</span>
+            <span className="text-7xl">🚗</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-black text-white mb-4 drop-shadow-2xl">
             Fidelización Zona
           </h1>
-          <p className="text-slate-300 text-lg">
-            Sistema de beneficios Coques + Lavadero
+          <p className="text-xl text-white/90 font-medium">
+            Sistema integrado Coques + Lavadero
           </p>
         </div>
 
-        {/* Links Grid */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {/* Cliente */}
-          <Link
-            href="/pass"
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-6 transition-all border border-white/20 hover:border-white/30 group"
-          >
-            <div className="text-3xl mb-3">🎫</div>
-            <h2 className="text-xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors">
-              Mi Pass
+        <div className="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto">
+          {/* ========== SECCIÓN CLIENTES ========== */}
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-6 text-center">
+              👥 Para Clientes
             </h2>
-            <p className="text-slate-400 text-sm">
-              Accedé a tu tarjeta de fidelización
-            </p>
-          </Link>
+            <div className="space-y-4">
+              <Link
+                href="/pass"
+                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative">
+                  <div className="text-5xl mb-4">🎫</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    Mi Pass
+                  </h3>
+                  <p className="text-gray-600">
+                    Accedé a tu tarjeta de fidelización digital con QR
+                  </p>
+                </div>
+              </Link>
 
-          {/* Activar cuenta */}
-          <Link
-            href="/activar"
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-6 transition-all border border-white/20 hover:border-white/30 group"
-          >
-            <div className="text-3xl mb-3">✨</div>
-            <h2 className="text-xl font-bold text-white mb-2 group-hover:text-green-300 transition-colors">
-              Activar Cuenta
+              <Link
+                href="/activar"
+                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative">
+                  <div className="text-5xl mb-4">✨</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    Activar Cuenta
+                  </h3>
+                  <p className="text-gray-600">
+                    Registrate y empezá a acumular beneficios
+                  </p>
+                </div>
+              </Link>
+            </div>
+
+            <div className="mt-6 bg-white/10 backdrop-blur-lg rounded-2xl p-5 border border-white/30">
+              <h4 className="text-white font-bold text-sm mb-2">📱 Cliente de prueba</h4>
+              <p className="text-white/80 text-sm">
+                Tel: <code className="bg-black/20 px-2 py-1 rounded">+5491112345678</code>
+              </p>
+            </div>
+          </div>
+
+          {/* ========== SECCIÓN STAFF ========== */}
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-6 text-center">
+              👨‍💼 Para Staff
             </h2>
-            <p className="text-slate-400 text-sm">
-              Registrate y empezá a acumular beneficios
-            </p>
-          </Link>
+            <div className="space-y-4">
+              <Link
+                href="/local"
+                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative">
+                  <div className="text-5xl mb-4">☕</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    App Coques
+                  </h3>
+                  <p className="text-gray-600">
+                    Scanner QR y registro de visitas
+                  </p>
+                </div>
+              </Link>
 
-          {/* Local Coques */}
-          <Link
-            href="/local"
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-6 transition-all border border-white/20 hover:border-white/30 group"
-          >
-            <div className="text-3xl mb-3">☕</div>
-            <h2 className="text-xl font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">
-              App Local Coques
-            </h2>
-            <p className="text-slate-400 text-sm">
-              Para el personal del café
-            </p>
-          </Link>
+              <Link
+                href="/lavadero"
+                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative">
+                  <div className="text-5xl mb-4">🚗</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    Panel Lavadero
+                  </h3>
+                  <p className="text-gray-600">
+                    Gestión de estados de autos
+                  </p>
+                </div>
+              </Link>
 
-          {/* Lavadero */}
-          <Link
-            href="/lavadero"
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-6 transition-all border border-white/20 hover:border-white/30 group"
-          >
-            <div className="text-3xl mb-3">🚗</div>
-            <h2 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">
-              Panel Lavadero
-            </h2>
-            <p className="text-slate-400 text-sm">
-              Gestión de estados de autos
-            </p>
-          </Link>
+              <Link
+                href="/admin"
+                className="block group relative bg-white rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative">
+                  <div className="text-5xl mb-4">⚙️</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    Administración
+                  </h3>
+                  <p className="text-gray-600">
+                    Métricas, clientes y eventos
+                  </p>
+                </div>
+              </Link>
+            </div>
 
-          {/* Admin */}
-          <Link
-            href="/admin"
-            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-6 transition-all border border-white/20 hover:border-white/30 group sm:col-span-2"
-          >
-            <div className="text-3xl mb-3">⚙️</div>
-            <h2 className="text-xl font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
-              Panel Admin
-            </h2>
-            <p className="text-slate-400 text-sm">
-              Métricas, clientes y gestión de eventos especiales
-            </p>
-          </Link>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-12">
-          <p className="text-slate-500 text-sm">
-            Sistema de fidelización integrado para Coques y Lavadero
-          </p>
+            <div className="mt-6 bg-white/10 backdrop-blur-lg rounded-2xl p-5 border border-white/30">
+              <h4 className="text-white font-bold text-sm mb-2">🔑 API Keys de prueba</h4>
+              <div className="space-y-1 text-white/80 text-xs">
+                <p><strong>Coques:</strong> <code className="bg-black/20 px-1.5 py-0.5 rounded text-[10px]">coques-api-key-dev-change-in-prod</code></p>
+                <p><strong>Lavadero:</strong> <code className="bg-black/20 px-1.5 py-0.5 rounded text-[10px]">lavadero-api-key-dev-change-in-prod</code></p>
+                <p><strong>Admin:</strong> Header <code className="bg-black/20 px-1.5 py-0.5 rounded text-[10px]">x-admin-key</code></p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
