@@ -1,7 +1,15 @@
 /* src/app/globals.css */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #EAF4FB;
+  --color-brand-100: #C5E1F5;
+  --color-brand-500: #2E7D9E;
+  --color-brand-800: #1A3C5E;
+  --color-brand-900: #0F2340;
+
+  --font-family-mono: var(--font-mono), 'Courier New', monospace;
+}
 
 :root {
   --foreground-rgb: 0, 0, 0;
