@@ -1,0 +1,32 @@
+-- Script para crear las mesas de Coques con el LOCAL_ID correcto
+-- COPIAR Y EJECUTAR DIRECTAMENTE EN NEON (sin los comentarios si querés)
+
+INSERT INTO "Mesa" (id, "localId", nombre, "posX", "posY", ancho, alto, activa) VALUES
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S1', 2, 2, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S3', 12, 2, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S5', 22, 2, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S7', 32, 2, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S2', 2, 12, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S4', 12, 12, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S6', 22, 12, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S8', 45, 5, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S9', 42, 15, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S10', 42, 25, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S11', 38, 35, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S12', 38, 45, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'G21', 70, 12, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'G22', 70, 24, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'G23', 82, 18, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S13', 48, 58, 8, 8, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S25', 38, 75, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S21', 46, 75, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S24', 38, 83, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S20', 46, 83, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S23', 38, 91, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S19', 46, 91, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S22', 38, 99, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S18', 46, 99, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S17', 26, 82, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S16', 26, 95, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S14', 58, 72, 7, 7, true),
+(gen_random_uuid(), '65ceb6c8-cf0b-4e9b-8ed3-0bca399332df', 'S15', 65, 92, 7, 7, true);

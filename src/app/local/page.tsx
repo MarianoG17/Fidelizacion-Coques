@@ -1,6 +1,6 @@
 'use client'
 // src/app/local/page.tsx
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { ValidacionResult, MesaLayout, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
@@ -25,10 +25,54 @@ export default function LocalPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [eventoRegistrado, setEventoRegistrado] = useState(false)
   const [scannerActivo, setScannerActivo] = useState(true)
+  const [mesas, setMesas] = useState<MesaLayout[]>([])
+  const [cargandoMesas, setCargandoMesas] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Layout del salón según imagen - Coordenadas aproximadas en %
-  const mesas: MesaLayout[] = [
+  // Cargar mesas desde la base de datos
+  useEffect(() => {
+    console.log('[Local] Iniciando carga de mesas...')
+    async function cargarMesas() {
+      try {
+        console.log('[Local] Llamando a /api/mesas con API key:', LOCAL_API_KEY ? 'Configurada' : 'NO CONFIGURADA')
+        const res = await fetch('/api/mesas', {
+          headers: { 'x-local-api-key': LOCAL_API_KEY },
+        })
+        console.log('[Local] Respuesta de /api/mesas:', res.status, res.statusText)
+
+        if (res.ok) {
+          const data = await res.json()
+          console.log('[Local] Mesas cargadas desde DB:', data.data.mesas.length)
+          const mesasMapeadas = data.data.mesas.map((m: any) => ({
+            id: m.id,
+            nombre: m.nombre,
+            posX: m.posX,
+            posY: m.posY,
+            ancho: m.ancho,
+            alto: m.alto,
+            activa: true,
+          }))
+          console.log('[Local] Primera mesa:', mesasMapeadas[0])
+          setMesas(mesasMapeadas)
+        } else {
+          const errorText = await res.text()
+          console.error('[Local] Error al cargar mesas:', res.status, errorText)
+          console.log('[Local] Usando mesas FALLBACK (hardcodeadas)')
+          setMesas(MESAS_FALLBACK)
+        }
+      } catch (error) {
+        console.error('[Local] Excepción al cargar mesas:', error)
+        console.log('[Local] Usando mesas FALLBACK (hardcodeadas)')
+        setMesas(MESAS_FALLBACK)
+      } finally {
+        setCargandoMesas(false)
+      }
+    }
+    cargarMesas()
+  }, [])
+
+  // Mesas fallback (solo se usan si falla la API)
+  const MESAS_FALLBACK: MesaLayout[] = [
     // Fila superior izquierda
     { id: 's1', nombre: 'S1', posX: 2, posY: 2, ancho: 8, alto: 8, activa: true },
     { id: 's3', nombre: 'S3', posX: 12, posY: 2, ancho: 8, alto: 8, activa: true },
@@ -142,9 +186,9 @@ export default function LocalPage() {
         beneficioId: beneficioSeleccionado,
         metodoValidacion: metodoInput === 'qr' ? 'QR' : 'OTP_MANUAL',
       }
-      
+
       console.log('Enviando evento:', payload)
-      
+
       const res = await fetch('/api/eventos', {
         method: 'POST',
         headers: {
@@ -153,14 +197,14 @@ export default function LocalPage() {
         },
         body: JSON.stringify(payload),
       })
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         console.error('Error al registrar evento:', res.status, errorData)
         setErrorMsg(`Error al registrar evento: ${errorData.error || res.statusText}`)
         return
       }
-      
+
       const data = await res.json()
       console.log('Evento registrado:', data)
       setEventoRegistrado(true)
@@ -372,17 +416,16 @@ export default function LocalPage() {
                 {c.autos.map((auto) => (
                   <div
                     key={auto.id}
-                    className={`rounded-xl p-3 ${
-                      auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
-                        ? 'border-2'
-                        : 'border border-gray-200 bg-gray-50'
-                    }`}
+                    className={`rounded-xl p-3 ${auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
+                      ? 'border-2'
+                      : 'border border-gray-200 bg-gray-50'
+                      }`}
                     style={
                       auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
                         ? {
-                            backgroundColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] + '15',
-                            borderColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado],
-                          }
+                          backgroundColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] + '15',
+                          borderColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado],
+                        }
                         : {}
                     }
                   >
@@ -426,18 +469,16 @@ export default function LocalPage() {
                   <button
                     key={b.id}
                     onClick={() => setBeneficioSeleccionado(beneficioSeleccionado === b.id ? null : b.id)}
-                    className={`w-full text-left rounded-xl p-4 border-2 transition-all ${
-                      beneficioSeleccionado === b.id
-                        ? 'bg-green-100 border-green-500 shadow-md'
-                        : 'bg-green-50 border-green-200 hover:border-green-400'
-                    }`}
+                    className={`w-full text-left rounded-xl p-4 border-2 transition-all ${beneficioSeleccionado === b.id
+                      ? 'bg-green-100 border-green-500 shadow-md'
+                      : 'bg-green-50 border-green-200 hover:border-green-400'
+                      }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        beneficioSeleccionado === b.id
-                          ? 'bg-green-500 border-green-500'
-                          : 'border-gray-300'
-                      }`}>
+                      <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${beneficioSeleccionado === b.id
+                        ? 'bg-green-500 border-green-500'
+                        : 'border-gray-300'
+                        }`}>
                         {beneficioSeleccionado === b.id && (
                           <span className="text-white text-xs">✓</span>
                         )}
