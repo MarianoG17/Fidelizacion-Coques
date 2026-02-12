@@ -14,24 +14,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { requireClienteAuth, unauthorized } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
-// Cliente Prisma para DeltaWash Legacy
-const deltaWashDB = new PrismaClient({
-    datasources: {
-        db: {
-            url: process.env.DELTAWASH_DATABASE_URL,
-        },
-    },
-}) as any;
+export const dynamic = 'force-dynamic';
 
-// Cliente Prisma local (Fidelización Coques)
-const localDB = new PrismaClient({
-    datasources: {
-        db: {
-            url: process.env.DATABASE_URL,
+// Función para obtener cliente DeltaWash (lazy initialization)
+function getDeltaWashDB() {
+    if (!process.env.DELTAWASH_DATABASE_URL) {
+        return null;
+    }
+    return new PrismaClient({
+        datasources: {
+            db: {
+                url: process.env.DELTAWASH_DATABASE_URL,
+            },
         },
-    },
-}) as any;
+    }) as any;
+}
 
 interface AutoEnLavadero {
     patente: string;
@@ -46,15 +45,16 @@ interface AutoEnLavadero {
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  try {
-    // SEGURIDAD: Obtener teléfono del JWT autenticado
-    const payload = await requireClienteAuth(req);
-    if (!payload) return unauthorized('Debes iniciar sesión');
+    try {
+        // SEGURIDAD: Obtener teléfono del JWT autenticado
+        const payload = await requireClienteAuth(req);
+        if (!payload) return unauthorized('Debes iniciar sesión');
 
-    const phone = payload.phone;
+        const phone = payload.phone;
 
         // Verificar que la integración esté configurada
-        if (!process.env.DELTAWASH_DATABASE_URL) {
+        const deltaWashDB = getDeltaWashDB();
+        if (!deltaWashDB) {
             return NextResponse.json(
                 {
                     error: 'Integración con DeltaWash no configurada',
