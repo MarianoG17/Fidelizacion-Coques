@@ -249,20 +249,18 @@ function LoadingScreen() {
 }
 
 function NoAuthScreen() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    // Redirigir automáticamente a login
+    router.push('/login')
+  }, [router])
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-      <div className="text-center max-w-xs">
-        <div className="text-5xl mb-4">🔒</div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Activá tu pass</h2>
-        <p className="text-gray-500 text-sm mb-6">
-          Para acceder a tu pass de fidelización necesitás activar tu cuenta primero.
-        </p>
-        <a
-          href="/activar"
-          className="block w-full bg-slate-800 text-white py-3 rounded-xl font-semibold text-center"
-        >
-          Activar mi cuenta
-        </a>
+      <div className="text-center">
+        <div className="text-5xl mb-4">🔄</div>
+        <p className="text-gray-600">Redirigiendo a inicio de sesión...</p>
       </div>
     </div>
   )

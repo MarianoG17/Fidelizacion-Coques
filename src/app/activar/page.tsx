@@ -275,15 +275,6 @@ function ActivarContent() {
             {paso === 'confirmando' ? 'Creando cuenta...' : 'Crear mi cuenta gratis'}
           </button>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              ¿Ya tenés cuenta?{' '}
-              <a href="/login" className="text-slate-800 font-semibold hover:underline">
-                Iniciá sesión
-              </a>
-            </p>
-          </div>
-
           <p className="text-center text-xs text-gray-400 mt-4">
             Podés darte de baja en cualquier momento
           </p>

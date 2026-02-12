@@ -72,8 +72,8 @@ export default function HomePage() {
                       <div className="flex items-center gap-4">
                         <div className="text-5xl">✨</div>
                         <div>
-                          <h3 className="text-3xl font-bold text-green-600 mb-1">Activar Cuenta</h3>
-                          <p className="text-gray-600">Registrate gratis</p>
+                          <h3 className="text-3xl font-bold text-green-600 mb-1">Registrarse</h3>
+                          <p className="text-gray-600">Creá tu cuenta gratis</p>
                         </div>
                       </div>
                       <div className="text-4xl text-green-400 group-hover:scale-110 transition-transform">
