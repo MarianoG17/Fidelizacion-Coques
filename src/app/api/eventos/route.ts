@@ -12,7 +12,7 @@ const crearEventoSchema = z.object({
   clienteId: z.string().uuid(),
   mesaId: z.string().uuid().optional().nullable(),
   tipoEvento: z.enum(['VISITA', 'BENEFICIO_APLICADO', 'ESTADO_EXTERNO']),
-  beneficioId: z.string().uuid().optional().nullable(),
+  beneficioId: z.string().optional().nullable(),  // Acepta cualquier string (no solo UUID)
   metodoValidacion: z.enum(['QR', 'OTP_MANUAL']),
   notas: z.string().optional(),
 })
