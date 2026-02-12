@@ -76,6 +76,7 @@ model Cliente {
   phone            String        @unique   // E.164: +5491112345678
   nombre           String?
   email            String?       @unique
+  password         String?       // bcrypt hasheado
   estado           EstadoCliente @default(PRE_REGISTRADO)
   nivelId          String?
   nivel            Nivel?        @relation(fields: [nivelId], references: [id])

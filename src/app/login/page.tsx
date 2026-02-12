@@ -5,79 +5,67 @@ import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [paso, setPaso] = useState<'phone' | 'otp' | 'loading'>('phone')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function solicitarOTP() {
-    if (!phone) {
-      setError('Ingresá tu número de celular')
+  function validarEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  async function iniciarSesion() {
+    // Validaciones
+    if (!email.trim()) {
+      setError('El email es requerido')
+      return
+    }
+    if (!validarEmail(email)) {
+      setError('Email inválido')
+      return
+    }
+    if (!password) {
+      setError('La contraseña es requerida')
       return
     }
 
-    setPaso('loading')
+    setLoading(true)
     setError('')
 
     try {
-      const phoneFormatted = phone.startsWith('+') ? phone : `+549${phone.replace(/\D/g, '')}`
-      
-      const res = await fetch('/api/otp/generar', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneFormatted }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Error al enviar código')
-      }
-
-      setPaso('otp')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al enviar código')
-      setPaso('phone')
-    }
-  }
-
-  async function validarOTP() {
-    if (!otp) {
-      setError('Ingresá el código de 6 dígitos')
-      return
-    }
-
-    setPaso('loading')
-    setError('')
-
-    try {
-      const phoneFormatted = phone.startsWith('+') ? phone : `+549${phone.replace(/\D/g, '')}`
-      
-      const res = await fetch('/api/otp/validar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-local-api-key': process.env.NEXT_PUBLIC_LOCAL_API_KEY || '',
-        },
-        body: JSON.stringify({ phone: phoneFormatted, otp }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok || !data.valido) {
-        throw new Error('Código incorrecto')
+        throw new Error(data.error || 'Error al iniciar sesión')
       }
 
       // Guardar token en localStorage
-      if (data.cliente?.token) {
-        localStorage.setItem('fidelizacion_token', data.cliente.token)
+      if (data.data?.token) {
+        localStorage.setItem('fidelizacion_token', data.data.token)
         router.push('/pass')
       } else {
         throw new Error('No se recibió token de autenticación')
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al validar código')
-      setPaso('otp')
+      setError(e instanceof Error ? e.message : 'Error al iniciar sesión')
+      setLoading(false)
+    }
+  }
+
+  function handleKeyPress(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !loading) {
+      iniciarSesion()
     }
   }
 
@@ -105,109 +93,91 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Phone Step */}
-        {paso === 'phone' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número de Celular
-              </label>
+        {/* Form */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="tu@email.com"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              autoFocus
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Contraseña
+            </label>
+            <div className="relative">
               <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="2615551234"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                autoFocus
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Tu contraseña"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none pr-12"
+                disabled={loading}
               />
-              <p className="mt-2 text-sm text-gray-500">
-                Sin 0, sin 15, sin espacios
-              </p>
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            <button
-              onClick={solicitarOTP}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Enviar Código
-            </button>
-
-            <div className="text-center">
-              <a
-                href="/activar"
-                className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                disabled={loading}
               >
-                ¿No tenés cuenta? Registrate
-              </a>
+                {showPassword ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
-        )}
 
-        {/* OTP Step */}
-        {paso === 'otp' && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4">
-              <p className="text-sm">
-                📱 Te enviamos un código de 6 dígitos al número{' '}
-                <span className="font-semibold">{phone}</span>
-              </p>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Código de Verificación
-              </label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="123456"
-                maxLength={6}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-center text-2xl tracking-widest font-mono"
-                autoFocus
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                {error}
-              </div>
+          <button
+            onClick={iniciarSesion}
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Ingresando...
+              </span>
+            ) : (
+              'Iniciar Sesión'
             )}
+          </button>
 
-            <button
-              onClick={validarOTP}
-              disabled={otp.length !== 6}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors"
+          <div className="text-center">
+            <a
+              href="/activar"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
             >
-              Verificar Código
-            </button>
-
-            <button
-              onClick={() => {
-                setPaso('phone')
-                setOtp('')
-                setError('')
-              }}
-              className="w-full text-sm text-gray-600 hover:text-gray-800"
-            >
-              ← Cambiar número
-            </button>
+              ¿No tenés cuenta? Registrate
+            </a>
           </div>
-        )}
-
-        {/* Loading */}
-        {paso === 'loading' && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Procesando...</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )
