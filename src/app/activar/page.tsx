@@ -254,8 +254,16 @@ function ActivarContent() {
           </label>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <p className="text-red-700 text-sm font-medium mb-2">{error}</p>
+              {(error.includes('ya está registrado') || error.includes('ya existe')) && (
+                <button
+                  onClick={() => router.push('/login')}
+                  className="text-sm text-red-600 hover:text-red-700 underline font-medium transition-colors"
+                >
+                  Ir al inicio de sesión →
+                </button>
+              )}
             </div>
           )}
 
