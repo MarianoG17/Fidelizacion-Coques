@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
                     .replace(/[^A-Z0-9]/g, '');
 
                 // Buscar en la base local si tenemos más info del auto
-                const cliente = await prisma.cliente.findUnique({
+                const cliente = await (prisma as any).cliente.findUnique({
                     where: { phone },
                     include: {
                         autos: {
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
                             },
                         },
                     },
-                }) as any;
+                });
 
                 const autoLocal = cliente?.autos?.[0];
 
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
             .replace(/[^A-Z0-9]/g, '');
 
         // Buscar cliente local
-        const cliente = await prisma.cliente.findUnique({
+        const cliente = await (prisma as any).cliente.findUnique({
             where: { phone },
         });
 
