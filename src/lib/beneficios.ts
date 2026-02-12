@@ -18,9 +18,12 @@ export async function getBeneficiosActivos(clienteId: string) {
           },
         },
       },
-      estadoAuto: true,
+      autos: {
+        where: { activo: true },
+        include: { estadoActual: true },
+      },
     },
-  })
+  }) as any
 
   if (!cliente || cliente.estado !== 'ACTIVO') return []
 
@@ -31,10 +34,12 @@ export async function getBeneficiosActivos(clienteId: string) {
     beneficiosDelNivel.map(async (beneficio) => {
       if (!beneficio.activo) return null
 
-      // Si requiere estado externo, verificar que esté activo
+      // Si requiere estado externo, verificar que al menos un auto esté en ese estado
       if (beneficio.requiereEstadoExterno) {
-        if (!cliente.estadoAuto) return null
-        if (beneficio.estadoExternoTrigger !== cliente.estadoAuto.estado) return null
+        const autoConEstado = cliente.autos?.find(
+          (auto: any) => auto.estadoActual?.estado === beneficio.estadoExternoTrigger
+        )
+        if (!autoConEstado) return null
       }
 
       // Verificar límites de uso
