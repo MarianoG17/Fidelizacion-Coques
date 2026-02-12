@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
+import BackButton from '@/components/shared/BackButton'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
