@@ -146,7 +146,7 @@ export default function LocalPage() {
           mesaId: mesaSeleccionada?.id || null,
           tipoEvento: beneficioSeleccionado ? 'BENEFICIO_APLICADO' : 'VISITA',
           beneficioId: beneficioSeleccionado,
-          metodoValidacion: metodoInput === 'qr' ? 'QR_SCANNER' : 'OTP_MANUAL',
+          metodoValidacion: metodoInput === 'qr' ? 'QR' : 'OTP_MANUAL',
         }),
       })
       setEventoRegistrado(true)
