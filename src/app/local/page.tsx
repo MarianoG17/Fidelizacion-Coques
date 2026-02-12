@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { ValidacionResult, MesaLayout, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
+import { formatearPatenteDisplay } from '@/lib/patente'
 
 const LOCAL_API_KEY = process.env.NEXT_PUBLIC_LOCAL_API_KEY || ''
 
