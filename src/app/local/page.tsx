@@ -135,19 +135,23 @@ export default function LocalPage() {
     setCargando(true)
 
     try {
+      const payload = {
+        clienteId: validacion.cliente.id,
+        mesaId: mesaSeleccionada?.id || null,
+        tipoEvento: beneficioSeleccionado ? 'BENEFICIO_APLICADO' : 'VISITA',
+        beneficioId: beneficioSeleccionado,
+        metodoValidacion: metodoInput === 'qr' ? 'QR' : 'OTP_MANUAL',
+      }
+      
+      console.log('Enviando evento:', payload)
+      
       const res = await fetch('/api/eventos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-local-api-key': LOCAL_API_KEY,
         },
-        body: JSON.stringify({
-          clienteId: validacion.cliente.id,
-          mesaId: mesaSeleccionada?.id || null,
-          tipoEvento: beneficioSeleccionado ? 'BENEFICIO_APLICADO' : 'VISITA',
-          beneficioId: beneficioSeleccionado,
-          metodoValidacion: metodoInput === 'qr' ? 'QR' : 'OTP_MANUAL',
-        }),
+        body: JSON.stringify(payload),
       })
       
       if (!res.ok) {
