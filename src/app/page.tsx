@@ -92,6 +92,19 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Login Link - Solo si NO está logueado */}
+            {!isLoggedIn && (
+              <div className="text-center">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 text-white/90 hover:text-white text-sm font-medium bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full transition-all backdrop-blur-sm border border-white/20"
+                >
+                  <span>🔑</span>
+                  <span>¿Ya tenés cuenta? Iniciá sesión</span>
+                </Link>
+              </div>
+            )}
+
             {/* Info de prueba */}
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
               <p className="text-white/90 text-sm">
