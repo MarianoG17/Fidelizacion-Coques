@@ -135,7 +135,7 @@ export default function LocalPage() {
     setCargando(true)
 
     try {
-      await fetch('/api/eventos', {
+      const res = await fetch('/api/eventos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,8 +149,19 @@ export default function LocalPage() {
           metodoValidacion: metodoInput === 'qr' ? 'QR' : 'OTP_MANUAL',
         }),
       })
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Error al registrar evento:', res.status, errorData)
+        setErrorMsg(`Error al registrar evento: ${errorData.error || res.statusText}`)
+        return
+      }
+      
+      const data = await res.json()
+      console.log('Evento registrado:', data)
       setEventoRegistrado(true)
-    } catch {
+    } catch (error) {
+      console.error('Error en fetch:', error)
       setErrorMsg('Error al registrar el evento')
     } finally {
       setCargando(false)
