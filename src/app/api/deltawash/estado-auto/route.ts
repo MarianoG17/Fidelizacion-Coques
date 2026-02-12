@@ -42,8 +42,6 @@ interface AutoEnLavadero {
     notas?: string;
 }
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(req: NextRequest) {
     try {
         // SEGURIDAD: Obtener teléfono del JWT autenticado
@@ -100,7 +98,7 @@ export async function GET(req: NextRequest) {
                     .replace(/[^A-Z0-9]/g, '');
 
                 // Buscar en la base local si tenemos más info del auto
-                const cliente = await localDB.cliente.findUnique({
+                const cliente = await prisma.cliente.findUnique({
                     where: { phone },
                     include: {
                         autos: {
@@ -172,7 +170,7 @@ export async function POST(req: NextRequest) {
             .replace(/[^A-Z0-9]/g, '');
 
         // Buscar cliente local
-        const cliente = await localDB.cliente.findUnique({
+        const cliente = await prisma.cliente.findUnique({
             where: { phone },
         });
 
@@ -184,7 +182,8 @@ export async function POST(req: NextRequest) {
         }
 
         // Verificar que el auto exista en DeltaWash
-        if (!process.env.DELTAWASH_DATABASE_URL) {
+        const deltaWashDB = getDeltaWashDB();
+        if (!deltaWashDB) {
             return NextResponse.json(
                 { error: 'Integración con DeltaWash no configurada' },
                 { status: 503 }
@@ -210,7 +209,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Crear o actualizar auto en la base local
-        const autoLocal = await localDB.auto.upsert({
+        const autoLocal = await prisma.auto.upsert({
             where: {
                 clienteId_patente: {
                     clienteId: cliente.id,
