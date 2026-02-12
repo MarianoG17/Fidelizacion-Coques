@@ -31,7 +31,7 @@ export async function getBeneficiosActivos(clienteId: string) {
 
   // Filtrar por condiciones
   const beneficiosActivos = await Promise.all(
-    beneficiosDelNivel.map(async (beneficio) => {
+    beneficiosDelNivel.map(async (beneficio: any) => {
       if (!beneficio.activo) return null
 
       // Si requiere estado externo, verificar que al menos un auto esté en ese estado
