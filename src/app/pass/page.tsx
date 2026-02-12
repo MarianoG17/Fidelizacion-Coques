@@ -1,6 +1,7 @@
 'use client'
 // src/app/pass/page.tsx
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
 import BackButton from '@/components/shared/BackButton'
