@@ -27,7 +27,7 @@ export async function getBeneficiosActivos(clienteId: string) {
 
   if (!cliente || cliente.estado !== 'ACTIVO') return []
 
-  const beneficiosDelNivel = cliente.nivel?.beneficios.map((nb) => nb.beneficio) || []
+  const beneficiosDelNivel = cliente.nivel?.beneficios.map((nb: any) => nb.beneficio) || []
 
   // Filtrar por condiciones
   const beneficiosActivos = await Promise.all(
