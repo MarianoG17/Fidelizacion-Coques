@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
                             },
                         },
                     },
-                });
+                }) as any;
 
                 const autoLocal = cliente?.autos?.[0];
 
@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Crear o actualizar auto en la base local
-        const autoLocal = await prisma.auto.upsert({
+        const autoLocal = (await (prisma as any).auto.upsert({
             where: {
                 clienteId_patente: {
                     clienteId: cliente.id,
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
                 patente: patenteNormalizada,
                 activo: true,
             },
-        });
+        })) as any;
 
         return NextResponse.json({
             success: true,
