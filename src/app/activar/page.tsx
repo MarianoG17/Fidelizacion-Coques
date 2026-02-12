@@ -73,11 +73,25 @@ function ActivarContent() {
         }),
       })
 
-      const data = await res.json()
-
+      // Check response status first
       if (!res.ok) {
-        throw new Error(data.error || 'Error al crear la cuenta')
+        // Try to parse error message from response
+        let errorMessage = 'Error al crear la cuenta'
+        try {
+          const data = await res.json()
+          errorMessage = data.error || errorMessage
+        } catch (e) {
+          // If JSON parsing fails, check status code
+          if (res.status === 405) {
+            errorMessage = 'Método no permitido. Contacte al administrador.'
+          } else if (res.status === 400) {
+            errorMessage = 'Datos inválidos. Verifique su información.'
+          }
+        }
+        throw new Error(errorMessage)
       }
+
+      const data = await res.json()
 
       // Guardar token en localStorage
       if (data.data?.token) {
