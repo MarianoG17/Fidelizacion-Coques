@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { signClienteJWT } from '@/lib/auth'
+import { generarSecretoOTP } from '@/lib/otp'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 
@@ -46,6 +47,9 @@ export async function POST(req: NextRequest) {
     // Hashear la contraseña
     const hashedPassword = await bcrypt.hash(validatedData.password, SALT_ROUNDS)
 
+    // Generar otpSecret para el cliente (necesario para el QR del Pass)
+    const otpSecret = generarSecretoOTP()
+
     // Crear el cliente con estado ACTIVO (ya no necesita activación por OTP)
     const cliente = await prisma.cliente.create({
       data: {
@@ -56,6 +60,7 @@ export async function POST(req: NextRequest) {
         estado: 'ACTIVO',
         fuenteOrigen: 'AUTOREGISTRO',
         consentimientoAt: new Date(),
+        otpSecret, // Agregar el otpSecret
       },
     })
 
