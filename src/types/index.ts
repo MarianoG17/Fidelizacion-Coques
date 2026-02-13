@@ -16,6 +16,7 @@ export interface PassData {
   phone: string
   email?: string
   fechaCumpleanos?: string
+  fuenteConocimiento?: string
   codigoReferido?: string
   referidosActivados: number
   nivel: {

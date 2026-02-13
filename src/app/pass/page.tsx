@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
+import CuestionarioOptional from './components/CuestionarioOptional'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
@@ -207,6 +208,16 @@ export default function PassPage() {
             </div>
           </div>
         </div>
+
+        {/* Cuestionario Opcional */}
+        <CuestionarioOptional
+          fechaCumpleanos={pass.fechaCumpleanos}
+          fuenteConocimiento={pass.fuenteConocimiento}
+          onComplete={() => {
+            fetchPass()
+            fetchBeneficios()
+          }}
+        />
 
         {/* Beneficios del Nivel */}
         {pass.nivel?.descripcionBeneficios && (

@@ -9,7 +9,7 @@ export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles'>('metricas')
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
@@ -101,6 +101,7 @@ export default function AdminPage() {
                             { key: 'metricas', label: 'Métricas' },
                             { key: 'eventos', label: 'Eventos Especiales' },
                             { key: 'clientes', label: 'Clientes' },
+                            { key: 'niveles', label: '⭐ Niveles' },
                             { key: 'beneficios', label: '🎁 Beneficios' },
                         ].map((tab) => (
                             <button
@@ -123,6 +124,22 @@ export default function AdminPage() {
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
                 {seccionActiva === 'clientes' && <Clientes adminKey={adminKey} />}
+                {seccionActiva === 'niveles' && (
+                    <div className="text-center py-12">
+                        <div className="text-4xl mb-4">⭐</div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Gestión de Niveles</h2>
+                        <p className="text-slate-400 mb-6">Configurá criterios de visitas para cada nivel</p>
+                        <button
+                            onClick={() => window.location.href = '/admin/niveles'}
+                            className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-yellow-700 hover:to-orange-700 transition inline-flex items-center gap-2"
+                        >
+                            <span>Ir a Configuración de Niveles</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
                 {seccionActiva === 'beneficios' && (
                     <div className="text-center py-12">
                         <div className="text-4xl mb-4">🎁</div>

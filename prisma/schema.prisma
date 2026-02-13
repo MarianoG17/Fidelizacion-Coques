@@ -83,6 +83,7 @@ model Cliente {
   otpSecret             String?       // TOTP secret encriptado, se asigna al activar
   pushSub               Json?         // Web Push subscription object
   fechaCumpleanos       DateTime?     // fecha de cumpleaños para descuentos especiales
+  fuenteConocimiento    String?       // cómo conoció el negocio: Amigos, Instagram, Google Maps, Vi luz y entré
   codigoReferido        String?       @unique  // código único para compartir con amigos
   referidoPorId         String?       // ID del cliente que lo refirió
   referidoPor           Cliente?      @relation("Referidos", fields: [referidoPorId], references: [id])

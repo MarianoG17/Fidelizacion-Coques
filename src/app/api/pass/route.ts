@@ -49,8 +49,14 @@ export async function GET(req: NextRequest) {
         clienteId: cliente.id,
         nombre: cliente.nombre || 'Cliente',
         phone: cliente.phone,
+        fechaCumpleanos: cliente.fechaCumpleanos
+          ? cliente.fechaCumpleanos.toISOString().split('T')[0]
+          : undefined,
+        fuenteConocimiento: cliente.fuenteConocimiento || undefined,
+        codigoReferido: cliente.codigoReferido || undefined,
+        referidosActivados: cliente.referidosActivados || 0,
         nivel: cliente.nivel
-          ? { nombre: cliente.nivel.nombre, orden: cliente.nivel.orden }
+          ? { nombre: cliente.nivel.nombre, orden: cliente.nivel.orden, descripcionBeneficios: cliente.nivel.descripcionBeneficios }
           : null,
         beneficiosActivos: beneficios.map((b: any) => ({
           id: b!.id,
