@@ -56,9 +56,9 @@ export async function POST(req: NextRequest) {
                 clienteId,
                 localId: process.env.LOCAL_ID!, // Usar el local principal
                 tipoEvento: 'VISITA',
-                metodo: 'OTP_MANUAL',
+                metodoValidacion: 'OTP_MANUAL',
                 contabilizada: true,
-                descripcion: 'Visita bonus por completar cuestionario',
+                notas: 'Visita bonus por completar cuestionario',
             },
         })
 
