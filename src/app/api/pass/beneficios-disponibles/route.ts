@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireClienteAuth, unauthorized } from '@/lib/auth'
+import { getBeneficiosActivos } from '@/lib/beneficios'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,19 +14,11 @@ export async function GET(req: NextRequest) {
             return unauthorized('Token no proporcionado o inválido')
         }
 
-        // Obtener el cliente con su nivel y beneficios
+        // Obtener el cliente con su nivel
         const cliente = await prisma.cliente.findUnique({
             where: { id: clientePayload.clienteId },
             include: {
-                nivel: {
-                    include: {
-                        beneficios: {
-                            include: {
-                                beneficio: true,
-                            },
-                        },
-                    },
-                },
+                nivel: true,
             },
         })
 
@@ -41,6 +34,9 @@ export async function GET(req: NextRequest) {
                 data: {
                     nivel: null,
                     beneficios: [],
+                    disponibles: [],
+                    usados: [],
+                    totalBeneficios: 0,
                     mensaje: 'Aún no tenés un nivel asignado. ¡Visitanos para empezar!',
                 },
             })
@@ -53,43 +49,68 @@ export async function GET(req: NextRequest) {
         )
         const fechaHoyStr = fechaArgentina.toISOString().split('T')[0]
 
-        // Obtener todos los beneficios del nivel del cliente
-        const beneficiosNivel = cliente.nivel.beneficios.map((nb) => nb.beneficio)
+        // Usar la misma lógica que el staff scanner para consistencia
+        const beneficiosActivos = await getBeneficiosActivos(clientePayload.clienteId)
+
+        // Obtener todos los beneficios del nivel (incluyendo los no disponibles)
+        const todosLosBeneficios = await prisma.beneficio.findMany({
+            where: {
+                activo: true,
+                niveles: {
+                    some: {
+                        nivelId: cliente.nivelId,
+                    },
+                },
+            },
+        })
 
         // Para cada beneficio, verificar cuántas veces lo usó hoy
         const beneficiosConUso = await Promise.all(
-            beneficiosNivel
-                .filter((b) => b.activo) // Solo beneficios activos
-                .map(async (beneficio) => {
-                    const condiciones = beneficio.condiciones as any
+            todosLosBeneficios.map(async (beneficio) => {
+                const condiciones = beneficio.condiciones as any
 
-                    // Contar usos hoy
-                    const usosHoy = await prisma.$queryRaw<Array<{ count: bigint }>>`
-                      SELECT COUNT(*) as count
-                      FROM "EventoScan"
-                      WHERE "clienteId" = ${clientePayload.clienteId}
-                        AND "beneficioId" = ${beneficio.id}
-                        AND DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires') = ${fechaHoyStr}::date
-                    `
+                // Verificar si está en la lista de activos (disponibles)
+                const estaDisponible = beneficiosActivos.some((b: any) => b.id === beneficio.id)
 
-                    const cantidadUsosHoy = Number(usosHoy[0]?.count || 0)
-                    const maxPorDia = condiciones?.maxPorDia || 0
-                    const disponible = maxPorDia === 0 || cantidadUsosHoy < maxPorDia
+                // Contar usos hoy
+                const usosHoy = await prisma.$queryRaw<Array<{ count: bigint }>>`
+                  SELECT COUNT(*) as count
+                  FROM "EventoScan"
+                  WHERE "clienteId" = ${clientePayload.clienteId}
+                    AND "beneficioId" = ${beneficio.id}
+                    AND DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires') = ${fechaHoyStr}::date
+                `
 
-                    return {
-                        id: beneficio.id,
-                        nombre: beneficio.nombre,
-                        tipo: condiciones?.tipo || 'OTRO',
-                        descuento: condiciones?.descuento || null,
-                        icono: condiciones?.icono || '🎁',
-                        descripcion: condiciones?.descripcion || '',
-                        maxPorDia,
-                        usosHoy: cantidadUsosHoy,
-                        disponible,
-                        requiereEstadoExterno: beneficio.requiereEstadoExterno,
-                        estadoExternoTrigger: beneficio.estadoExternoTrigger,
-                    }
-                })
+                const cantidadUsosHoy = Number(usosHoy[0]?.count || 0)
+                const maxPorDia = condiciones?.maxPorDia || 0
+
+                // Verificar si ya fue usado (para beneficios de uso único)
+                let yaUsado = false
+                if (condiciones?.usoUnico) {
+                    const usosTotal = await prisma.eventoScan.count({
+                        where: {
+                            clienteId: clientePayload.clienteId,
+                            beneficioId: beneficio.id,
+                        },
+                    })
+                    yaUsado = usosTotal > 0
+                }
+
+                return {
+                    id: beneficio.id,
+                    nombre: beneficio.nombre,
+                    tipo: condiciones?.tipo || 'OTRO',
+                    descuento: condiciones?.descuento || null,
+                    icono: condiciones?.icono || '🎁',
+                    descripcion: condiciones?.descripcion || '',
+                    maxPorDia,
+                    usosHoy: cantidadUsosHoy,
+                    disponible: estaDisponible && !yaUsado,
+                    requiereEstadoExterno: beneficio.requiereEstadoExterno,
+                    estadoExternoTrigger: beneficio.estadoExternoTrigger,
+                    yaUsado, // Para mostrar al usuario si es de uso único
+                }
+            })
         )
 
         // Separar beneficios disponibles y usados
@@ -110,7 +131,9 @@ export async function GET(req: NextRequest) {
                 mensaje:
                     disponibles.length > 0
                         ? 'Mostrá tu QR al staff para aplicar tus beneficios'
-                        : 'Ya usaste todos tus beneficios de hoy. ¡Volvé mañana!',
+                        : usados.some(b => b.yaUsado)
+                            ? 'Ya usaste los beneficios de uso único disponibles.'
+                            : 'Ya usaste todos tus beneficios de hoy. ¡Volvé mañana!',
             },
         })
     } catch (error) {

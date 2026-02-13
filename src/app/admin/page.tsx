@@ -9,7 +9,7 @@ export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios'>('metricas')
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
@@ -101,13 +101,14 @@ export default function AdminPage() {
                             { key: 'metricas', label: 'Métricas' },
                             { key: 'eventos', label: 'Eventos Especiales' },
                             { key: 'clientes', label: 'Clientes' },
+                            { key: 'beneficios', label: '🎁 Beneficios' },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
                                 onClick={() => setSeccionActiva(tab.key as any)}
                                 className={`px-6 py-3 font-semibold transition ${seccionActiva === tab.key
-                                        ? 'text-white border-b-2 border-blue-500'
-                                        : 'text-slate-400 hover:text-slate-300'
+                                    ? 'text-white border-b-2 border-blue-500'
+                                    : 'text-slate-400 hover:text-slate-300'
                                     }`}
                             >
                                 {tab.label}
@@ -122,6 +123,22 @@ export default function AdminPage() {
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
                 {seccionActiva === 'clientes' && <Clientes adminKey={adminKey} />}
+                {seccionActiva === 'beneficios' && (
+                    <div className="text-center py-12">
+                        <div className="text-4xl mb-4">🎁</div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Panel de Beneficios</h2>
+                        <p className="text-slate-400 mb-6">Gestión completa de beneficios por nivel</p>
+                        <button
+                            onClick={() => window.location.href = '/admin/beneficios'}
+                            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition inline-flex items-center gap-2"
+                        >
+                            <span>Ir a Gestión de Beneficios</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     )
