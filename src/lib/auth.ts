@@ -43,6 +43,15 @@ export async function requireClienteAuth(req: NextRequest): Promise<ClientePaylo
 }
 
 /**
+ * Versión simplificada que solo retorna el clienteId o null.
+ * Útil para APIs que solo necesitan saber quién está autenticado.
+ */
+export async function verificarToken(req: NextRequest): Promise<string | null> {
+  const payload = await requireClienteAuth(req)
+  return payload?.clienteId || null
+}
+
+/**
  * Verifica la API Key del local desde el header X-Local-Api-Key.
  * Retorna el local si es válido, null si no.
  */

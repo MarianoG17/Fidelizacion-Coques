@@ -14,12 +14,19 @@ export interface PassData {
   clienteId: string
   nombre: string
   phone: string
+  email?: string
+  fechaCumpleanos?: string
+  codigoReferido?: string
+  referidosActivados: number
   nivel: {
     nombre: string
     orden: number
+    descripcionBeneficios?: string
   } | null
   beneficiosActivos: BeneficioActivo[]
   autos: AutoData[]  // todos los autos del cliente
+  logrosRecientes: LogroData[]  // logros no vistos
+  totalXp: number
   otp: {
     token: string
     qrDataUrl: string       // base64 del QR
@@ -109,4 +116,97 @@ export const NIVEL_COLORS: Record<string, string> = {
   Plata: '#9ca3af',
   Oro: '#f59e0b',
   Platino: '#7c3aed',
+}
+
+// ─── Feedback ────────────────────────────────────────────────────────────────
+
+export interface FeedbackData {
+  id: string
+  calificacion: number
+  comentario?: string
+  enviadoGoogleMaps: boolean
+  createdAt: string
+}
+
+export interface FeedbackRequest {
+  calificacion: number
+  comentario?: string
+  eventoScanId?: string
+}
+
+// ─── Logros y Gamificación ───────────────────────────────────────────────────
+
+export type TipoLogro =
+  | 'PRIMERA_VISITA'
+  | 'VISITAS_CONSECUTIVAS'
+  | 'NIVEL_ALCANZADO'
+  | 'REFERIDOS'
+  | 'FEEDBACK_POSITIVO'
+  | 'CUMPLEANOS'
+  | 'ANIVERSARIO'
+  | 'USO_CRUZADO'
+  | 'MADRUGADOR'
+  | 'CLIENTE_VIP'
+
+export interface LogroData {
+  id: string
+  nombre: string
+  descripcion: string
+  tipo: TipoLogro
+  icono?: string
+  puntosXp: number
+  obtenidoEn: string
+  visto: boolean
+}
+
+// ─── Referidos ───────────────────────────────────────────────────────────────
+
+export interface ReferidoData {
+  nombre: string
+  estado: 'PRE_REGISTRADO' | 'ACTIVO'
+  createdAt: string
+}
+
+// ─── Historial de Visitas ───────────────────────────────────────────────────
+
+export interface VisitaHistorial {
+  id: string
+  timestamp: string
+  local: {
+    nombre: string
+    tipo: string
+  }
+  mesa?: {
+    nombre: string
+  }
+  beneficio?: {
+    nombre: string
+  }
+  contabilizada: boolean
+}
+
+// ─── Perfil de Cliente ───────────────────────────────────────────────────────
+
+export interface PerfilData {
+  nombre: string
+  email?: string
+  phone: string
+  fechaCumpleanos?: string
+}
+
+export interface UpdatePerfilRequest {
+  nombre?: string
+  email?: string
+  fechaCumpleanos?: string
+}
+
+// ─── Recuperación de Contraseña ──────────────────────────────────────────────
+
+export interface RecuperarPasswordRequest {
+  email: string
+}
+
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
 }

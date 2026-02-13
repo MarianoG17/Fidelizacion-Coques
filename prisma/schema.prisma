@@ -72,27 +72,39 @@ enum TipoNoticia {
 // ─── Modelos ───────────────────────────────────────────────────────────────────
 
 model Cliente {
-  id               String        @id @default(uuid())
-  phone            String        @unique   // E.164: +5491112345678
-  nombre           String?
-  email            String?       @unique
-  password         String?       // bcrypt hasheado
-  estado           EstadoCliente @default(PRE_REGISTRADO)
-  nivelId          String?
-  nivel            Nivel?        @relation(fields: [nivelId], references: [id])
-  fuenteOrigen     FuenteOrigen  @default(AUTOREGISTRO)
-  consentimientoAt DateTime?
-  otpSecret        String?       // TOTP secret encriptado, se asigna al activar
-  pushSub          Json?         // Web Push subscription object
-  eventos          EventoScan[]
-  autos            Auto[]        // un cliente puede tener múltiples autos
-  inscripciones    Inscripcion[]
-  noticias         Noticia[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                    String        @id @default(uuid())
+  phone                 String        @unique   // E.164: +5491112345678
+  nombre                String?
+  email                 String?       @unique
+  password              String?       // bcrypt hasheado
+  estado                EstadoCliente @default(PRE_REGISTRADO)
+  nivelId               String?
+  nivel                 Nivel?        @relation(fields: [nivelId], references: [id])
+  fuenteOrigen          FuenteOrigen  @default(AUTOREGISTRO)
+  consentimientoAt      DateTime?
+  otpSecret             String?       // TOTP secret encriptado, se asigna al activar
+  pushSub               Json?         // Web Push subscription object
+  fechaCumpleanos       DateTime?     // fecha de cumpleaños para descuentos especiales
+  codigoReferido        String?       @unique  // código único para compartir con amigos
+  referidoPorId         String?       // ID del cliente que lo refirió
+  referidoPor           Cliente?      @relation("Referidos", fields: [referidoPorId], references: [id])
+  referidos             Cliente[]     @relation("Referidos")
+  referidosActivados    Int           @default(0)  // contador de referidos que se activaron
+  resetPasswordToken    String?       @unique  // token para recuperación de contraseña
+  resetPasswordExpires  DateTime?     // expiración del token
+  eventos               EventoScan[]
+  autos                 Auto[]        // un cliente puede tener múltiples autos
+  inscripciones         Inscripcion[]
+  noticias              Noticia[]
+  feedbacks             Feedback[]
+  logros                LogroCliente[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@index([phone])
   @@index([nivelId])
+  @@index([codigoReferido])
+  @@index([resetPasswordToken])
 }
 
 model Local {
@@ -129,9 +141,11 @@ model Nivel {
   orden      Int              @unique  // 1, 2, 3, 4 — para comparar
   criterios  Json
   // criterios: { visitas: 6, diasVentana: 30, usosCruzados: 0, visitasTotal: 0 }
+  descripcionBeneficios String?  // Descripción de los beneficios del nivel
   clientes         Cliente[]
   beneficios       NivelBeneficio[]
   eventosEspeciales EventoEspecial[]
+  logros           Logro[]
   createdAt        DateTime         @default(now())
 }
 
@@ -269,4 +283,70 @@ model EstadoAuto {
 
   @@index([autoId])
   @@index([estado])
+}
+
+// Sistema de Feedback y Calificaciones
+model Feedback {
+  id                String   @id @default(uuid())
+  clienteId         String
+  cliente           Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  localId           String
+  eventoScanId      String?  // puede estar vinculado a una visita específica
+  calificacion      Int      // 1-5 estrellas
+  comentario        String?
+  enviadoGoogleMaps Boolean  @default(false)  // si se redirigió a Google Maps
+  createdAt         DateTime @default(now())
+
+  @@index([clienteId])
+  @@index([localId])
+  @@index([calificacion])
+  @@index([createdAt])
+}
+
+// Sistema de Gamificación - Logros/Badges
+enum TipoLogro {
+  PRIMERA_VISITA
+  VISITAS_CONSECUTIVAS
+  NIVEL_ALCANZADO
+  REFERIDOS
+  FEEDBACK_POSITIVO
+  CUMPLEANOS
+  ANIVERSARIO
+  USO_CRUZADO
+  MADRUGADOR
+  CLIENTE_VIP
+}
+
+model Logro {
+  id           String          @id @default(uuid())
+  nombre       String
+  descripcion  String
+  tipo         TipoLogro
+  icono        String?         // emoji o URL de imagen
+  nivelId      String?         // logro específico de un nivel
+  nivel        Nivel?          @relation(fields: [nivelId], references: [id])
+  criterios    Json            // condiciones para obtener el logro
+  // criterios: { visitasConsecutivas: 5, diasVentana: 7 }
+  puntosXp     Int             @default(0)  // puntos de experiencia que otorga
+  activo       Boolean         @default(true)
+  clientes     LogroCliente[]
+  createdAt    DateTime        @default(now())
+
+  @@index([tipo])
+  @@index([nivelId])
+}
+
+model LogroCliente {
+  id         String   @id @default(uuid())
+  clienteId  String
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  logroId    String
+  logro      Logro    @relation(fields: [logroId], references: [id])
+  obtenidoEn DateTime @default(now())
+  visto      Boolean  @default(false)  // para mostrar notificación de "nuevo logro"
+
+  @@unique([clienteId, logroId])  // un cliente solo puede obtener un logro una vez
+  @@index([clienteId])
+  @@index([logroId])
+  @@index([obtenidoEn])
 }
