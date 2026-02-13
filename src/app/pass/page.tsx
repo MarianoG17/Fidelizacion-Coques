@@ -8,6 +8,18 @@ import { formatearPatenteDisplay } from '@/lib/patente'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
+interface BeneficioDisponible {
+  id: string
+  nombre: string
+  tipo: string
+  descuento: number | null
+  icono: string
+  descripcion: string
+  maxPorDia: number
+  usosHoy: number
+  disponible: boolean
+}
+
 export default function PassPage() {
   const router = useRouter()
   const [pass, setPass] = useState<PassData | null>(null)
@@ -15,6 +27,8 @@ export default function PassPage() {
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(30)
   const [showShareCopied, setShowShareCopied] = useState(false)
+  const [beneficiosDisponibles, setBeneficiosDisponibles] = useState<BeneficioDisponible[]>([])
+  const [beneficiosUsados, setBeneficiosUsados] = useState<BeneficioDisponible[]>([])
 
   const fetchPass = useCallback(async () => {
     const token = localStorage.getItem('fidelizacion_token')
@@ -42,12 +56,34 @@ export default function PassPage() {
     }
   }, [])
 
-  // Refresco periódico del OTP
+  const fetchBeneficios = useCallback(async () => {
+    const token = localStorage.getItem('fidelizacion_token')
+    if (!token) return
+
+    try {
+      const res = await fetch('/api/pass/beneficios-disponibles', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setBeneficiosDisponibles(json.data.disponibles || [])
+        setBeneficiosUsados(json.data.usados || [])
+      }
+    } catch (err) {
+      console.error('Error al cargar beneficios:', err)
+    }
+  }, [])
+
+  // Refresco periódico del OTP y beneficios
   useEffect(() => {
     fetchPass()
-    const interval = setInterval(fetchPass, REFRESH_INTERVAL)
+    fetchBeneficios()
+    const interval = setInterval(() => {
+      fetchPass()
+      fetchBeneficios()
+    }, REFRESH_INTERVAL)
     return () => clearInterval(interval)
-  }, [fetchPass])
+  }, [fetchPass, fetchBeneficios])
 
   // Countdown visual
   useEffect(() => {
@@ -236,8 +272,8 @@ export default function PassPage() {
                 <div
                   key={auto.id}
                   className={`rounded-2xl p-4 ${auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
-                      ? 'bg-white border-2 shadow-sm'
-                      : 'bg-gray-50 border border-gray-200'
+                    ? 'bg-white border-2 shadow-sm'
+                    : 'bg-gray-50 border border-gray-200'
                     }`}
                   style={
                     auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
@@ -285,30 +321,80 @@ export default function PassPage() {
           </div>
         )}
 
-        {/* Beneficios activos */}
-        {pass.beneficiosActivos.length > 0 && (
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Beneficios disponibles
+        {/* Beneficios Disponibles Hoy */}
+        {(beneficiosDisponibles.length > 0 || beneficiosUsados.length > 0) && (
+          <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl shadow-sm p-4 mb-4 border border-green-100">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <span>🎁</span>
+              Tus Beneficios de Hoy
             </h2>
-            <div className="space-y-2">
-              {pass.beneficiosActivos.map((b) => (
-                <div
-                  key={b.id}
-                  className="bg-white rounded-xl p-4 shadow-sm border border-green-100"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    <div>
-                      <p className="font-semibold text-slate-800 text-sm">{b.nombre}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Mostrá este código al empleado
-                      </p>
+
+            {/* Beneficios disponibles */}
+            {beneficiosDisponibles.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {beneficiosDisponibles.map((beneficio) => (
+                  <div
+                    key={beneficio.id}
+                    className="bg-white rounded-xl p-4 shadow-sm border-2 border-green-200"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-3xl">{beneficio.icono}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-bold text-slate-800">{beneficio.nombre}</p>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+                            Disponible
+                          </span>
+                        </div>
+                        {beneficio.descripcion && (
+                          <p className="text-sm text-gray-600 mb-2">{beneficio.descripcion}</p>
+                        )}
+                        {beneficio.tipo === 'DESCUENTO' && beneficio.descuento && (
+                          <div className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">
+                            {Math.round(beneficio.descuento * 100)}% OFF
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* Beneficios usados */}
+            {beneficiosUsados.length > 0 && (
+              <div className="space-y-2">
+                {beneficiosUsados.map((beneficio) => (
+                  <div
+                    key={beneficio.id}
+                    className="bg-white/60 rounded-xl p-4 border border-gray-200 opacity-75"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl grayscale">{beneficio.icono}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-gray-600">{beneficio.nombre}</p>
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
+                            ✓ Usado
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Renueva mañana · {beneficio.usosHoy}/{beneficio.maxPorDia} usado{beneficio.maxPorDia > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {beneficiosDisponibles.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-green-200">
+                <p className="text-xs text-center text-gray-600">
+                  💡 Mostrá tu QR al staff para aplicar estos beneficios
+                </p>
+              </div>
+            )}
           </div>
         )}
 
