@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireLocalAuth, unauthorized, badRequest, serverError } from '@/lib/auth'
 import { evaluarNivel } from '@/lib/beneficios'
+import { evaluarLogros } from '@/lib/logros'
 import { getInicioHoyArgentina, getInicioMananaArgentina } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
 
     if (contabilizada && tipoEvento !== 'ESTADO_EXTERNO') {
       evaluarNivel(clienteId).catch(console.error)
+      evaluarLogros(clienteId).catch(console.error)
     }
 
     return NextResponse.json({

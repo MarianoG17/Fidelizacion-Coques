@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { ValidacionResult, MesaLayout, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
+import VistaSalon from './components/VistaSalon'
 
 const LOCAL_API_KEY = process.env.NEXT_PUBLIC_LOCAL_API_KEY || ''
 
@@ -28,6 +29,11 @@ export default function LocalPage() {
   const [mesas, setMesas] = useState<MesaLayout[]>([])
   const [cargandoMesas, setCargandoMesas] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Estados para vista de salón
+  const [vistaSalon, setVistaSalon] = useState(false)
+  const [estadoSalon, setEstadoSalon] = useState<any>(null)
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
 
   // Cargar mesas desde la base de datos
   useEffect(() => {
@@ -134,6 +140,11 @@ export default function LocalPage() {
         setValidacion(json)
         setPantalla('cliente')
         setScannerActivo(false)
+
+        // SI YA ELIGIÓ SALÓN, CREAR SESIÓN INMEDIATAMENTE
+        if (ubicacion === 'salon' && mesaSeleccionada) {
+          await crearSesionMesa(json.cliente.id, mesaSeleccionada.id)
+        }
       } else {
         setErrorMsg(json.error || 'Código inválido o vencido')
         setOtpInput('')
@@ -174,11 +185,47 @@ export default function LocalPage() {
     setErrorMsg('Error al acceder a la cámara')
   }
 
+  async function crearSesionMesa(clienteId: string, mesaId: string) {
+    try {
+      const res = await fetch('/api/sesiones', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-local-api-key': LOCAL_API_KEY,
+        },
+        body: JSON.stringify({ clienteId, mesaId }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        console.log('[Local] Sesión creada:', data.mensaje)
+        // Recargar estado del salón si estamos en vista de salón
+        if (vistaSalon) {
+          cargarEstadoSalon()
+        }
+      } else {
+        console.error('[Local] Error creando sesión:', data.error)
+        // Si la mesa está ocupada, mostrar mensaje pero continuar
+        if (res.status === 409) {
+          setErrorMsg(`Mesa ocupada por otro cliente. Elegí otra mesa.`)
+        }
+      }
+    } catch (error) {
+      console.error('[Local] Error en crearSesionMesa:', error)
+    }
+  }
+
   async function registrarEvento() {
     if (!validacion?.cliente) return
     setCargando(true)
 
     try {
+      // Si es salón y NO hay sesión activa, crearla primero
+      if (ubicacion === 'salon' && mesaSeleccionada && validacion) {
+        await crearSesionMesa(validacion.cliente.id, mesaSeleccionada.id)
+      }
+
       const payload = {
         clienteId: validacion.cliente.id,
         mesaId: mesaSeleccionada?.id || null,
@@ -241,6 +288,102 @@ export default function LocalPage() {
     }
   }
 
+  function seleccionarUbicacion(ubi: 'mostrador' | 'salon') {
+    setUbicacion(ubi)
+    if (ubi === 'mostrador') {
+      setMesaSeleccionada(null)
+    }
+  }
+
+  async function cargarEstadoSalon() {
+    try {
+      const res = await fetch('/api/salon/estado', {
+        headers: { 'x-local-api-key': LOCAL_API_KEY },
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setEstadoSalon(data.data)
+      }
+    } catch (error) {
+      console.error('[Local] Error cargando estado del salón:', error)
+    }
+  }
+
+  async function cerrarSesionMesa(sesionId: string) {
+    try {
+      const res = await fetch(`/api/sesiones/${sesionId}`, {
+        method: 'DELETE',
+        headers: { 'x-local-api-key': LOCAL_API_KEY },
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        console.log('[Local] Sesión cerrada:', data.mensaje)
+
+        // Recargar estado del salón
+        cargarEstadoSalon()
+      }
+    } catch (error) {
+      console.error('[Local] Error cerrando sesión:', error)
+    }
+  }
+
+  async function aplicarBeneficioDesdeMesa(clienteId: string, beneficioId: string) {
+    try {
+      // Registrar evento de beneficio aplicado
+      const res = await fetch('/api/eventos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-local-api-key': LOCAL_API_KEY,
+        },
+        body: JSON.stringify({
+          clienteId,
+          tipoEvento: 'BENEFICIO_APLICADO',
+          beneficioId,
+          metodoValidacion: 'QR',
+          notas: 'Aplicado desde sesión de mesa',
+        }),
+      })
+
+      if (res.ok) {
+        alert('✅ Beneficio aplicado correctamente')
+
+        // Recargar estado del salón para actualizar beneficios disponibles
+        cargarEstadoSalon()
+      } else {
+        const data = await res.json()
+        alert(`❌ Error: ${data.mensaje || 'No se pudo aplicar el beneficio'}`)
+      }
+    } catch (error) {
+      console.error('[Local] Error aplicando beneficio:', error)
+      alert('❌ Error aplicando beneficio')
+    }
+  }
+
+  // useEffect para auto-refresh en vista de salón
+  useEffect(() => {
+    if (vistaSalon) {
+      // Cargar inmediatamente
+      cargarEstadoSalon()
+
+      // Actualizar cada 5 segundos
+      const id = setInterval(cargarEstadoSalon, 5000)
+      setIntervalId(id)
+
+      return () => {
+        if (id) clearInterval(id)
+      }
+    } else {
+      // Limpiar intervalo si salimos de la vista de salón
+      if (intervalId) {
+        clearInterval(intervalId)
+        setIntervalId(null)
+      }
+    }
+  }, [vistaSalon])
+
   // ─── Pantalla Scanner ─────────────────────────────────────────────────────
   if (pantalla === 'scanner') {
     return (
@@ -258,120 +401,260 @@ export default function LocalPage() {
         </div>
 
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
-        <p className="text-slate-400 text-sm mb-8">Coques - Empleados</p>
+        <p className="text-slate-400 text-sm mb-4">Coques - Empleados</p>
 
-        {/* Selector de método */}
+        {/* Botones para alternar entre Scanner y Vista Salón */}
         <div className="w-full max-w-sm mb-4">
-          <div className="bg-slate-800 rounded-xl p-1 flex gap-1">
+          <div className="flex gap-2">
             <button
-              onClick={() => cambiarMetodo('qr')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'qr'
-                ? 'bg-blue-500 text-white'
-                : 'text-slate-400 hover:text-slate-200'
+              onClick={() => setVistaSalon(false)}
+              className={`flex-1 py-3 rounded-xl font-bold transition ${!vistaSalon
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-700 text-gray-300'
                 }`}
             >
-              📷 Escanear QR
+              📱 Scanner QR
             </button>
             <button
-              onClick={() => cambiarMetodo('manual')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'manual'
-                ? 'bg-blue-500 text-white'
-                : 'text-slate-400 hover:text-slate-200'
+              onClick={() => setVistaSalon(true)}
+              className={`flex-1 py-3 rounded-xl font-bold transition ${vistaSalon
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-700 text-gray-300'
                 }`}
             >
-              ⌨️ Código manual
+              🏠 Ver Salón
             </button>
           </div>
         </div>
 
-        <div className="w-full max-w-sm">
-          {metodoInput === 'qr' ? (
-            // ─── Scanner QR ───
-            <div className="bg-slate-800 rounded-2xl p-6">
-              <p className="text-slate-300 text-sm text-center mb-4">
-                Pedile al cliente que muestre su QR
-              </p>
-
-              {scannerActivo ? (
-                <QRScanner
-                  onScan={handleQrScan}
-                  onError={handleQrError}
-                  isActive={scannerActivo}
-                />
-              ) : (
-                <div className="aspect-square bg-slate-700 rounded-xl flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm">Validando...</p>
-                  </div>
-                </div>
-              )}
-
-              {errorMsg && (
-                <div className="mt-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
-                  <p className="text-red-300 text-sm text-center">{errorMsg}</p>
+        {vistaSalon ? (
+          // ─── Vista de Salón ───
+          <div className="w-full max-w-6xl">
+            <VistaSalon
+              estadoSalon={estadoSalon}
+              onCerrarSesion={cerrarSesionMesa}
+              onAplicarBeneficio={aplicarBeneficioDesdeMesa}
+            />
+          </div>
+        ) : (
+          // ─── Vista de Scanner ───
+          <>
+            {/* Paso 1: Elegir ubicación (Mostrador o Salón) */}
+            {!ubicacion && (
+              <div className="w-full max-w-sm">
+                <h2 className="text-white text-lg font-bold mb-3 text-center">
+                  ¿Dónde se ubica el cliente?
+                </h2>
+                <div className="grid grid-cols-2 gap-4 mb-6">
                   <button
-                    onClick={() => {
-                      setErrorMsg('')
-                      setScannerActivo(true)
-                    }}
-                    className="w-full mt-2 text-red-300 text-xs underline"
+                    onClick={() => seleccionarUbicacion('mostrador')}
+                    className="bg-slate-800 hover:bg-amber-600 rounded-xl p-6 transition-all hover:scale-105 border-2 border-transparent hover:border-amber-500"
                   >
-                    Reintentar
+                    <div className="text-4xl mb-2">🪑</div>
+                    <p className="font-bold text-white">Mostrador</p>
+                  </button>
+                  <button
+                    onClick={() => seleccionarUbicacion('salon')}
+                    className="bg-slate-800 hover:bg-green-600 rounded-xl p-6 transition-all hover:scale-105 border-2 border-transparent hover:border-green-500"
+                  >
+                    <div className="text-4xl mb-2">🍽️</div>
+                    <p className="font-bold text-white">Salón</p>
                   </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {cargando && (
-                <div className="flex justify-center mt-4">
-                  <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            {/* Paso 2: Si eligió Salón, seleccionar mesa */}
+            {ubicacion === 'salon' && !mesaSeleccionada && (
+              <div className="w-full max-w-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-white text-lg font-bold">
+                    Seleccioná la mesa
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setUbicacion(null)
+                      setMesaSeleccionada(null)
+                    }}
+                    className="text-slate-400 hover:text-white text-sm"
+                  >
+                    ← Cambiar ubicación
+                  </button>
                 </div>
-              )}
-            </div>
-          ) : (
-            // ─── Input Manual ───
-            <div className="bg-slate-800 rounded-2xl p-6">
-              <p className="text-slate-300 text-sm text-center mb-4">
-                Ingresá el código del cliente
-              </p>
-              <input
-                ref={inputRef}
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                value={otpInput}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '')
-                  setOtpInput(val)
-                  setErrorMsg('')
-                  if (val.length === 6) validarOTP(val)
-                }}
-                placeholder="_ _ _ _ _ _"
-                className="w-full text-center text-4xl font-mono tracking-[0.4em] bg-slate-700 text-white rounded-xl py-4 px-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
-                autoFocus
-                disabled={cargando}
-              />
-
-              {errorMsg && (
-                <p className="text-red-400 text-sm text-center mt-3">{errorMsg}</p>
-              )}
-
-              {cargando && (
-                <div className="flex justify-center mt-4">
-                  <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                <div
+                  className="relative bg-slate-800 rounded-2xl mb-4 overflow-hidden"
+                  style={{ paddingBottom: '120%' }}
+                >
+                  <div className="absolute inset-0 p-3">
+                    {mesas.map((mesa) => (
+                      <button
+                        key={mesa.id}
+                        onClick={() => setMesaSeleccionada(mesa)}
+                        className="absolute rounded-lg text-xs font-bold transition-all bg-white text-slate-700 shadow hover:bg-green-500 hover:text-white hover:scale-105"
+                        style={{
+                          left: `${mesa.posX}%`,
+                          top: `${mesa.posY}%`,
+                          width: `${mesa.ancho}%`,
+                          height: `${mesa.alto}%`,
+                        }}
+                      >
+                        {mesa.nombre}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          <p className="text-slate-500 text-xs text-center mt-4">
-            {metodoInput === 'qr'
-              ? 'El cliente muestra su QR desde la app /pass'
-              : 'El cliente muestra el código de 6 dígitos'
-            }
-          </p>
-        </div>
+            {/* Paso 3: Scanner (solo si ya eligió ubicación y mesa en caso de salón) */}
+            {((ubicacion === 'mostrador') || (ubicacion === 'salon' && mesaSeleccionada)) && (
+              <>
+                {/* Info de selección */}
+                <div className="w-full max-w-sm mb-4">
+                  <div className="bg-slate-800 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">
+                          {ubicacion === 'mostrador' ? '🪑' : '🍽️'}
+                        </span>
+                        <div>
+                          <p className="text-white font-bold">
+                            {ubicacion === 'mostrador' ? 'Mostrador' : `Mesa ${mesaSeleccionada?.nombre}`}
+                          </p>
+                          <p className="text-slate-400 text-sm">
+                            {ubicacion === 'mostrador' ? 'Cliente en mostrador' : 'Cliente en salón'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setUbicacion(null)
+                          setMesaSeleccionada(null)
+                        }}
+                        className="text-slate-400 hover:text-white text-sm underline"
+                      >
+                        Cambiar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Selector de método */}
+                <div className="w-full max-w-sm mb-4">
+                  <div className="bg-slate-800 rounded-xl p-1 flex gap-1">
+                    <button
+                      onClick={() => cambiarMetodo('qr')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'qr'
+                        ? 'bg-blue-500 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                    >
+                      📷 Escanear QR
+                    </button>
+                    <button
+                      onClick={() => cambiarMetodo('manual')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'manual'
+                        ? 'bg-blue-500 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                    >
+                      ⌨️ Código manual
+                    </button>
+                  </div>
+                </div>
+
+                <div className="w-full max-w-sm">
+                  {metodoInput === 'qr' ? (
+                    // ─── Scanner QR ───
+                    <div className="bg-slate-800 rounded-2xl p-6">
+                      <p className="text-slate-300 text-sm text-center mb-4">
+                        Pedile al cliente que muestre su QR
+                      </p>
+
+                      {scannerActivo ? (
+                        <QRScanner
+                          onScan={handleQrScan}
+                          onError={handleQrError}
+                          isActive={scannerActivo}
+                        />
+                      ) : (
+                        <div className="aspect-square bg-slate-700 rounded-xl flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                            <p className="text-slate-400 text-sm">Validando...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {errorMsg && (
+                        <div className="mt-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+                          <p className="text-red-300 text-sm text-center">{errorMsg}</p>
+                          <button
+                            onClick={() => {
+                              setErrorMsg('')
+                              setScannerActivo(true)
+                            }}
+                            className="w-full mt-2 text-red-300 text-xs underline"
+                          >
+                            Reintentar
+                          </button>
+                        </div>
+                      )}
+
+                      {cargando && (
+                        <div className="flex justify-center mt-4">
+                          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // ─── Input Manual ───
+                    <div className="bg-slate-800 rounded-2xl p-6">
+                      <p className="text-slate-300 text-sm text-center mb-4">
+                        Ingresá el código del cliente
+                      </p>
+                      <input
+                        ref={inputRef}
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        value={otpInput}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '')
+                          setOtpInput(val)
+                          setErrorMsg('')
+                          if (val.length === 6) validarOTP(val)
+                        }}
+                        placeholder="_ _ _ _ _ _"
+                        className="w-full text-center text-4xl font-mono tracking-[0.4em] bg-slate-700 text-white rounded-xl py-4 px-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
+                        autoFocus
+                        disabled={cargando}
+                      />
+
+                      {errorMsg && (
+                        <p className="text-red-400 text-sm text-center mt-3">{errorMsg}</p>
+                      )}
+
+                      {cargando && (
+                        <div className="flex justify-center mt-4">
+                          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-slate-500 text-xs text-center mt-4">
+                    {metodoInput === 'qr'
+                      ? 'El cliente muestra su QR desde la app /pass'
+                      : 'El cliente muestra el código de 6 dígitos'
+                    }
+                  </p>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
     )
   }
@@ -506,93 +789,21 @@ export default function LocalPage() {
             </div>
           )}
 
-          {/* Selección de ubicación */}
-          {!ubicacion && !eventoRegistrado && (
+          {/* Botón registrar visita */}
+          {!eventoRegistrado && ubicacion && (
             <>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                ¿Dónde se ubica el cliente?
-              </h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <button
-                  onClick={() => setUbicacion('mostrador')}
-                  className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105 border-2 border-transparent hover:border-amber-500"
-                >
-                  <div className="text-4xl mb-2">🪑</div>
-                  <p className="font-bold text-slate-800">Mostrador</p>
-                </button>
-                <button
-                  onClick={() => setUbicacion('salon')}
-                  className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all hover:scale-105 border-2 border-transparent hover:border-green-500"
-                >
-                  <div className="text-4xl mb-2">🍽️</div>
-                  <p className="font-bold text-slate-800">Salón</p>
-                </button>
-              </div>
-              <button
-                onClick={resetear}
-                className="w-full mt-2 text-gray-400 py-2 text-sm"
-              >
-                Cancelar
-              </button>
-            </>
-          )}
-
-          {/* Selector de mesas (solo si eligió Salón) */}
-          {ubicacion === 'salon' && !eventoRegistrado && (
-            <>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Seleccioná la mesa
-              </h3>
-              <div
-                className="relative bg-slate-100 rounded-2xl mb-4 overflow-hidden"
-                style={{ paddingBottom: '120%' }}
-              >
-                <div className="absolute inset-0 p-3">
-                  {mesas.map((mesa) => (
-                    <button
-                      key={mesa.id}
-                      onClick={() => setMesaSeleccionada(mesa)}
-                      className={`absolute rounded-lg text-xs font-bold transition-all ${mesaSeleccionada?.id === mesa.id
-                        ? 'bg-slate-800 text-white shadow-lg scale-105'
-                        : 'bg-white text-slate-700 shadow hover:bg-slate-200'
-                        }`}
-                      style={{
-                        left: `${mesa.posX}%`,
-                        top: `${mesa.posY}%`,
-                        width: `${mesa.ancho}%`,
-                        height: `${mesa.alto}%`,
-                      }}
-                    >
-                      {mesa.nombre}
-                    </button>
-                  ))}
+              {/* Info de ubicación seleccionada */}
+              <div className={`rounded-xl p-4 mb-4 text-center ${ubicacion === 'mostrador'
+                  ? 'bg-amber-50 border border-amber-200'
+                  : 'bg-green-50 border border-green-200'
+                }`}>
+                <div className="text-3xl mb-2">
+                  {ubicacion === 'mostrador' ? '🪑' : '🍽️'}
                 </div>
-              </div>
-
-              {/* Botón registrar */}
-              <button
-                onClick={registrarEvento}
-                disabled={cargando}
-                className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {cargando ? 'Registrando...' : 'Confirmar visita'}
-              </button>
-
-              <button
-                onClick={resetear}
-                className="w-full mt-2 text-gray-400 py-2 text-sm"
-              >
-                Cancelar
-              </button>
-            </>
-          )}
-
-          {/* Mostrador - registro directo sin mesa */}
-          {ubicacion === 'mostrador' && !eventoRegistrado && (
-            <>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-center">
-                <div className="text-3xl mb-2">🪑</div>
-                <p className="text-amber-800 font-semibold">Cliente en Mostrador</p>
+                <p className={`font-semibold ${ubicacion === 'mostrador' ? 'text-amber-800' : 'text-green-800'
+                  }`}>
+                  {ubicacion === 'mostrador' ? 'Cliente en Mostrador' : `Cliente en Mesa ${mesaSeleccionada?.nombre}`}
+                </p>
               </div>
 
               {/* Botón registrar */}
