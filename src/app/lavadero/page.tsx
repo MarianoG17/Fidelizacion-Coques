@@ -7,7 +7,7 @@ import { normalizarPatente, formatearPatenteDisplay } from '@/lib/patente'
 
 const LAVADERO_API_KEY = process.env.NEXT_PUBLIC_LAVADERO_API_KEY || ''
 
-const ESTADOS: EstadoAuto[] = ['RECIBIDO', 'EN_LAVADO', 'EN_SECADO', 'LISTO', 'ENTREGADO']
+const ESTADOS: EstadoAuto[] = ['EN_PROCESO', 'LISTO', 'ENTREGADO']
 
 interface AutoActivo {
   phone: string
@@ -88,7 +88,7 @@ export default function LavaderoPage() {
           ]
         })
 
-        if (estado === 'RECIBIDO') {
+        if (estado === 'EN_PROCESO') {
           setPhone('')
           setPatente('')
           setNombre('')
@@ -139,7 +139,7 @@ export default function LavaderoPage() {
               className="w-full bg-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 uppercase"
             />
             <button
-              onClick={() => actualizarEstado(phone, 'RECIBIDO', patente)}
+              onClick={() => actualizarEstado(phone, 'EN_PROCESO', patente)}
               disabled={!phone || !patente || cargando}
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
             >
@@ -190,7 +190,7 @@ export default function LavaderoPage() {
 
                     {/* Botones de estado */}
                     <div className="grid grid-cols-2 gap-2">
-                      {ESTADOS.filter((e) => e !== auto.estado && e !== 'RECIBIDO').map((estado) => (
+                      {ESTADOS.filter((e) => e !== auto.estado && e !== 'EN_PROCESO').map((estado) => (
                         <button
                           key={estado}
                           onClick={() =>
