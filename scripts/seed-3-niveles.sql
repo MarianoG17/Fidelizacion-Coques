@@ -1,5 +1,24 @@
 -- Script para configurar 3 niveles (Bronce, Plata, Oro) con beneficios específicos
--- Eliminar nivel Platino si existe
+-- Primero eliminar relaciones del nivel Platino en NivelBeneficio
+DELETE FROM "NivelBeneficio"
+WHERE "nivelId" IN (
+        SELECT id
+        FROM "Nivel"
+        WHERE "nombre" = 'Platino'
+    );
+-- Reasignar clientes de Platino a Oro (si existen)
+UPDATE "Cliente"
+SET "nivelId" = (
+        SELECT id
+        FROM "Nivel"
+        WHERE "nombre" = 'Oro'
+    )
+WHERE "nivelId" IN (
+        SELECT id
+        FROM "Nivel"
+        WHERE "nombre" = 'Platino'
+    );
+-- Ahora sí eliminar nivel Platino
 DELETE FROM "Nivel"
 WHERE "nombre" = 'Platino';
 -- Actualizar descripciones de beneficios por nivel (3 niveles)
