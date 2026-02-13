@@ -53,12 +53,14 @@ export async function GET(req: NextRequest) {
         const beneficiosActivos = await getBeneficiosActivos(clientePayload.clienteId)
 
         // Obtener todos los beneficios del nivel (incluyendo los no disponibles)
+        // Nota: Ya validamos que cliente.nivel existe arriba
+        const nivelId = cliente.nivel!.id
         const todosLosBeneficios = await prisma.beneficio.findMany({
             where: {
                 activo: true,
                 niveles: {
                     some: {
-                        nivelId: cliente.nivelId,
+                        nivelId,
                     },
                 },
             },
