@@ -135,10 +135,12 @@ export default function HistorialPage() {
                                                             {fecha.toLocaleDateString('es-AR', {
                                                                 weekday: 'long',
                                                                 day: 'numeric',
-                                                                month: 'long'
+                                                                month: 'long',
+                                                                timeZone: 'America/Argentina/Buenos_Aires'
                                                             })} • {fecha.toLocaleTimeString('es-AR', {
                                                                 hour: '2-digit',
-                                                                minute: '2-digit'
+                                                                minute: '2-digit',
+                                                                timeZone: 'America/Argentina/Buenos_Aires'
                                                             })}
                                                         </p>
                                                     </div>
