@@ -14,7 +14,7 @@ interface Nivel {
     usosCruzados: number
   }
   _count: {
-    Cliente: number
+    clientes: number
   }
 }
 
@@ -187,7 +187,7 @@ export default function AdminNivelesPage() {
                       )}
                     </td>
                     <td className="p-4">
-                      <span className="text-slate-300">{nivel._count.Cliente}</span>
+                      <span className="text-slate-300">{nivel._count.clientes}</span>
                     </td>
                     <td className="p-4">
                       {editando === nivel.id ? (

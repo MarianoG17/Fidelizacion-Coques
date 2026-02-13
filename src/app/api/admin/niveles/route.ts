@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       orderBy: { orden: 'asc' },
       include: {
         _count: {
-          select: { Cliente: true }, // Contar cuántos clientes tienen este nivel
+          select: { clientes: true }, // Contar cuántos clientes tienen este nivel
         },
       },
     })
