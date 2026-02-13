@@ -50,7 +50,12 @@ export async function POST(req: NextRequest) {
     // Generar otpSecret para el cliente (necesario para el QR del Pass)
     const otpSecret = generarSecretoOTP()
 
-    // Crear el cliente con estado ACTIVO (ya no necesita activación por OTP)
+    // Obtener el nivel Bronce (orden 1) para asignarlo por defecto
+    const nivelBronce = await prisma.nivel.findFirst({
+      where: { orden: 1 },
+    })
+
+    // Crear el cliente con estado ACTIVO y nivel inicial Bronce
     const cliente = await prisma.cliente.create({
       data: {
         email: validatedData.email,
@@ -60,7 +65,8 @@ export async function POST(req: NextRequest) {
         estado: 'ACTIVO',
         fuenteOrigen: 'AUTOREGISTRO',
         consentimientoAt: new Date(),
-        otpSecret, // Agregar el otpSecret
+        otpSecret,
+        nivelId: nivelBronce?.id, // Asignar nivel Bronce desde el registro
       },
     })
 
