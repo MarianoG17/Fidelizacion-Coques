@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
                 INNER JOIN "Logro" l ON lc."logroId" = l.id
                 WHERE lc."clienteId" = ${clienteId}::text
             `
-            
+
             if (xpResult && xpResult.length > 0) {
                 totalXp = Number(xpResult[0].totalXp) || 0
             }
@@ -75,13 +75,13 @@ export async function GET(req: NextRequest) {
                 email: clienteData.email || '',
                 telefono: clienteData.phone || '',
                 phone: clienteData.phone || '',
-                fechaCumpleanos: clienteData.fechaCumpleanos 
+                fechaCumpleanos: clienteData.fechaCumpleanos
                     ? new Date(clienteData.fechaCumpleanos).toISOString().split('T')[0]
                     : null,
                 codigoReferido: clienteData.codigoReferido || null,
                 referidosActivados: clienteData.referidosActivados || 0,
                 estado: clienteData.estado || 'ACTIVO',
-                createdAt: clienteData.createdAt 
+                createdAt: clienteData.createdAt
                     ? new Date(clienteData.createdAt).toISOString()
                     : new Date().toISOString(),
                 totalXp: totalXp,
@@ -192,7 +192,7 @@ export async function PATCH(req: NextRequest) {
             UPDATE "Cliente"
             SET ${updates.join(', ')}
             WHERE id = $${paramIndex}
-            RETURNING nombre, email, phone, "fechaCumpleanos"
+            RETURNING id
         `
 
         const result: any = await prisma.$queryRawUnsafe(updateQuery, ...values)
@@ -201,21 +201,74 @@ export async function PATCH(req: NextRequest) {
             return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 })
         }
 
-        const cliente = result[0]
-
         console.log(`[API /api/perfil PATCH] Perfil actualizado exitosamente`)
+
+        // Fetch complete profile after update to return all data including nivel
+        const perfilActualizado: any = await prisma.$queryRaw`
+            SELECT
+                c.id,
+                c.nombre,
+                c.email,
+                c.phone,
+                c."fechaCumpleanos",
+                c."codigoReferido",
+                c."referidosActivados",
+                c.estado,
+                c."createdAt",
+                n.nombre as "nivelNombre",
+                n."descripcionBeneficios"
+            FROM "Cliente" c
+            LEFT JOIN "Nivel" n ON c."nivelId" = n.id
+            WHERE c.id = ${clienteId}::text
+            LIMIT 1
+        `
+
+        if (!perfilActualizado || perfilActualizado.length === 0) {
+            return NextResponse.json({ error: 'Error al obtener perfil actualizado' }, { status: 500 })
+        }
+
+        const perfil = perfilActualizado[0]
+
+        // Calculate total XP
+        let totalXp = 0
+        try {
+            const xpResult: any = await prisma.$queryRaw`
+                SELECT COALESCE(SUM(l."puntosXp"), 0) as "totalXp"
+                FROM "LogroCliente" lc
+                INNER JOIN "Logro" l ON lc."logroId" = l.id
+                WHERE lc."clienteId" = ${clienteId}::text
+            `
+
+            if (xpResult && xpResult.length > 0) {
+                totalXp = Number(xpResult[0].totalXp) || 0
+            }
+        } catch (error) {
+            console.error('[API /api/perfil PATCH] Error calculando XP:', error)
+        }
 
         const duration = Date.now() - startTime
         console.log(`[API /api/perfil PATCH] Completado en ${duration}ms`)
 
         return NextResponse.json({
             data: {
-                nombre: cliente.nombre,
-                email: cliente.email,
-                phone: cliente.phone,
-                fechaCumpleanos: cliente.fechaCumpleanos 
-                    ? new Date(cliente.fechaCumpleanos).toISOString().split('T')[0]
+                nombre: perfil.nombre || '',
+                email: perfil.email || '',
+                telefono: perfil.phone || '',
+                phone: perfil.phone || '',
+                fechaCumpleanos: perfil.fechaCumpleanos
+                    ? new Date(perfil.fechaCumpleanos).toISOString().split('T')[0]
                     : null,
+                codigoReferido: perfil.codigoReferido || null,
+                referidosActivados: perfil.referidosActivados || 0,
+                estado: perfil.estado || 'ACTIVO',
+                createdAt: perfil.createdAt
+                    ? new Date(perfil.createdAt).toISOString()
+                    : new Date().toISOString(),
+                totalXp: totalXp,
+                nivel: {
+                    nombre: perfil.nivelNombre || 'Bronce',
+                    descripcionBeneficios: perfil.descripcionBeneficios || ''
+                },
             },
             message: 'Perfil actualizado exitosamente',
         })
