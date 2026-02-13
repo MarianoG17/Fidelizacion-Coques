@@ -96,6 +96,7 @@ model Cliente {
   noticias              Noticia[]
   feedbacks             Feedback[]
   logros                LogroCliente[]
+  sesionesMesa          SesionMesa[]  // sesiones en mesas del salón
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
@@ -119,18 +120,39 @@ model Local {
 }
 
 model Mesa {
-  id       String       @id @default(uuid())
-  localId  String
-  local    Local        @relation(fields: [localId], references: [id])
-  nombre   String       // "1", "2", "Barra", "Terraza 3"
-  posX     Float        // coordenada X en el layout visual (%)
-  posY     Float        // coordenada Y en el layout visual (%)
-  ancho    Float        // ancho en el layout (%)
-  alto     Float        // alto en el layout (%)
-  activa   Boolean      @default(true)
-  eventos  EventoScan[]
+  id          String        @id @default(uuid())
+  localId     String
+  local       Local         @relation(fields: [localId], references: [id])
+  nombre      String        // "1", "2", "Barra", "Terraza 3"
+  posX        Float         // coordenada X en el layout visual (%)
+  posY        Float         // coordenada Y en el layout visual (%)
+  ancho       Float         // ancho en el layout (%)
+  alto        Float         // alto en el layout (%)
+  activa      Boolean       @default(true)
+  eventos     EventoScan[]
+  sesiones    SesionMesa[]  // sesiones activas de esta mesa
 
   @@index([localId])
+}
+
+// Sesión activa de un cliente en una mesa
+model SesionMesa {
+  id              String    @id @default(uuid())
+  clienteId       String
+  cliente         Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  mesaId          String
+  mesa            Mesa      @relation(fields: [mesaId], references: [id], onDelete: Cascade)
+  localId         String
+  inicioSesion    DateTime  @default(now())
+  finSesion       DateTime? // null mientras está activa
+  activa          Boolean   @default(true)
+  cerradaPor      String?   // "STAFF" | "TIMEOUT" | "CLIENTE"
+  duracionMinutos Int?      // calculado al cerrar
+
+  @@index([mesaId])
+  @@index([clienteId])
+  @@index([activa])
+  @@index([localId, activa])  // para consultas rápidas del estado del salón
 }
 
 model Nivel {
