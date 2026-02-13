@@ -501,7 +501,8 @@ export default function LocalPage() {
                   <div className="absolute inset-0 p-3">
                     {mesas.map((mesa: MesaLayout) => {
                       const estaOcupada = mesasOcupadas.has(mesa.id)
-                      const estaSeleccionada = mesaSeleccionada?.id === mesa.id
+                      const mesaSel = mesaSeleccionada as MesaLayout | null
+                      const estaSeleccionada = mesaSel?.id === mesa.id
                       return (
                         <button
                           key={mesa.id}
