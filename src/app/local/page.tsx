@@ -499,13 +499,14 @@ export default function LocalPage() {
                   style={{ paddingBottom: '120%' }}
                 >
                   <div className="absolute inset-0 p-3">
-                    {mesas.map((mesa) => {
+                    {mesas.map((mesa: MesaLayout) => {
                       const estaOcupada = mesasOcupadas.has(mesa.id)
+                      const estaSeleccionada = mesaSeleccionada?.id === mesa.id
                       return (
                         <button
                           key={mesa.id}
                           onClick={() => setMesaSeleccionada(mesa)}
-                          className={`absolute rounded-lg text-xs font-bold transition-all shadow ${mesaSeleccionada?.id === mesa.id
+                          className={`absolute rounded-lg text-xs font-bold transition-all shadow ${estaSeleccionada
                               ? 'bg-blue-600 text-white scale-110 z-10'
                               : estaOcupada
                                 ? 'bg-red-500 text-white hover:bg-red-600'
