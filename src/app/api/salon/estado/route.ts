@@ -40,10 +40,13 @@ export async function GET(req: NextRequest) {
             },
         })
 
-        // Crear mapa de sesiones por mesa
-        const sesionesMap = new Map(
-            sesionesActivas.map((s) => [s.mesaId, s])
-        )
+        // Agrupar sesiones por mesa (puede haber múltiples clientes en una mesa)
+        const sesionesPorMesa = new Map<string, typeof sesionesActivas>()
+        for (const sesion of sesionesActivas) {
+            const mesaSesiones = sesionesPorMesa.get(sesion.mesaId) || []
+            mesaSesiones.push(sesion)
+            sesionesPorMesa.set(sesion.mesaId, mesaSesiones)
+        }
 
         // Para cada sesión activa, obtener beneficios disponibles del cliente
         const beneficiosPorCliente = new Map<string, any[]>()
@@ -55,26 +58,17 @@ export async function GET(req: NextRequest) {
 
         // Armar el estado del salón
         const estadoSalon = mesas.map((mesa) => {
-            const sesion = sesionesMap.get(mesa.id)
+            const sesiones = sesionesPorMesa.get(mesa.id) || []
 
-            if (sesion) {
-                // Mesa ocupada
-                const beneficios = beneficiosPorCliente.get(sesion.clienteId) || []
-                const duracionMinutos = Math.floor(
-                    (new Date().getTime() - sesion.inicioSesion.getTime()) / 60000
-                )
+            if (sesiones.length > 0) {
+                // Mesa ocupada - puede tener múltiples clientes
+                const sesionesConBeneficios = sesiones.map((sesion: typeof sesionesActivas[0]) => {
+                    const beneficios = beneficiosPorCliente.get(sesion.clienteId) || []
+                    const duracionMinutos = Math.floor(
+                        (new Date().getTime() - sesion.inicioSesion.getTime()) / 60000
+                    )
 
-                return {
-                    mesa: {
-                        id: mesa.id,
-                        nombre: mesa.nombre,
-                        posX: mesa.posX,
-                        posY: mesa.posY,
-                        ancho: mesa.ancho,
-                        alto: mesa.alto,
-                    },
-                    ocupada: true,
-                    sesion: {
+                    return {
                         id: sesion.id,
                         cliente: {
                             id: sesion.cliente.id,
@@ -91,7 +85,20 @@ export async function GET(req: NextRequest) {
                             descripcionCaja: b.descripcionCaja,
                             condiciones: b.condiciones,
                         })),
+                    }
+                })
+
+                return {
+                    mesa: {
+                        id: mesa.id,
+                        nombre: mesa.nombre,
+                        posX: mesa.posX,
+                        posY: mesa.posY,
+                        ancho: mesa.ancho,
+                        alto: mesa.alto,
                     },
+                    ocupada: true,
+                    sesiones: sesionesConBeneficios,
                 }
             } else {
                 // Mesa libre
@@ -105,7 +112,7 @@ export async function GET(req: NextRequest) {
                         alto: mesa.alto,
                     },
                     ocupada: false,
-                    sesion: null,
+                    sesiones: [],
                 }
             }
         })

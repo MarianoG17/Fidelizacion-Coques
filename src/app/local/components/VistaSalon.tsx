@@ -62,9 +62,12 @@ export default function VistaSalon({ estadoSalon, onCerrarSesion, onAplicarBenef
                   {item.ocupada ? '🔴' : '🟢'}
                 </div>
                 <div className="font-bold">{item.mesa.nombre}</div>
-                {item.ocupada && (
-                  <div className="text-[10px] mt-1 opacity-90 line-clamp-1">
-                    {item.sesion.cliente.nombre.split(' ')[0]}
+                {item.ocupada && item.sesiones.length > 0 && (
+                  <div className="text-[10px] mt-1 opacity-90">
+                    {item.sesiones.length === 1
+                      ? item.sesiones[0].cliente.nombre.split(' ')[0]
+                      : `${item.sesiones.length} clientes`
+                    }
                   </div>
                 )}
               </div>

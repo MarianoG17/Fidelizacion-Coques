@@ -8,21 +8,18 @@ interface Props {
 }
 
 export default function MesaModal({ mesa, onClose, onCerrarSesion, onAplicarBeneficio }: Props) {
-  const { sesion } = mesa
+  const { sesiones } = mesa
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-purple-600 text-white p-6 rounded-t-2xl">
+        <div className="bg-purple-600 text-white p-6 rounded-t-2xl sticky top-0">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold">Mesa {mesa.mesa.nombre}</h2>
               <p className="text-purple-200">
-                {sesion.cliente.nombre} • {sesion.cliente.nivel}
-              </p>
-              <p className="text-sm text-purple-200 mt-1">
-                {sesion.duracionMinutos} minutos en la mesa
+                {sesiones.length} {sesiones.length === 1 ? 'cliente' : 'clientes'} en la mesa
               </p>
             </div>
             <button
@@ -34,57 +31,80 @@ export default function MesaModal({ mesa, onClose, onCerrarSesion, onAplicarBene
           </div>
         </div>
 
-        {/* Body */}
-        <div className="p-6">
-          {/* Beneficios disponibles */}
-          {sesion.beneficiosDisponibles.length > 0 ? (
-            <div>
-              <h3 className="font-bold text-lg mb-3">Beneficios Disponibles</h3>
-              <div className="space-y-3">
-                {sesion.beneficiosDisponibles.map((b: any) => (
-                  <div
-                    key={b.id}
-                    className="bg-green-50 border-2 border-green-200 rounded-xl p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-bold text-green-800">{b.nombre}</p>
-                        <p className="text-sm text-green-700 mt-1 font-mono bg-white/50 rounded p-2">
-                          → Cargar en Aires: {b.descripcionCaja}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          onAplicarBeneficio(sesion.cliente.id, b.id)
+        {/* Body - Lista de clientes */}
+        <div className="p-6 space-y-6">
+          {sesiones.map((sesion: any) => (
+            <div key={sesion.id} className="border-2 border-purple-200 rounded-2xl overflow-hidden">
+              {/* Cliente Header */}
+              <div className="bg-purple-100 p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-lg text-purple-900">
+                      {sesion.cliente.nombre}
+                    </h3>
+                    <p className="text-sm text-purple-700">
+                      {sesion.cliente.nivel} • {sesion.cliente.phone}
+                    </p>
+                    <p className="text-xs text-purple-600 mt-1">
+                      ⏱️ {sesion.duracionMinutos} minutos en la mesa
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm(`¿${sesion.cliente.nombre.split(' ')[0]} se retiró? Esto cerrará su sesión.`)) {
+                        onCerrarSesion(sesion.id)
+                        // Si es el único cliente, cerrar el modal
+                        if (sesiones.length === 1) {
                           onClose()
-                        }}
-                        className="ml-3 bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition"
-                      >
-                        Aplicar
-                      </button>
+                        }
+                      }
+                    }}
+                    className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-700 transition"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </div>
+
+              {/* Beneficios del cliente */}
+              <div className="p-4">
+                {sesion.beneficiosDisponibles.length > 0 ? (
+                  <div>
+                    <h4 className="font-bold text-sm mb-2 text-gray-700">Beneficios Disponibles</h4>
+                    <div className="space-y-2">
+                      {sesion.beneficiosDisponibles.map((b: any) => (
+                        <div
+                          key={b.id}
+                          className="bg-green-50 border border-green-200 rounded-lg p-3"
+                        >
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1">
+                              <p className="font-bold text-green-800 text-sm">{b.nombre}</p>
+                              <p className="text-xs text-green-700 mt-1 font-mono bg-white/70 rounded p-1.5">
+                                → Cargar en Aires: {b.descripcionCaja}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                onAplicarBeneficio(sesion.cliente.id, b.id)
+                              }}
+                              className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-700 transition whitespace-nowrap"
+                            >
+                              Aplicar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="bg-gray-100 rounded-lg p-3 text-center text-gray-500 text-sm">
+                    Sin beneficios disponibles
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="bg-gray-100 rounded-xl p-4 text-center text-gray-500">
-              Sin beneficios disponibles
-            </div>
-          )}
-
-          {/* Botón cerrar sesión */}
-          <button
-            onClick={() => {
-              if (confirm('¿El cliente se retiró? Esto liberará la mesa.')) {
-                onCerrarSesion(sesion.id)
-                onClose()
-              }
-            }}
-            className="w-full mt-6 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition"
-          >
-            Cerrar Sesión (Liberar Mesa)
-          </button>
+          ))}
         </div>
       </div>
     </div>

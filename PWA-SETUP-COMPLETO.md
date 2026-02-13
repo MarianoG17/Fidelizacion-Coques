@@ -1,4 +1,4 @@
-# ✅ Estado de PWA (Progressive Web App)
+dice q# ✅ Estado de PWA (Progressive Web App)
 
 ## 🎉 Lo que ya está configurado:
 
