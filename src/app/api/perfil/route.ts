@@ -36,6 +36,15 @@ export async function GET(req: NextRequest) {
                         descripcionBeneficios: true,
                     },
                 },
+                logros: {
+                    select: {
+                        logro: {
+                            select: {
+                                puntosXp: true,
+                            },
+                        },
+                    },
+                },
             },
         })
 
@@ -46,6 +55,13 @@ export async function GET(req: NextRequest) {
 
         console.log(`[API /api/perfil GET] Perfil encontrado para: ${cliente.nombre}`)
 
+        // Calculate total XP from achievements
+        const totalXp = cliente.logros.reduce((sum: number, logroCliente: any) => {
+            return sum + (logroCliente.logro.puntosXp || 0)
+        }, 0)
+
+        console.log(`[API /api/perfil GET] Total XP calculado: ${totalXp}`)
+
         const duration = Date.now() - startTime
         console.log(`[API /api/perfil GET] Completado en ${duration}ms`)
 
@@ -53,12 +69,14 @@ export async function GET(req: NextRequest) {
             data: {
                 nombre: cliente.nombre,
                 email: cliente.email,
+                telefono: cliente.phone,
                 phone: cliente.phone,
                 fechaCumpleanos: cliente.fechaCumpleanos?.toISOString().split('T')[0], // YYYY-MM-DD
                 codigoReferido: cliente.codigoReferido,
                 referidosActivados: cliente.referidosActivados,
                 estado: cliente.estado,
-                miembroDesde: cliente.createdAt.toISOString(),
+                createdAt: cliente.createdAt.toISOString(),
+                totalXp: totalXp,
                 nivel: cliente.nivel,
             },
         })

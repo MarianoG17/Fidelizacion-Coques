@@ -2,17 +2,19 @@
 // src/app/pass/page.tsx
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
-import BackButton from '@/components/shared/BackButton'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
 export default function PassPage() {
+  const router = useRouter()
   const [pass, setPass] = useState<PassData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(30)
+  const [showShareCopied, setShowShareCopied] = useState(false)
 
   const fetchPass = useCallback(async () => {
     const token = localStorage.getItem('fidelizacion_token')
@@ -57,6 +59,30 @@ export default function PassPage() {
     return () => clearInterval(tick)
   }, [pass?.otp.token])
 
+  const handleShareReferralCode = async () => {
+    if (!pass?.codigoReferido) return
+
+    const shareUrl = `${window.location.origin}/activar?ref=${pass.codigoReferido}`
+    const shareText = `¡Unite al programa de fidelización de Coques! Usá mi código: ${pass.codigoReferido}\n${shareUrl}`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: shareText })
+      } catch (err) {
+        // Usuario canceló o error, copiar al clipboard
+        copyToClipboard(shareUrl)
+      }
+    } else {
+      copyToClipboard(shareUrl)
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setShowShareCopied(true)
+    setTimeout(() => setShowShareCopied(false), 2000)
+  }
+
   if (loading) return <LoadingScreen />
   if (error === 'no_auth') return <NoAuthScreen />
   if (error) return <ErrorScreen message={error} />
@@ -65,7 +91,7 @@ export default function PassPage() {
   const nivelColor = pass.nivel ? NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' : '#6b7280'
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
       {/* Header */}
       <div className="w-full max-w-sm">
         {/* Header con Volver y Logout */}
@@ -79,7 +105,7 @@ export default function PassPage() {
             </svg>
             <span className="font-medium">Volver</span>
           </button>
-          
+
           <button
             onClick={() => {
               localStorage.removeItem('fidelizacion_token')
@@ -97,19 +123,24 @@ export default function PassPage() {
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Hola, {pass.nombre} 👋</h1>
           {pass.nivel && (
-            <span
-              className="inline-block mt-1 px-3 py-1 rounded-full text-white text-sm font-semibold"
-              style={{ backgroundColor: nivelColor }}
-            >
-              {pass.nivel.nombre}
-            </span>
+            <div className="mt-2">
+              <span
+                className="inline-block px-3 py-1 rounded-full text-white text-sm font-semibold"
+                style={{ backgroundColor: nivelColor }}
+              >
+                {pass.nivel.nombre}
+              </span>
+              {pass.totalXp > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{pass.totalXp} XP acumulados</p>
+              )}
+            </div>
           )}
         </div>
 
         {/* Card del QR */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
           <div className="flex flex-col items-center">
-            {/* QR - SIN countdown sobre el QR para no interferir con el scanner */}
+            {/* QR */}
             <div className="relative mb-3">
               <img
                 src={pass.otp.qrDataUrl}
@@ -141,6 +172,59 @@ export default function PassPage() {
           </div>
         </div>
 
+        {/* Beneficios del Nivel */}
+        {pass.nivel?.descripcionBeneficios && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+              <span>⭐</span>
+              Tus Beneficios {pass.nivel.nombre}
+            </h2>
+            <div className="text-sm text-gray-700 whitespace-pre-line">
+              {pass.nivel.descripcionBeneficios}
+            </div>
+          </div>
+        )}
+
+        {/* Sección de Referidos */}
+        {pass.codigoReferido && (
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-sm p-4 mb-4 border border-purple-100">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <span>🤝</span>
+              Invita Amigos
+            </h2>
+
+            <div className="bg-white rounded-xl p-4 mb-3">
+              <p className="text-xs text-gray-500 mb-1">Tu código de referido</p>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold text-purple-600 tracking-wider">
+                  {pass.codigoReferido}
+                </span>
+                <button
+                  onClick={handleShareReferralCode}
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
+                >
+                  Compartir
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">
+                Referidos activados: <strong>{pass.referidosActivados}</strong>
+              </span>
+              <span className="text-purple-600 font-semibold">
+                {pass.referidosActivados >= 2 ? '✅ Subiste de nivel!' : `Faltan ${2 - pass.referidosActivados} para subir`}
+              </span>
+            </div>
+
+            {showShareCopied && (
+              <div className="mt-2 text-center text-sm text-green-600 font-semibold">
+                ✓ Link copiado al portapapeles
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Autos del cliente */}
         {pass.autos && pass.autos.length > 0 && (
           <div className="mb-4">
@@ -151,11 +235,10 @@ export default function PassPage() {
               {pass.autos.map((auto) => (
                 <div
                   key={auto.id}
-                  className={`rounded-2xl p-4 ${
-                    auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
+                  className={`rounded-2xl p-4 ${auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
                       ? 'bg-white border-2 shadow-sm'
                       : 'bg-gray-50 border border-gray-200'
-                  }`}
+                    }`}
                   style={
                     auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
                       ? { borderColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }
@@ -229,11 +312,64 @@ export default function PassPage() {
           </div>
         )}
 
+        {/* Logros recientes no vistos */}
+        {pass.logrosRecientes && pass.logrosRecientes.length > 0 && (
+          <Link href="/logros">
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl shadow-sm p-4 mb-4 border border-yellow-200 cursor-pointer hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">{pass.logrosRecientes[0].icono}</div>
+                  <div>
+                    <p className="font-semibold text-gray-800">¡Nuevo logro desbloqueado!</p>
+                    <p className="text-sm text-gray-600">{pass.logrosRecientes[0].nombre}</p>
+                  </div>
+                </div>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </Link>
+        )}
+
         {/* Footer */}
         <p className="text-center text-xs text-gray-400 mt-4">
           Fidelización Zona · {pass.phone}
         </p>
       </div>
+
+      {/* Navegación inferior fija */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+        <div className="max-w-lg mx-auto flex justify-around items-center py-3 px-4">
+          <Link href="/pass" className="flex flex-col items-center gap-1 text-purple-600">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+            </svg>
+            <span className="text-xs font-medium">Pass</span>
+          </Link>
+
+          <Link href="/logros" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            <span className="text-xs font-medium">Logros</span>
+          </Link>
+
+          <Link href="/historial" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs font-medium">Historial</span>
+          </Link>
+
+          <Link href="/perfil" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-xs font-medium">Perfil</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   )
 }
@@ -251,12 +387,12 @@ function LoadingScreen() {
 
 function NoAuthScreen() {
   const router = useRouter()
-  
+
   useEffect(() => {
     // Redirigir automáticamente a login
     router.push('/login')
   }, [router])
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
       <div className="text-center">

@@ -190,8 +190,18 @@ export interface VisitaHistorial {
 export interface PerfilData {
   nombre: string
   email?: string
+  telefono: string
   phone: string
   fechaCumpleanos?: string
+  createdAt: string
+  estado: 'ACTIVO' | 'INACTIVO'
+  codigoReferido?: string
+  referidosActivados?: number
+  totalXp?: number
+  nivel: {
+    nombre: string
+    descripcionBeneficios?: string
+  }
 }
 
 export interface UpdatePerfilRequest {
