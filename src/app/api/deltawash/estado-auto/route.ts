@@ -1,11 +1,14 @@
 /**
- * API: Consultar estado de autos en DeltaWash Legacy
+ * API: Consultar estado de autos en DeltaWash Legacy (SOLO LECTURA)
  *
  * Integración en tiempo real con la base de DeltaWash (Neon)
  * para mostrar el estado de autos en proceso de lavado.
  *
  * GET /api/deltawash/estado-auto
  * Requiere: Authorization: Bearer <jwt>
+ *
+ * IMPORTANTE: Esta integración es SOLO de LECTURA.
+ * NO modifica, inserta ni elimina datos en la base DeltaWash.
  *
  * SEGURIDAD: El teléfono se obtiene del JWT del usuario autenticado.
  * Cada usuario solo puede ver el estado de SUS propios autos.
@@ -62,23 +65,23 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Consultar autos en proceso en DeltaWash (estado != ENTREGADO)
+        // Consultar autos en proceso en DeltaWash (estado != entregado)
+        // NOTA: La tabla se llama "estado" y los valores son: "en proceso", "listo", "entregado"
         const autosEnDeltaWash = await deltaWashDB.$queryRaw<any[]>`
-      SELECT 
+      SELECT
         c.phone as "clientePhone",
-        ea.patente,
-        ea.estado,
-        ea."localOrigenId",
-        ea.notas,
-        ea."updatedAt",
-        ea."createdAt"
-      FROM "EstadoAuto" ea
-      JOIN "Cliente" c ON c.id = ea."clienteId"
+        e.patente,
+        e.estado,
+        e.notas,
+        e."updatedAt",
+        e."createdAt"
+      FROM "estado" e
+      JOIN "Cliente" c ON c.id = e."clienteId"
       WHERE c.phone = ${phone}
-        AND ea.estado != 'ENTREGADO'
-        AND ea.patente IS NOT NULL 
-        AND ea.patente != ''
-      ORDER BY ea."updatedAt" DESC
+        AND LOWER(e.estado) != 'entregado'
+        AND e.patente IS NOT NULL
+        AND e.patente != ''
+      ORDER BY e."updatedAt" DESC
     `;
 
         // Si no hay autos en proceso, retornar vacío
@@ -116,9 +119,8 @@ export async function GET(req: NextRequest) {
                     marca: autoLocal?.marca || undefined,
                     modelo: autoLocal?.modelo || undefined,
                     alias: autoLocal?.alias || undefined,
-                    estado: autoDelWash.estado,
+                    estado: autoDelWash.estado, // "en proceso", "listo", o "entregado"
                     updatedAt: autoDelWash.updatedAt,
-                    localOrigenId: autoDelWash.localOrigenId,
                     notas: autoDelWash.notas,
                 };
             })
@@ -143,104 +145,5 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// Endpoint para vincular auto de DeltaWash con la base local
-// POST /api/deltawash/estado-auto
-// Requiere: Authorization: Bearer <jwt>
-export async function POST(req: NextRequest) {
-  try {
-    // SEGURIDAD: Obtener teléfono del JWT autenticado
-    const payload = await requireClienteAuth(req);
-    if (!payload) return unauthorized('Debes iniciar sesión');
-
-    const phone = payload.phone;
-    
-    const body = await req.json();
-    const { patente } = body;
-
-    if (!patente) {
-      return NextResponse.json(
-        { error: 'Patente requerida' },
-        { status: 400 }
-      );
-    }
-
-        // Normalizar patente
-        const patenteNormalizada = patente
-            .toUpperCase()
-            .replace(/[^A-Z0-9]/g, '');
-
-        // Buscar cliente local
-        const cliente = await (prisma as any).cliente.findUnique({
-            where: { phone },
-        });
-
-        if (!cliente) {
-            return NextResponse.json(
-                { error: 'Cliente no encontrado en sistema de fidelización' },
-                { status: 404 }
-            );
-        }
-
-        // Verificar que el auto exista en DeltaWash
-        const deltaWashDB = getDeltaWashDB();
-        if (!deltaWashDB) {
-            return NextResponse.json(
-                { error: 'Integración con DeltaWash no configurada' },
-                { status: 503 }
-            );
-        }
-
-        const autoEnDeltaWash = await deltaWashDB.$queryRaw<any[]>`
-      SELECT 
-        ea.patente,
-        ea.estado
-      FROM "EstadoAuto" ea
-      JOIN "Cliente" c ON c.id = ea."clienteId"
-      WHERE c.phone = ${phone}
-        AND UPPER(REGEXP_REPLACE(ea.patente, '[^A-Z0-9]', '', 'g')) = ${patenteNormalizada}
-      LIMIT 1
-    `;
-
-        if (!autoEnDeltaWash || autoEnDeltaWash.length === 0) {
-            return NextResponse.json(
-                { error: 'Auto no encontrado en DeltaWash para este teléfono' },
-                { status: 404 }
-            );
-        }
-
-        // Crear o actualizar auto en la base local
-        const autoLocal = (await (prisma as any).auto.upsert({
-            where: {
-                clienteId_patente: {
-                    clienteId: cliente.id,
-                    patente: patenteNormalizada,
-                },
-            },
-            update: {
-                activo: true,
-            },
-            create: {
-                clienteId: cliente.id,
-                patente: patenteNormalizada,
-                activo: true,
-            },
-        })) as any;
-
-        return NextResponse.json({
-            success: true,
-            mensaje: 'Auto vinculado correctamente',
-            auto: autoLocal,
-        });
-
-    } catch (error: any) {
-        console.error('Error vinculando auto:', error);
-
-        return NextResponse.json(
-            {
-                error: 'Error al vincular el auto',
-                details: error.message
-            },
-            { status: 500 }
-        );
-    }
-}
+// NOTA: Método POST eliminado para garantizar que la integración sea SOLO de LECTURA.
+// La base DeltaWash Legacy NO se modifica desde este sistema.

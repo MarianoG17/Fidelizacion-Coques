@@ -53,7 +53,7 @@ export interface AutoData {
 }
 
 export interface EstadoAutoData {
-  estado: 'RECIBIDO' | 'EN_LAVADO' | 'EN_SECADO' | 'LISTO' | 'ENTREGADO'
+  estado: 'EN_PROCESO' | 'LISTO' | 'ENTREGADO'
   updatedAt: string
 }
 
@@ -91,22 +91,18 @@ export interface LocalLayout {
 
 // ─── Estado del auto ─────────────────────────────────────────────────────────
 
-export type EstadoAuto = 'RECIBIDO' | 'EN_LAVADO' | 'EN_SECADO' | 'LISTO' | 'ENTREGADO'
+export type EstadoAuto = 'EN_PROCESO' | 'LISTO' | 'ENTREGADO'
 
 export const ESTADO_AUTO_LABELS: Record<EstadoAuto, string> = {
-  RECIBIDO: 'Recibido',
-  EN_LAVADO: 'En lavado',
-  EN_SECADO: 'En secado',
+  EN_PROCESO: 'En proceso',
   LISTO: 'Listo para retirar',
   ENTREGADO: 'Entregado',
 }
 
 export const ESTADO_AUTO_COLORS: Record<EstadoAuto, string> = {
-  RECIBIDO: '#94a3b8',
-  EN_LAVADO: '#3b82f6',
-  EN_SECADO: '#f59e0b',
-  LISTO: '#22c55e',
-  ENTREGADO: '#6b7280',
+  EN_PROCESO: '#3b82f6',  // Azul para en proceso
+  LISTO: '#22c55e',       // Verde para listo
+  ENTREGADO: '#6b7280',   // Gris para entregado
 }
 
 // ─── Niveles ─────────────────────────────────────────────────────────────────

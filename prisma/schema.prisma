@@ -39,9 +39,7 @@ enum MetodoValidacion {
 }
 
 enum EstadoAutoEnum {
-  RECIBIDO
-  EN_LAVADO
-  EN_SECADO
+  EN_PROCESO
   LISTO
   ENTREGADO
 }
