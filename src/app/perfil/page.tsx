@@ -20,7 +20,7 @@ export default function PerfilPage() {
 
   const fetchPerfil = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('fidelizacion_token')
       if (!token) {
         router.push('/login')
         return
@@ -69,7 +69,7 @@ export default function PerfilPage() {
     setSuccess(false)
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('fidelizacion_token')
       if (!token) {
         router.push('/login')
         return
