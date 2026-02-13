@@ -18,66 +18,77 @@ export async function GET(req: NextRequest) {
 
         console.log(`[API /api/perfil GET] Cliente autenticado: ${clienteId}`)
 
-        const cliente = await prisma.cliente.findUnique({
-            where: { id: clienteId },
-            select: {
-                nombre: true,
-                email: true,
-                phone: true,
-                fechaCumpleanos: true,
-                codigoReferido: true,
-                referidosActivados: true,
-                estado: true,
-                createdAt: true,
-                nivel: {
-                    select: {
-                        nombre: true,
-                        orden: true,
-                        descripcionBeneficios: true,
-                    },
-                },
-                logros: {
-                    select: {
-                        logro: {
-                            select: {
-                                puntosXp: true,
-                            },
-                        },
-                    },
-                },
-            },
-        })
+        // Use raw query to avoid Prisma type issues during transition
+        const cliente: any = await prisma.$queryRaw`
+            SELECT 
+                c.id,
+                c.nombre,
+                c.email,
+                c.phone,
+                c."fechaCumpleanos",
+                c."codigoReferido",
+                c."referidosActivados",
+                c.estado,
+                c."createdAt",
+                n.nombre as "nivelNombre",
+                n."descripcionBeneficios"
+            FROM "Cliente" c
+            LEFT JOIN "Nivel" n ON c."nivelId" = n.id
+            WHERE c.id = ${clienteId}::text
+            LIMIT 1
+        `
 
-        if (!cliente) {
+        if (!cliente || cliente.length === 0) {
             console.log(`[API /api/perfil GET] Cliente ${clienteId} no encontrado`)
             return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 })
         }
 
-        console.log(`[API /api/perfil GET] Perfil encontrado para: ${cliente.nombre}`)
+        const clienteData = cliente[0]
+
+        console.log(`[API /api/perfil GET] Perfil encontrado para: ${clienteData.nombre}`)
 
         // Calculate total XP from achievements
-        const totalXp = cliente.logros.reduce((sum: number, logroCliente: any) => {
-            return sum + (logroCliente.logro.puntosXp || 0)
-        }, 0)
-
-        console.log(`[API /api/perfil GET] Total XP calculado: ${totalXp}`)
+        let totalXp = 0
+        try {
+            const xpResult: any = await prisma.$queryRaw`
+                SELECT COALESCE(SUM(l."puntosXp"), 0) as "totalXp"
+                FROM "LogroCliente" lc
+                INNER JOIN "Logro" l ON lc."logroId" = l.id
+                WHERE lc."clienteId" = ${clienteId}::text
+            `
+            
+            if (xpResult && xpResult.length > 0) {
+                totalXp = Number(xpResult[0].totalXp) || 0
+            }
+            console.log(`[API /api/perfil GET] Total XP calculado: ${totalXp}`)
+        } catch (error) {
+            console.error('[API /api/perfil GET] Error calculando XP:', error)
+            // Continue without XP if there's an error
+        }
 
         const duration = Date.now() - startTime
         console.log(`[API /api/perfil GET] Completado en ${duration}ms`)
 
         return NextResponse.json({
             data: {
-                nombre: cliente.nombre,
-                email: cliente.email,
-                telefono: cliente.phone,
-                phone: cliente.phone,
-                fechaCumpleanos: cliente.fechaCumpleanos?.toISOString().split('T')[0], // YYYY-MM-DD
-                codigoReferido: cliente.codigoReferido,
-                referidosActivados: cliente.referidosActivados,
-                estado: cliente.estado,
-                createdAt: cliente.createdAt.toISOString(),
+                nombre: clienteData.nombre || '',
+                email: clienteData.email || '',
+                telefono: clienteData.phone || '',
+                phone: clienteData.phone || '',
+                fechaCumpleanos: clienteData.fechaCumpleanos 
+                    ? new Date(clienteData.fechaCumpleanos).toISOString().split('T')[0]
+                    : null,
+                codigoReferido: clienteData.codigoReferido || null,
+                referidosActivados: clienteData.referidosActivados || 0,
+                estado: clienteData.estado || 'ACTIVO',
+                createdAt: clienteData.createdAt 
+                    ? new Date(clienteData.createdAt).toISOString()
+                    : new Date().toISOString(),
                 totalXp: totalXp,
-                nivel: cliente.nivel,
+                nivel: {
+                    nombre: clienteData.nivelNombre || 'Bronce',
+                    descripcionBeneficios: clienteData.descripcionBeneficios || ''
+                },
             },
         })
     } catch (error) {
@@ -112,64 +123,85 @@ export async function PATCH(req: NextRequest) {
 
         console.log(`[API /api/perfil PATCH] Datos a actualizar:`, { nombre, email, fechaCumpleanos })
 
-        // Construir objeto de actualización solo con campos proporcionados
-        const dataToUpdate: any = {}
-
+        // Validations
         if (nombre !== undefined) {
             if (!nombre || nombre.trim().length < 2) {
                 console.log('[API /api/perfil PATCH] Nombre inválido')
                 return NextResponse.json({ error: 'Nombre debe tener al menos 2 caracteres' }, { status: 400 })
             }
-            dataToUpdate.nombre = nombre.trim()
         }
 
-        if (email !== undefined) {
-            if (email && !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+        if (email !== undefined && email) {
+            if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
                 console.log('[API /api/perfil PATCH] Email inválido')
                 return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
             }
-            dataToUpdate.email = email || null
-        }
 
-        if (fechaCumpleanos !== undefined) {
-            if (fechaCumpleanos) {
-                const fecha = new Date(fechaCumpleanos)
-                if (isNaN(fecha.getTime())) {
-                    console.log('[API /api/perfil PATCH] Fecha de cumpleaños inválida')
-                    return NextResponse.json({ error: 'Fecha de cumpleaños inválida' }, { status: 400 })
-                }
-                dataToUpdate.fechaCumpleanos = fecha
-            } else {
-                dataToUpdate.fechaCumpleanos = null
-            }
-        }
+            // Check if email is already in use
+            const existente: any = await prisma.$queryRaw`
+                SELECT id FROM "Cliente"
+                WHERE email = ${email}
+                AND id != ${clienteId}::text
+                LIMIT 1
+            `
 
-        // Si el email cambió, verificar que no esté en uso
-        if (dataToUpdate.email) {
-            const existente = await prisma.cliente.findFirst({
-                where: {
-                    email: dataToUpdate.email,
-                    id: { not: clienteId },
-                },
-            })
-
-            if (existente) {
-                console.log(`[API /api/perfil PATCH] Email ${dataToUpdate.email} ya en uso`)
+            if (existente && existente.length > 0) {
+                console.log(`[API /api/perfil PATCH] Email ${email} ya en uso`)
                 return NextResponse.json({ error: 'El email ya está en uso' }, { status: 409 })
             }
         }
 
-        // Actualizar
-        const cliente = await prisma.cliente.update({
-            where: { id: clienteId },
-            data: dataToUpdate,
-            select: {
-                nombre: true,
-                email: true,
-                phone: true,
-                fechaCumpleanos: true,
-            },
-        })
+        if (fechaCumpleanos !== undefined && fechaCumpleanos) {
+            const fecha = new Date(fechaCumpleanos)
+            if (isNaN(fecha.getTime())) {
+                console.log('[API /api/perfil PATCH] Fecha de cumpleaños inválida')
+                return NextResponse.json({ error: 'Fecha de cumpleaños inválida' }, { status: 400 })
+            }
+        }
+
+        // Build update query dynamically
+        const updates: string[] = []
+        const values: any[] = []
+        let paramIndex = 1
+
+        if (nombre !== undefined) {
+            updates.push(`nombre = $${paramIndex}`)
+            values.push(nombre.trim())
+            paramIndex++
+        }
+
+        if (email !== undefined) {
+            updates.push(`email = $${paramIndex}`)
+            values.push(email || null)
+            paramIndex++
+        }
+
+        if (fechaCumpleanos !== undefined) {
+            updates.push(`"fechaCumpleanos" = $${paramIndex}`)
+            values.push(fechaCumpleanos ? new Date(fechaCumpleanos) : null)
+            paramIndex++
+        }
+
+        if (updates.length === 0) {
+            return NextResponse.json({ error: 'No hay datos para actualizar' }, { status: 400 })
+        }
+
+        // Execute update
+        values.push(clienteId)
+        const updateQuery = `
+            UPDATE "Cliente"
+            SET ${updates.join(', ')}
+            WHERE id = $${paramIndex}
+            RETURNING nombre, email, phone, "fechaCumpleanos"
+        `
+
+        const result: any = await prisma.$queryRawUnsafe(updateQuery, ...values)
+
+        if (!result || result.length === 0) {
+            return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 })
+        }
+
+        const cliente = result[0]
 
         console.log(`[API /api/perfil PATCH] Perfil actualizado exitosamente`)
 
@@ -181,7 +213,9 @@ export async function PATCH(req: NextRequest) {
                 nombre: cliente.nombre,
                 email: cliente.email,
                 phone: cliente.phone,
-                fechaCumpleanos: cliente.fechaCumpleanos?.toISOString().split('T')[0],
+                fechaCumpleanos: cliente.fechaCumpleanos 
+                    ? new Date(cliente.fechaCumpleanos).toISOString().split('T')[0]
+                    : null,
             },
             message: 'Perfil actualizado exitosamente',
         })
