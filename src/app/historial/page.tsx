@@ -171,12 +171,6 @@ export default function HistorialPage() {
                                                     </div>
                                                 )}
 
-                                                {/* Notas */}
-                                                {visita.notas && (
-                                                    <p className="text-xs text-gray-500 mt-2 italic">
-                                                        {visita.notas}
-                                                    </p>
-                                                )}
                                             </div>
                                         )
                                     })}
