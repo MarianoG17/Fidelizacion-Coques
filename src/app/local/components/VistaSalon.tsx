@@ -17,51 +17,72 @@ export default function VistaSalon({ estadoSalon, onCerrarSesion, onAplicarBenef
   }
 
   return (
-    <div>
+    <div className="w-full max-w-2xl mx-auto">
       {/* Header con stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-white rounded-xl p-4 text-center shadow">
-          <div className="text-2xl font-bold text-slate-800">{estadoSalon.totalMesas}</div>
-          <div className="text-sm text-gray-500">Total Mesas</div>
+        <div className="bg-slate-800 rounded-xl p-4 text-center shadow">
+          <div className="text-2xl font-bold text-white">{estadoSalon.totalMesas}</div>
+          <div className="text-sm text-slate-400">Total Mesas</div>
         </div>
-        <div className="bg-green-100 rounded-xl p-4 text-center shadow">
-          <div className="text-2xl font-bold text-green-600">{estadoSalon.mesasLibres}</div>
-          <div className="text-sm text-gray-600">Libres</div>
+        <div className="bg-green-600 rounded-xl p-4 text-center shadow">
+          <div className="text-2xl font-bold text-white">{estadoSalon.mesasLibres}</div>
+          <div className="text-sm text-green-100">Libres</div>
         </div>
-        <div className="bg-red-100 rounded-xl p-4 text-center shadow">
-          <div className="text-2xl font-bold text-red-600">{estadoSalon.mesasOcupadas}</div>
-          <div className="text-sm text-gray-600">Ocupadas</div>
+        <div className="bg-red-600 rounded-xl p-4 text-center shadow">
+          <div className="text-2xl font-bold text-white">{estadoSalon.mesasOcupadas}</div>
+          <div className="text-sm text-red-100">Ocupadas</div>
         </div>
       </div>
 
-      {/* Grid de mesas */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {estadoSalon.mesas.map((item: any) => (
-          <button
-            key={item.mesa.id}
-            onClick={() => item.ocupada && setMesaSeleccionada(item)}
-            disabled={!item.ocupada}
-            className={`p-6 rounded-xl font-bold text-lg transition-all transform ${
-              item.ocupada
-                ? 'bg-red-500 text-white shadow-lg hover:scale-105 cursor-pointer'
-                : 'bg-green-500 text-white cursor-default'
-            }`}
-          >
-            <div className="text-3xl mb-2">
-              {item.ocupada ? '🔴' : '🟢'}
-            </div>
-            <div>Mesa {item.mesa.nombre}</div>
-            {item.ocupada && (
-              <div className="text-sm mt-2 opacity-90">
-                {item.sesion.cliente.nombre}
-                <br />
-                <span className="text-xs">
-                  {item.sesion.duracionMinutos} min
-                </span>
+      {/* Plano del salón con posiciones reales */}
+      <div
+        className="relative bg-slate-800 rounded-2xl overflow-hidden shadow-xl"
+        style={{ paddingBottom: '120%' }}
+      >
+        <div className="absolute inset-0 p-3">
+          {estadoSalon.mesas.map((item: any) => (
+            <button
+              key={item.mesa.id}
+              onClick={() => item.ocupada && setMesaSeleccionada(item)}
+              disabled={!item.ocupada}
+              className={`absolute rounded-lg text-xs font-bold transition-all shadow-lg ${
+                item.ocupada
+                  ? 'bg-red-500 text-white hover:scale-110 hover:z-10 cursor-pointer'
+                  : 'bg-green-500 text-white cursor-default'
+              }`}
+              style={{
+                left: `${item.mesa.posX}%`,
+                top: `${item.mesa.posY}%`,
+                width: `${item.mesa.ancho}%`,
+                height: `${item.mesa.alto}%`,
+              }}
+            >
+              <div className="flex flex-col items-center justify-center h-full">
+                <div className="text-lg mb-1">
+                  {item.ocupada ? '🔴' : '🟢'}
+                </div>
+                <div className="font-bold">{item.mesa.nombre}</div>
+                {item.ocupada && (
+                  <div className="text-[10px] mt-1 opacity-90 line-clamp-1">
+                    {item.sesion.cliente.nombre.split(' ')[0]}
+                  </div>
+                )}
               </div>
-            )}
-          </button>
-        ))}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Leyenda */}
+      <div className="flex justify-center gap-6 mt-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-500 rounded"></div>
+          <span className="text-slate-300">Libre</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-500 rounded"></div>
+          <span className="text-slate-300">Ocupada (click para detalles)</span>
+        </div>
       </div>
 
       {/* Modal de mesa seleccionada */}

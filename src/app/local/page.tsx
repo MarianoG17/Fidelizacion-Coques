@@ -34,6 +34,7 @@ export default function LocalPage() {
   const [vistaSalon, setVistaSalon] = useState(false)
   const [estadoSalon, setEstadoSalon] = useState<any>(null)
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
+  const [mesasOcupadas, setMesasOcupadas] = useState<Set<string>>(new Set())
 
   // Cargar mesas desde la base de datos
   useEffect(() => {
@@ -292,6 +293,9 @@ export default function LocalPage() {
     setUbicacion(ubi)
     if (ubi === 'mostrador') {
       setMesaSeleccionada(null)
+    } else if (ubi === 'salon') {
+      // Cargar estado del salón cuando se elige salón
+      cargarEstadoSalon()
     }
   }
 
@@ -304,6 +308,15 @@ export default function LocalPage() {
       if (res.ok) {
         const data = await res.json()
         setEstadoSalon(data.data)
+
+        // Actualizar set de mesas ocupadas
+        const ocupadas = new Set<string>()
+        data.data.mesas.forEach((item: any) => {
+          if (item.ocupada) {
+            ocupadas.add(item.mesa.id)
+          }
+        })
+        setMesasOcupadas(ocupadas)
       }
     } catch (error) {
       console.error('[Local] Error cargando estado del salón:', error)
@@ -486,21 +499,34 @@ export default function LocalPage() {
                   style={{ paddingBottom: '120%' }}
                 >
                   <div className="absolute inset-0 p-3">
-                    {mesas.map((mesa) => (
-                      <button
-                        key={mesa.id}
-                        onClick={() => setMesaSeleccionada(mesa)}
-                        className="absolute rounded-lg text-xs font-bold transition-all bg-white text-slate-700 shadow hover:bg-green-500 hover:text-white hover:scale-105"
-                        style={{
-                          left: `${mesa.posX}%`,
-                          top: `${mesa.posY}%`,
-                          width: `${mesa.ancho}%`,
-                          height: `${mesa.alto}%`,
-                        }}
-                      >
-                        {mesa.nombre}
-                      </button>
-                    ))}
+                    {mesas.map((mesa) => {
+                      const estaOcupada = mesasOcupadas.has(mesa.id)
+                      return (
+                        <button
+                          key={mesa.id}
+                          onClick={() => setMesaSeleccionada(mesa)}
+                          className={`absolute rounded-lg text-xs font-bold transition-all shadow ${mesaSeleccionada?.id === mesa.id
+                              ? 'bg-blue-600 text-white scale-110 z-10'
+                              : estaOcupada
+                                ? 'bg-red-500 text-white hover:bg-red-600'
+                                : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105'
+                            }`}
+                          style={{
+                            left: `${mesa.posX}%`,
+                            top: `${mesa.posY}%`,
+                            width: `${mesa.ancho}%`,
+                            height: `${mesa.alto}%`,
+                          }}
+                        >
+                          <div className="flex flex-col items-center justify-center h-full">
+                            <div className="text-base">
+                              {estaOcupada ? '🔴' : '🟢'}
+                            </div>
+                            <div>{mesa.nombre}</div>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -794,8 +820,8 @@ export default function LocalPage() {
             <>
               {/* Info de ubicación seleccionada */}
               <div className={`rounded-xl p-4 mb-4 text-center ${ubicacion === 'mostrador'
-                  ? 'bg-amber-50 border border-amber-200'
-                  : 'bg-green-50 border border-green-200'
+                ? 'bg-amber-50 border border-amber-200'
+                : 'bg-green-50 border border-green-200'
                 }`}>
                 <div className="text-3xl mb-2">
                   {ubicacion === 'mostrador' ? '🪑' : '🍽️'}
