@@ -1,0 +1,346 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import BackButton from '@/components/shared/BackButton'
+
+interface Variante {
+  id: number
+  precio: string
+  precioRegular: string
+  precioOferta: string
+  enStock: boolean
+  stock: number | null
+  nombreVariante: string
+  atributos: Array<{ nombre: string; valor: string }>
+  imagen: string | null
+}
+
+interface Producto {
+  id: number
+  nombre: string
+  tipo: 'simple' | 'variable'
+  descripcion: string
+  imagen: string | null
+  imagenes: string[]
+  precio: string
+  precioRegular: string
+  enStock: boolean
+  variantes: Variante[]
+  precioMin: number | null
+  precioMax: number | null
+}
+
+export default function TortasPage() {
+  const [loading, setLoading] = useState(true)
+  const [productos, setProductos] = useState<Producto[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
+  const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
+
+  useEffect(() => {
+    cargarTortas()
+  }, [])
+
+  async function cargarTortas() {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/woocommerce/tortas')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al cargar tortas')
+      }
+
+      if (data.success) {
+        setProductos(data.products || [])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function abrirDetalles(producto: Producto) {
+    setProductoSeleccionado(producto)
+    if (producto.variantes.length > 0) {
+      setVarianteSeleccionada(producto.variantes[0])
+    } else {
+      setVarianteSeleccionada(null)
+    }
+  }
+
+  function cerrarDetalles() {
+    setProductoSeleccionado(null)
+    setVarianteSeleccionada(null)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-blue-50 to-white p-4">
+      <div className="max-w-6xl mx-auto">
+        <BackButton href="/pass" />
+
+        <div className="mt-4 mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            🍰 Tortas Clásicas
+          </h1>
+          <p className="text-gray-600">
+            Descubrí nuestra selección de tortas artesanales
+          </p>
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600">Cargando tortas...</p>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800 font-semibold">❌ Error</p>
+            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <button
+              onClick={cargarTortas}
+              className="mt-3 text-sm text-red-600 underline"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {/* Grid de productos */}
+        {!loading && !error && productos.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <p className="text-gray-600 text-lg">No hay tortas disponibles en este momento</p>
+          </div>
+        )}
+
+        {!loading && productos.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {productos.map((producto) => (
+              <div
+                key={producto.id}
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+                onClick={() => abrirDetalles(producto)}
+              >
+                {/* Imagen */}
+                {producto.imagen ? (
+                  <div className="relative h-64 bg-gray-100">
+                    <img
+                      src={producto.imagen}
+                      alt={producto.nombre}
+                      className="w-full h-full object-cover"
+                    />
+                    {!producto.enStock && producto.tipo === 'simple' && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <span className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold">
+                          Sin Stock
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-64 bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                    <span className="text-6xl">🍰</span>
+                  </div>
+                )}
+
+                {/* Contenido */}
+                <div className="p-4">
+                  <h3 className="font-bold text-lg text-gray-800 mb-2">
+                    {producto.nombre}
+                  </h3>
+
+                  {producto.descripcion && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {producto.descripcion}
+                    </p>
+                  )}
+
+                  {/* Precio */}
+                  <div className="mb-3">
+                    {producto.tipo === 'simple' ? (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-green-600">
+                          ${producto.precio}
+                        </span>
+                        {producto.precioOferta && (
+                          <span className="text-sm text-gray-400 line-through">
+                            ${producto.precioRegular}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-gray-700">
+                        {producto.precioMin === producto.precioMax ? (
+                          <span className="text-2xl font-bold text-green-600">
+                            ${producto.precioMin?.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-lg font-semibold text-gray-600">
+                            Desde ${producto.precioMin?.toFixed(2)}
+                          </span>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {producto.variantes.length} tamaños disponibles
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botón */}
+                  <button className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+                    Ver detalles
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Modal de detalles */}
+        {productoSeleccionado && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  {productoSeleccionado.nombre}
+                </h2>
+                <button
+                  onClick={cerrarDetalles}
+                  className="text-gray-500 hover:text-gray-700 text-3xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Contenido */}
+              <div className="p-6">
+                {/* Imagen principal */}
+                {productoSeleccionado.imagen && (
+                  <div className="mb-6">
+                    <img
+                      src={varianteSeleccionada?.imagen || productoSeleccionado.imagen}
+                      alt={productoSeleccionado.nombre}
+                      className="w-full h-80 object-cover rounded-xl"
+                    />
+                  </div>
+                )}
+
+                {/* Descripción */}
+                {productoSeleccionado.descripcion && (
+                  <div className="mb-6">
+                    <p className="text-gray-700 leading-relaxed">
+                      {productoSeleccionado.descripcion}
+                    </p>
+                  </div>
+                )}
+
+                {/* Variantes */}
+                {productoSeleccionado.variantes.length > 0 ? (
+                  <div className="mb-6">
+                    <h3 className="font-bold text-lg mb-3">Tamaños disponibles</h3>
+                    <div className="space-y-3">
+                      {productoSeleccionado.variantes.map((variante) => (
+                        <button
+                          key={variante.id}
+                          onClick={() => setVarianteSeleccionada(variante)}
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                            varianteSeleccionada?.id === variante.id
+                              ? 'border-purple-600 bg-purple-50'
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                          disabled={!variante.enStock}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-800">
+                                {variante.nombreVariante}
+                              </p>
+                              {!variante.enStock && (
+                                <span className="text-sm text-red-600 font-medium">
+                                  Sin stock
+                                </span>
+                              )}
+                              {variante.enStock && variante.stock !== null && (
+                                <span className="text-xs text-gray-500">
+                                  Stock: {variante.stock} unidades
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-xl font-bold text-green-600">
+                                ${variante.precio}
+                              </p>
+                              {variante.precioOferta && (
+                                <p className="text-sm text-gray-400 line-through">
+                                  ${variante.precioRegular}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* Producto simple */
+                  <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-gray-600">Precio</p>
+                        {productoSeleccionado.enStock ? (
+                          <p className="text-sm text-green-600 font-medium mt-1">
+                            ✓ En stock
+                          </p>
+                        ) : (
+                          <p className="text-sm text-red-600 font-medium mt-1">
+                            Sin stock
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-green-600">
+                          ${productoSeleccionado.precio}
+                        </p>
+                        {productoSeleccionado.precioOferta && (
+                          <p className="text-sm text-gray-400 line-through">
+                            ${productoSeleccionado.precioRegular}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Información adicional */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-blue-800">
+                    💡 <strong>¿Querés hacer un pedido?</strong>
+                  </p>
+                  <p className="text-sm text-blue-700 mt-2">
+                    Llamanos al <a href="tel:+549XXXXXXXXX" className="font-semibold underline">+54 9 XXX XXX XXXX</a> o visitanos en el local para hacer tu pedido.
+                  </p>
+                </div>
+
+                {/* Botón cerrar */}
+                <button
+                  onClick={cerrarDetalles}
+                  className="w-full bg-gray-600 text-white py-3 rounded-xl font-bold hover:bg-gray-700 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
