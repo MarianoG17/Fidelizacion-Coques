@@ -24,7 +24,9 @@ interface Producto {
   imagenes: string[]
   precio: string
   precioRegular: string
+  precioOferta: string | null
   enStock: boolean
+  stock: number | null
   variantes: Variante[]
   precioMin: number | null
   precioMax: number | null
