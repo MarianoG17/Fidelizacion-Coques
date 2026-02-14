@@ -14,11 +14,51 @@ El diagnóstico muestra **Error 403 (Forbidden)** al intentar acceder a la API d
 }
 ```
 
-## ✅ Soluciones (Ordenadas por Facilidad)
+## 🔒 Nota Importante sobre Seguridad
 
-### Opción 1: Page Rules para API de WooCommerce (RECOMENDADA)
+**"Essentially Off" solo afecta la ruta de la API de WooCommerce**, no todo el sitio:
+- ✅ Tu admin de WordPress sigue protegido
+- ✅ Tus páginas siguen protegidas
+- ✅ La API de WooCommerce tiene su propia autenticación (Consumer Key/Secret)
+- ✅ Sin credenciales válidas, nadie puede usar la API
 
-Esta es la solución más simple y segura.
+**Es como tener dos puertas**: Cloudflare (más permisivo para API) + Autenticación WooCommerce (credenciales).
+
+---
+
+## ✅ Soluciones (Ordenadas por Seguridad)
+
+### Opción 1: Security Level "Medium" (MÁS SEGURA)
+
+Mantiene protección básica pero permite APIs legítimas.
+
+**Pasos en Cloudflare:**
+
+1. Ve a tu sitio en **Cloudflare Dashboard**
+2. Ve a **Rules → Page Rules**
+3. Crea una nueva regla:
+
+   **URL:** `coques.com.ar/wp-json/wc/*`
+   
+   **Settings:**
+   - **Security Level**: `Medium`
+   - **Browser Integrity Check**: `Off`
+   
+4. Guarda la regla
+
+**Ventajas:**
+- ✅ Mantiene protección contra ataques básicos
+- ✅ Permite peticiones legítimas de APIs
+- ✅ Bloquea tráfico sospechoso conocido
+
+**Desventajas:**
+- ⚠️ Puede seguir bloqueando algunas peticiones legítimas si Vercel usa IPs marcadas
+
+---
+
+### Opción 2: Essentially Off (MÁS PERMISIVA)
+
+Si la Opción 1 no funciona, usa esta.
 
 **Pasos en Cloudflare:**
 
@@ -91,22 +131,6 @@ Permitir todas las IPs de Vercel (puede ser menos seguro):
 4. **IMPORTANTE:** Vuelve a subirlo y usa Page Rules en su lugar
 
 ---
-
-## 🧪 Cómo Probar Después de Configurar
-
-1. Espera 1-2 minutos después de guardar los cambios en Cloudflare
-2. Ve a: https://fidelizacion-coques-813u.vercel.app/admin/woocommerce-test
-3. Haz clic en **"🔍 Diagnóstico"**
-4. Deberías ver:
-   ```json
-   {
-     "pruebaConexion": {
-       "status": 200,
-       "statusText": "OK",
-       "exitoso": true
-     }
-   }
-   ```
 
 ## 📋 Configuración Completa Recomendada
 
@@ -191,16 +215,32 @@ Si el problema persiste, puede ser que WooCommerce tenga alguna configuración a
 
 ## 🎯 Resumen para el Admin de Cloudflare
 
-**Acción requerida:**
+### Configuración Recomendada (Prueba en este orden)
+
+**Primera opción (Más segura):**
 ```
 1. Ir a: Cloudflare → Rules → Page Rules
 2. Crear regla nueva
 3. URL: coques.com.ar/wp-json/wc/*
-4. Setting 1: Security Level → Essentially Off
+4. Setting 1: Security Level → Medium
 5. Setting 2: Browser Integrity Check → Off
-6. Guardar
-7. Esperar 2 minutos
-8. Probar diagnóstico de nuevo
+6. Guardar y probar
+
+Si funciona: ¡Listo! ✅
+Si sigue dando 403: Continúa con la segunda opción ↓
 ```
+
+**Segunda opción (Si la primera no funciona):**
+```
+1. Editar la misma regla
+2. Cambiar Security Level de "Medium" a "Essentially Off"
+3. Guardar y probar
+```
+
+### ¿Por qué es seguro?
+
+1. **Solo afecta `/wp-json/wc/*`** → El resto del sitio mantiene seguridad High/Medium
+2. **La API tiene autenticación propia** → Sin Consumer Key/Secret válidos, nadie puede acceder
+3. **WordPress también protege** → Límites de peticiones, permisos, etc.
 
 Esto permitirá que las peticiones de la API REST de WooCommerce pasen sin ser bloqueadas por Cloudflare, manteniendo el resto del sitio protegido.
