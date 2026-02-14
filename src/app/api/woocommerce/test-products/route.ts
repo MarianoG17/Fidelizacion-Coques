@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
     // Crear autenticación básica
     const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
 
+    // Timeout de 10 segundos
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
+
     // Llamar a la API de WooCommerce para obtener productos
     const response = await fetch(
       `${wooUrl}/wp-json/wc/v3/products?per_page=5&status=publish`,
@@ -37,9 +41,13 @@ export async function GET(req: NextRequest) {
         headers: {
           'Authorization': `Basic ${auth}`,
           'Content-Type': 'application/json',
+          'User-Agent': 'FidelizacionApp/1.0',
         },
+        signal: controller.signal,
       }
     )
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       const errorText = await response.text()
