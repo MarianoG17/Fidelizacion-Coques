@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       payment_method: 'cod', // Cash on delivery (pago en efectivo/transferencia)
       payment_method_title: 'Pago al retirar o por transferencia',
       set_paid: false, // No marcar como pagado aún
-      status: 'pending', // Estado inicial: pendiente
+      status: 'processing', // Estado inicial: procesando (pedido confirmado, pendiente de preparación)
       billing: {
         first_name: nombreCompleto.split(' ')[0] || nombreCompleto,
         last_name: nombreCompleto.split(' ').slice(1).join(' ') || '',
@@ -107,8 +107,8 @@ export async function POST(req: NextRequest) {
         phone: cliente.phone || '',
       },
       line_items: lineItems,
-      customer_note: notas 
-        ? `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}\nNotas: ${notas}` 
+      customer_note: notas
+        ? `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}\nNotas: ${notas}`
         : `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}`,
       meta_data: [
         {
