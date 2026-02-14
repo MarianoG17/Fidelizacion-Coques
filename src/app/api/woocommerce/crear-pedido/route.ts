@@ -1,0 +1,168 @@
+// src/app/api/woocommerce/crear-pedido/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
+
+interface ItemPedido {
+  productoId: number
+  varianteId?: number
+  cantidad: number
+}
+
+interface DatosPedido {
+  nombre: string
+  email: string
+  telefono: string
+  items: ItemPedido[]
+  notas?: string
+}
+
+/**
+ * POST /api/woocommerce/crear-pedido
+ * Crear un pedido en WooCommerce
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const wooUrl = process.env.WOOCOMMERCE_URL
+    const wooKey = process.env.WOOCOMMERCE_KEY
+    const wooSecret = process.env.WOOCOMMERCE_SECRET
+
+    if (!wooUrl || !wooKey || !wooSecret) {
+      return NextResponse.json(
+        { error: 'Credenciales de WooCommerce no configuradas' },
+        { status: 500 }
+      )
+    }
+
+    const body: DatosPedido = await req.json()
+    const { nombre, email, telefono, items, notas } = body
+
+    // Validaciones
+    if (!nombre || !email || !items || items.length === 0) {
+      return NextResponse.json(
+        { error: 'Faltan datos requeridos: nombre, email, items' },
+        { status: 400 }
+      )
+    }
+
+    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
+    const headers = {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'FidelizacionApp/1.0',
+    }
+
+    // Construir line_items para WooCommerce
+    const lineItems = items.map(item => {
+      const lineItem: any = {
+        product_id: item.productoId,
+        quantity: item.cantidad,
+      }
+
+      // Si tiene variante, agregar variation_id
+      if (item.varianteId) {
+        lineItem.variation_id = item.varianteId
+      }
+
+      return lineItem
+    })
+
+    // Estructura del pedido para WooCommerce
+    const orderData = {
+      payment_method: 'cod', // Cash on delivery (pago en efectivo/transferencia)
+      payment_method_title: 'Pago al retirar o por transferencia',
+      set_paid: false, // No marcar como pagado aún
+      status: 'pending', // Estado inicial: pendiente
+      billing: {
+        first_name: nombre.split(' ')[0] || nombre,
+        last_name: nombre.split(' ').slice(1).join(' ') || '',
+        email: email,
+        phone: telefono || '',
+      },
+      line_items: lineItems,
+      customer_note: notas ? `Pedido desde App de Fidelización. ${notas}` : 'Pedido desde App de Fidelización',
+      meta_data: [
+        {
+          key: 'origen',
+          value: 'app_fidelizacion',
+        },
+      ],
+    }
+
+    console.log('[WooCommerce Crear Pedido] Datos:', JSON.stringify(orderData, null, 2))
+
+    // Crear pedido en WooCommerce
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    const response = await fetch(
+      `${wooUrl}/wp-json/wc/v3/orders`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(orderData),
+        signal: controller.signal,
+      }
+    )
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[WooCommerce Crear Pedido] Error:', response.status, errorText)
+      return NextResponse.json(
+        {
+          error: 'Error al crear pedido en WooCommerce',
+          status: response.status,
+          details: errorText
+        },
+        { status: response.status }
+      )
+    }
+
+    const order = await response.json()
+
+    console.log(`[WooCommerce Crear Pedido] Pedido creado exitosamente: ${order.id}`)
+
+    // Formatear respuesta
+    const pedidoCreado = {
+      id: order.id,
+      numero: order.number,
+      estado: order.status,
+      fechaCreacion: order.date_created,
+      total: order.total,
+      moneda: order.currency,
+      metodoPago: order.payment_method_title,
+      cliente: {
+        nombre: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
+        email: order.billing.email,
+        telefono: order.billing.phone,
+      },
+      items: order.line_items?.map((item: any) => ({
+        productoId: item.product_id,
+        varianteId: item.variation_id || null,
+        nombre: item.name,
+        cantidad: item.quantity,
+        precio: item.price,
+        subtotal: item.subtotal,
+        total: item.total,
+      })) || [],
+      urlAdmin: `${wooUrl}/wp-admin/post.php?post=${order.id}&action=edit`,
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Pedido creado exitosamente',
+      pedido: pedidoCreado,
+    })
+  } catch (error) {
+    console.error('[WooCommerce Crear Pedido] Error:', error)
+    return NextResponse.json(
+      {
+        error: 'Error al crear pedido',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
+}

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
+import { useCarrito } from '@/hooks/useCarrito'
 
 interface Variante {
   id: number
@@ -33,11 +35,15 @@ interface Producto {
 }
 
 export default function TortasPage() {
+  const router = useRouter()
+  const { agregarItem, cantidadTotal } = useCarrito()
+  
   const [loading, setLoading] = useState(true)
   const [productos, setProductos] = useState<Producto[]>([])
   const [error, setError] = useState<string | null>(null)
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
+  const [agregado, setAgregado] = useState(false)
 
   useEffect(() => {
     cargarTortas()
@@ -77,10 +83,36 @@ export default function TortasPage() {
   function cerrarDetalles() {
     setProductoSeleccionado(null)
     setVarianteSeleccionada(null)
+    setAgregado(false)
+  }
+
+  function agregarAlCarrito() {
+    if (!productoSeleccionado) return
+
+    // Si es producto variable, necesita variante seleccionada
+    if (productoSeleccionado.variantes.length > 0 && !varianteSeleccionada) {
+      alert('Por favor seleccioná un tamaño')
+      return
+    }
+
+    const item = {
+      productoId: productoSeleccionado.id,
+      varianteId: varianteSeleccionada?.id,
+      nombre: productoSeleccionado.nombre,
+      nombreVariante: varianteSeleccionada?.nombreVariante,
+      precio: varianteSeleccionada ? parseFloat(varianteSeleccionada.precio) : parseFloat(productoSeleccionado.precio),
+      imagen: varianteSeleccionada?.imagen || productoSeleccionado.imagen,
+    }
+
+    agregarItem(item)
+    setAgregado(true)
+    
+    // Ocultar mensaje después de 2 segundos
+    setTimeout(() => setAgregado(false), 2000)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-blue-50 to-white p-4">
+    <div className="min-h-screen bg-white p-4">
       <div className="max-w-6xl mx-auto">
         <BackButton href="/pass" />
 
@@ -92,6 +124,19 @@ export default function TortasPage() {
             Descubrí nuestra selección de tortas artesanales
           </p>
         </div>
+
+        {/* Botón flotante del carrito */}
+        {cantidadTotal > 0 && (
+          <button
+            onClick={() => router.push('/carrito')}
+            className="fixed bottom-6 right-6 bg-gray-800 text-white p-4 rounded-full shadow-lg hover:bg-gray-700 transition-all z-50 flex items-center gap-2"
+          >
+            <span className="text-2xl">🛒</span>
+            <span className="bg-white text-gray-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+              {cantidadTotal}
+            </span>
+          </button>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -321,23 +366,44 @@ export default function TortasPage() {
                   </div>
                 )}
 
-                {/* Información adicional */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-blue-800">
-                    💡 <strong>¿Querés hacer un pedido?</strong>
-                  </p>
-                  <p className="text-sm text-blue-700 mt-2">
-                    Llamanos al <a href="tel:+549XXXXXXXXX" className="font-semibold underline">+54 9 XXX XXX XXXX</a> o visitanos en el local para hacer tu pedido.
-                  </p>
-                </div>
+                {/* Mensaje de éxito */}
+                {agregado && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg animate-pulse">
+                    <p className="text-green-800 font-semibold text-center">
+                      ✓ Agregado al carrito
+                    </p>
+                  </div>
+                )}
 
-                {/* Botón cerrar */}
-                <button
-                  onClick={cerrarDetalles}
-                  className="w-full bg-gray-600 text-white py-3 rounded-xl font-bold hover:bg-gray-700 transition-colors"
-                >
-                  Cerrar
-                </button>
+                {/* Botones de acción */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={agregarAlCarrito}
+                    disabled={
+                      (productoSeleccionado.tipo === 'variable' && !varianteSeleccionada) ||
+                      (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
+                      (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
+                    }
+                    className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
+                      (productoSeleccionado.tipo === 'variable' && !varianteSeleccionada) ||
+                      (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
+                      (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-800 text-white hover:bg-gray-700'
+                    }`}
+                  >
+                    {productoSeleccionado.tipo === 'variable' && !varianteSeleccionada
+                      ? 'Seleccioná un tamaño'
+                      : '🛒 Agregar al Carrito'}
+                  </button>
+                  
+                  <button
+                    onClick={cerrarDetalles}
+                    className="px-6 py-3 rounded-xl font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
