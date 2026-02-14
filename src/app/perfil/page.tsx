@@ -181,11 +181,6 @@ export default function PerfilPage() {
                 Nivel Actual
               </p>
               <h2 className="text-3xl font-bold mt-1">{perfil.nivel.nombre}</h2>
-              {perfil.totalXp !== undefined && (
-                <p className="text-purple-100 mt-2">
-                  ⭐ {perfil.totalXp} XP acumulados
-                </p>
-              )}
             </div>
             <div className="text-6xl opacity-80">
               {perfil.nivel.nombre === 'Bronce' && '🥉'}

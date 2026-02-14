@@ -9,7 +9,6 @@ export default function LogrosPage() {
     const router = useRouter()
     const [obtenidos, setObtenidos] = useState<LogroData[]>([])
     const [disponibles, setDisponibles] = useState<any[]>([])
-    const [totalXp, setTotalXp] = useState(0)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +33,6 @@ export default function LogrosPage() {
                 const json = await res.json()
                 setObtenidos(json.data.obtenidos)
                 setDisponibles(json.data.disponibles)
-                setTotalXp(json.data.totalXp)
 
                 // Marcar logros como vistos
                 if (json.data.obtenidos.some((l: LogroData) => !l.visto)) {
@@ -104,13 +102,8 @@ export default function LogrosPage() {
                     </Link>
 
                     <h1 className="text-3xl font-bold text-slate-800 mb-2">🏆 Mis Logros</h1>
-                    <div className="flex items-center gap-4">
-                        <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-full">
-                            <span className="font-bold text-lg">{totalXp} XP</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                            <span className="font-semibold">{obtenidos.length}</span> de {obtenidos.length + disponibles.length} logros
-                        </div>
+                    <div className="text-sm text-gray-600">
+                        <span className="font-semibold">{obtenidos.length}</span> de {obtenidos.length + disponibles.length} logros desbloqueados
                     </div>
                 </div>
 
@@ -135,14 +128,11 @@ export default function LogrosPage() {
                                     <div className="text-4xl mb-2">{logro.icono}</div>
                                     <h3 className="font-semibold text-gray-800 text-sm mb-1">{logro.nombre}</h3>
                                     <p className="text-xs text-gray-600 mb-2">{logro.descripcion}</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-yellow-600">+{logro.puntosXp} XP</span>
-                                        <span className="text-xs text-gray-500">
-                                            {new Date(logro.obtenidoEn).toLocaleDateString('es-AR', {
-                                                day: 'numeric',
-                                                month: 'short'
-                                            })}
-                                        </span>
+                                    <div className="text-xs text-gray-500 text-right">
+                                        {new Date(logro.obtenidoEn).toLocaleDateString('es-AR', {
+                                            day: 'numeric',
+                                            month: 'short'
+                                        })}
                                     </div>
                                 </div>
                             ))}
@@ -165,8 +155,7 @@ export default function LogrosPage() {
                                 >
                                     <div className="text-4xl mb-2 grayscale">{logro.icono}</div>
                                     <h3 className="font-semibold text-gray-600 text-sm mb-1">{logro.nombre}</h3>
-                                    <p className="text-xs text-gray-500 mb-2">{logro.descripcion}</p>
-                                    <div className="text-xs font-bold text-gray-400">+{logro.puntosXp} XP</div>
+                                    <p className="text-xs text-gray-500">{logro.descripcion}</p>
                                 </div>
                             ))}
                         </div>

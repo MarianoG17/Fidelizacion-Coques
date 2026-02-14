@@ -167,9 +167,6 @@ export default function PassPage() {
               >
                 {pass.nivel.nombre}
               </span>
-              {pass.totalXp > 0 && (
-                <p className="text-xs text-gray-500 mt-1">{pass.totalXp} XP acumulados</p>
-              )}
             </div>
           )}
         </div>

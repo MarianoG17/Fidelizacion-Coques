@@ -22,6 +22,24 @@ export default function WooCommerceTestPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [showRaw, setShowRaw] = useState(false)
   const [rawData, setRawData] = useState<any>(null)
+  const [diagnostico, setDiagnostico] = useState<any>(null)
+  const [showDiagnostico, setShowDiagnostico] = useState(false)
+
+  const runDiagnostico = async () => {
+    setLoading(true)
+    setDiagnostico(null)
+    
+    try {
+      const response = await fetch('/api/woocommerce/diagnostico')
+      const data = await response.json()
+      setDiagnostico(data)
+      setShowDiagnostico(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al ejecutar diagnóstico')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const testConnection = async () => {
     setLoading(true)
@@ -63,8 +81,8 @@ export default function WooCommerceTestPage() {
             Verifica que la conexión con tu tienda WooCommerce funciona correctamente
           </p>
 
-          {/* Botón de prueba */}
-          <div className="mb-6">
+          {/* Botones de prueba */}
+          <div className="mb-6 flex gap-3">
             <button
               onClick={testConnection}
               disabled={loading}
@@ -72,7 +90,119 @@ export default function WooCommerceTestPage() {
             >
               {loading ? 'Conectando...' : '🔌 Probar Conexión'}
             </button>
+            <button
+              onClick={runDiagnostico}
+              disabled={loading}
+              className="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? 'Analizando...' : '🔍 Diagnóstico'}
+            </button>
           </div>
+
+          {/* Diagnóstico */}
+          {showDiagnostico && diagnostico && (
+            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-800">🔍 Diagnóstico de Configuración</h3>
+                <button
+                  onClick={() => setShowDiagnostico(false)}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  ✕ Cerrar
+                </button>
+              </div>
+
+              {/* Estado general */}
+              <div className={`mb-3 p-3 rounded ${diagnostico.todasConfiguradas ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <p className={`font-semibold ${diagnostico.todasConfiguradas ? 'text-green-800' : 'text-red-800'}`}>
+                  {diagnostico.todasConfiguradas ? '✅ Todas las variables configuradas' : '❌ Faltan variables de configuración'}
+                </p>
+              </div>
+
+              {/* Detalles de cada variable */}
+              <div className="space-y-3 text-sm">
+                {/* WOOCOMMERCE_URL */}
+                <div className="p-3 bg-white rounded border">
+                  <h4 className="font-semibold text-gray-700 mb-2">WOOCOMMERCE_URL</h4>
+                  <div className="space-y-1 text-xs">
+                    <p>✓ Configurada: {diagnostico.configuracion.WOOCOMMERCE_URL.configurada ? '✅ Sí' : '❌ No'}</p>
+                    {diagnostico.configuracion.WOOCOMMERCE_URL.valor && (
+                      <>
+                        <p>✓ Valor: <code className="bg-gray-100 px-1 rounded">{diagnostico.configuracion.WOOCOMMERCE_URL.valor}</code></p>
+                        <p>✓ Formato válido (http/https): {diagnostico.configuracion.WOOCOMMERCE_URL.valida ? '✅ Sí' : '❌ No'}</p>
+                        <p>✓ Termina en /: {diagnostico.configuracion.WOOCOMMERCE_URL.terminaEnSlash ? '⚠️ Sí (debes quitarlo)' : '✅ No'}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* WOOCOMMERCE_KEY */}
+                <div className="p-3 bg-white rounded border">
+                  <h4 className="font-semibold text-gray-700 mb-2">WOOCOMMERCE_KEY</h4>
+                  <div className="space-y-1 text-xs">
+                    <p>✓ Configurada: {diagnostico.configuracion.WOOCOMMERCE_KEY.configurada ? '✅ Sí' : '❌ No'}</p>
+                    {diagnostico.configuracion.WOOCOMMERCE_KEY.ofuscada && (
+                      <>
+                        <p>✓ Valor (ofuscado): <code className="bg-gray-100 px-1 rounded">{diagnostico.configuracion.WOOCOMMERCE_KEY.ofuscada}</code></p>
+                        <p>✓ Longitud: {diagnostico.configuracion.WOOCOMMERCE_KEY.longitud} caracteres</p>
+                        <p>✓ Comienza con ck_: {diagnostico.configuracion.WOOCOMMERCE_KEY.formatoValido ? '✅ Sí' : '❌ No'}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* WOOCOMMERCE_SECRET */}
+                <div className="p-3 bg-white rounded border">
+                  <h4 className="font-semibold text-gray-700 mb-2">WOOCOMMERCE_SECRET</h4>
+                  <div className="space-y-1 text-xs">
+                    <p>✓ Configurada: {diagnostico.configuracion.WOOCOMMERCE_SECRET.configurada ? '✅ Sí' : '❌ No'}</p>
+                    {diagnostico.configuracion.WOOCOMMERCE_SECRET.ofuscada && (
+                      <>
+                        <p>✓ Valor (ofuscado): <code className="bg-gray-100 px-1 rounded">{diagnostico.configuracion.WOOCOMMERCE_SECRET.ofuscada}</code></p>
+                        <p>✓ Longitud: {diagnostico.configuracion.WOOCOMMERCE_SECRET.longitud} caracteres</p>
+                        <p>✓ Comienza con cs_: {diagnostico.configuracion.WOOCOMMERCE_SECRET.formatoValido ? '✅ Sí' : '❌ No'}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Resultado de prueba de conexión */}
+              {diagnostico.pruebaConexion && (
+                <div className={`mt-4 p-3 rounded ${diagnostico.pruebaConexion.exitoso ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <h4 className={`font-semibold mb-2 ${diagnostico.pruebaConexion.exitoso ? 'text-green-800' : 'text-red-800'}`}>
+                    Prueba de Conexión
+                  </h4>
+                  <div className="text-xs space-y-1">
+                    {diagnostico.pruebaConexion.exitoso ? (
+                      <>
+                        <p>✅ Conexión exitosa</p>
+                        <p>Status: {diagnostico.pruebaConexion.status} ({diagnostico.pruebaConexion.statusText})</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>❌ Error de conexión</p>
+                        <p className="text-red-700">Error: {diagnostico.pruebaConexion.error}</p>
+                        {diagnostico.pruebaConexion.status && (
+                          <p>Status: {diagnostico.pruebaConexion.status}</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* JSON completo */}
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                  Ver JSON completo
+                </summary>
+                <pre className="mt-2 bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+                  {JSON.stringify(diagnostico, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
 
           {/* Error */}
           {error && (
