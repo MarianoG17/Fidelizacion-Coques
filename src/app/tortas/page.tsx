@@ -197,13 +197,6 @@ export default function TortasPage() {
                       alt={producto.nombre}
                       className="w-full h-full object-cover"
                     />
-                    {!producto.enStock && producto.tipo === 'simple' && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <span className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold">
-                          Sin Stock
-                        </span>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="h-64 bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
@@ -324,16 +317,6 @@ export default function TortasPage() {
                               <p className="font-semibold text-gray-800">
                                 {variante.nombreVariante}
                               </p>
-                              {!variante.enStock && (
-                                <span className="text-sm text-red-600 font-medium">
-                                  Sin stock
-                                </span>
-                              )}
-                              {variante.enStock && variante.stock !== null && (
-                                <span className="text-xs text-gray-500">
-                                  Stock: {variante.stock} unidades
-                                </span>
-                              )}
                             </div>
                             <div className="text-right ml-4">
                               <p className="text-xl font-bold text-green-600">
