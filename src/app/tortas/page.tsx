@@ -74,10 +74,24 @@ export default function TortasPage() {
   function abrirDetalles(producto: Producto) {
     setProductoSeleccionado(producto)
     if (producto.variantes.length > 0) {
-      setVarianteSeleccionada(producto.variantes[0])
+      // Ordenar variantes por precio (de menor a mayor)
+      const variantesOrdenadas = [...producto.variantes].sort((a, b) =>
+        parseFloat(a.precio) - parseFloat(b.precio)
+      )
+      producto.variantes = variantesOrdenadas
+      setVarianteSeleccionada(variantesOrdenadas[0])
     } else {
       setVarianteSeleccionada(null)
     }
+  }
+
+  // Función para formatear precio con separador de miles
+  function formatearPrecio(precio: string | number): string {
+    const precioNum = typeof precio === 'string' ? parseFloat(precio) : precio
+    return precioNum.toLocaleString('es-AR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
   }
 
   function cerrarDetalles() {
@@ -214,11 +228,11 @@ export default function TortasPage() {
                     {producto.tipo === 'simple' ? (
                       <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-bold text-green-600">
-                          ${producto.precio}
+                          ${formatearPrecio(producto.precio)}
                         </span>
                         {producto.precioOferta && (
                           <span className="text-sm text-gray-400 line-through">
-                            ${producto.precioRegular}
+                            ${formatearPrecio(producto.precioRegular)}
                           </span>
                         )}
                       </div>
@@ -226,11 +240,11 @@ export default function TortasPage() {
                       <div className="text-gray-700">
                         {producto.precioMin === producto.precioMax ? (
                           <span className="text-2xl font-bold text-green-600">
-                            ${producto.precioMin?.toFixed(2)}
+                            ${formatearPrecio(producto.precioMin || 0)}
                           </span>
                         ) : (
                           <span className="text-lg font-semibold text-gray-600">
-                            Desde ${producto.precioMin?.toFixed(2)}
+                            Desde ${formatearPrecio(producto.precioMin || 0)}
                           </span>
                         )}
                         <p className="text-xs text-gray-500 mt-1">
@@ -323,11 +337,11 @@ export default function TortasPage() {
                             </div>
                             <div className="text-right ml-4">
                               <p className="text-xl font-bold text-green-600">
-                                ${variante.precio}
+                                ${formatearPrecio(variante.precio)}
                               </p>
                               {variante.precioOferta && (
                                 <p className="text-sm text-gray-400 line-through">
-                                  ${variante.precioRegular}
+                                  ${formatearPrecio(variante.precioRegular)}
                                 </p>
                               )}
                             </div>
@@ -354,11 +368,11 @@ export default function TortasPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-green-600">
-                          ${productoSeleccionado.precio}
+                          ${formatearPrecio(productoSeleccionado.precio)}
                         </p>
                         {productoSeleccionado.precioOferta && (
                           <p className="text-sm text-gray-400 line-through">
-                            ${productoSeleccionado.precioRegular}
+                            ${formatearPrecio(productoSeleccionado.precioRegular)}
                           </p>
                         )}
                       </div>

@@ -1,5 +1,7 @@
 // src/app/api/woocommerce/crear-pedido/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { requireClienteAuth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,19 +12,43 @@ interface ItemPedido {
 }
 
 interface DatosPedido {
-  nombre: string
-  email: string
-  telefono: string
   items: ItemPedido[]
   notas?: string
 }
 
 /**
  * POST /api/woocommerce/crear-pedido
- * Crear un pedido en WooCommerce
+ * Crear un pedido en WooCommerce usando los datos del cliente logueado
  */
 export async function POST(req: NextRequest) {
   try {
+    // Verificar autenticación del cliente
+    const clientePayload = await requireClienteAuth(req)
+    if (!clientePayload) {
+      return NextResponse.json(
+        { error: 'No autorizado. Debes iniciar sesión para realizar un pedido.' },
+        { status: 401 }
+      )
+    }
+
+    // Obtener datos completos del cliente desde la BD
+    const cliente = await prisma.cliente.findUnique({
+      where: { id: clientePayload.clienteId },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        phone: true,
+      }
+    })
+
+    if (!cliente) {
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      )
+    }
+
     const wooUrl = process.env.WOOCOMMERCE_URL
     const wooKey = process.env.WOOCOMMERCE_KEY
     const wooSecret = process.env.WOOCOMMERCE_SECRET
@@ -35,12 +61,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body: DatosPedido = await req.json()
-    const { nombre, email, telefono, items, notas } = body
+    const { items, notas } = body
 
     // Validaciones
-    if (!nombre || !email || !items || items.length === 0) {
+    if (!items || items.length === 0) {
       return NextResponse.json(
-        { error: 'Faltan datos requeridos: nombre, email, items' },
+        { error: 'El pedido debe contener al menos un producto' },
         { status: 400 }
       )
     }
@@ -67,24 +93,31 @@ export async function POST(req: NextRequest) {
       return lineItem
     })
 
-    // Estructura del pedido para WooCommerce
+    // Estructura del pedido para WooCommerce usando datos del cliente
+    const nombreCompleto = cliente.nombre || 'Cliente'
     const orderData = {
       payment_method: 'cod', // Cash on delivery (pago en efectivo/transferencia)
       payment_method_title: 'Pago al retirar o por transferencia',
       set_paid: false, // No marcar como pagado aún
       status: 'pending', // Estado inicial: pendiente
       billing: {
-        first_name: nombre.split(' ')[0] || nombre,
-        last_name: nombre.split(' ').slice(1).join(' ') || '',
-        email: email,
-        phone: telefono || '',
+        first_name: nombreCompleto.split(' ')[0] || nombreCompleto,
+        last_name: nombreCompleto.split(' ').slice(1).join(' ') || '',
+        email: cliente.email || '',
+        phone: cliente.phone || '',
       },
       line_items: lineItems,
-      customer_note: notas ? `Pedido desde App de Fidelización. ${notas}` : 'Pedido desde App de Fidelización',
+      customer_note: notas 
+        ? `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}\nNotas: ${notas}` 
+        : `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}`,
       meta_data: [
         {
           key: 'origen',
           value: 'app_fidelizacion',
+        },
+        {
+          key: 'cliente_app_id',
+          value: cliente.id,
         },
       ],
     }
@@ -134,9 +167,10 @@ export async function POST(req: NextRequest) {
       moneda: order.currency,
       metodoPago: order.payment_method_title,
       cliente: {
-        nombre: `${order.billing.first_name} ${order.billing.last_name}`.trim(),
-        email: order.billing.email,
-        telefono: order.billing.phone,
+        id: cliente.id,
+        nombre: cliente.nombre,
+        email: cliente.email,
+        telefono: cliente.phone,
       },
       items: order.line_items?.map((item: any) => ({
         productoId: item.product_id,
