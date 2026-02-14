@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Icon 512x512</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        .instructions {
+            max-width: 600px;
+            margin: 0 auto 20px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        .instructions h1 {
+            margin-top: 0;
+            color: #60a5fa;
+        }
+        .instructions ol {
+            line-height: 1.8;
+        }
+        .instructions code {
+            background: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #fbbf24;
+        }
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px auto;
+        }
+        #icon-512 {
+            width: 512px;
+            height: 512px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        #icon-512 img {
+            max-width: 420px;
+            max-height: 420px;
+            object-fit: contain;
+        }
+        .highlight {
+            background: #fbbf24;
+            color: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h1>📸 Generar icon-512.png</h1>
+        <p>Seguí estos pasos para capturar el ícono:</p>
+        <ol>
+            <li>Pegá tu <strong>logo de Coques Bakery</strong> en el cuadrado gris de abajo</li>
+            <li>Hacé clic derecho sobre el cuadrado gris → <code>Inspeccionar elemento</code></li>
+            <li>En DevTools, hacé clic derecho sobre el elemento <code>&lt;div id="icon-512"&gt;</code></li>
+            <li>Seleccionar: <code>Capture node screenshot</code></li>
+            <li>Guardá como: <span class="highlight">icon-512.png</span></li>
+            <li>Verificá que el archivo sea exactamente 512x512 píxeles</li>
+        </ol>
+        <p><strong>Alternativa (Windows):</strong></p>
+        <ol>
+            <li>Usá <code>Win + Shift + S</code> (Recorte de pantalla)</li>
+            <li>Recortá EXACTAMENTE el cuadrado gris (debe ser 512x512)</li>
+            <li>Pegá en Paint → Verificar tamaño 512x512</li>
+            <li>Guardar como <span class="highlight">icon-512.png</span></li>
+        </ol>
+    </div>
+
+    <div class="icon-container">
+        <div id="icon-512">
+            <!-- 
+            INSTRUCCIONES:
+            1. Guardá tu logo de Coques Bakery como archivo
+            2. Arrastra el archivo aquí o usa el botón de abajo
+            3. El logo aparecerá centrado en este cuadrado
+            -->
+            <div style="text-align: center; color: #64748b; padding: 40px;">
+                <p style="font-size: 48px; margin: 0;">🖼️</p>
+                <p style="margin: 10px 0; font-size: 14px;">Arrastra tu logo aquí</p>
+                <input type="file" id="logoInput" accept="image/*" style="margin-top: 20px;">
+            </div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h2>✅ Checklist:</h2>
+        <ul>
+            <li>Logo visible y centrado</li>
+            <li>Fondo gris claro (#f8fafc)</li>
+            <li>Tamaño exacto: 512x512 píxeles</li>
+            <li>Guardado como: icon-512.png</li>
+        </ul>
+        <p><strong>Siguiente paso:</strong> Abrir <code>generar-icono-192.html</code> y repetir el proceso.</p>
+    </div>
+
+    <script>
+        const logoInput = document.getElementById('logoInput');
+        const iconDiv = document.getElementById('icon-512');
+
+        logoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    iconDiv.innerHTML = '<img src="' + event.target.result + '" alt="Logo Coques">';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop
+        iconDiv.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            iconDiv.style.borderColor = '#3b82f6';
+        });
+
+        iconDiv.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            iconDiv.style.borderColor = '#e2e8f0';
+        });
+
+        iconDiv.addEventListener('drop', function(e) {
+            e.preventDefault();
+            iconDiv.style.borderColor = '#e2e8f0';
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    iconDiv.innerHTML = '<img src="' + event.target.result + '" alt="Logo Coques">';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -22,7 +22,7 @@ export default function CarritoPage() {
 
     try {
       // Obtener token del localStorage
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('fidelizacion_token')
       if (!token) {
         setError('Debes iniciar sesión para realizar un pedido')
         router.push('/login')
