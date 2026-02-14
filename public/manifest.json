@@ -7,7 +7,14 @@
   "background_color": "#f8fafc",
   "theme_color": "#1e293b",
   "orientation": "portrait",
-  "icons": [],
+  "icons": [
+    {
+      "src": "/icon-simple.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Mi Pass",
