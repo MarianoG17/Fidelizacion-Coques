@@ -25,7 +25,7 @@ export default function AdminNivelesPage() {
   const [editando, setEditando] = useState<string | null>(null)
   const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0 })
 
-  const adminKey = typeof window !== 'undefined' ? localStorage.getItem('adminKey') : null
+  const adminKey = typeof window !== 'undefined' ? localStorage.getItem('admin_key') : null
 
   useEffect(() => {
     if (!adminKey) {
