@@ -1,11 +1,12 @@
 'use client'
 // src/app/activar/page.tsx
 // Página de registro — el cliente crea su cuenta con email y contraseña
-import { Suspense, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 function ActivarContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [paso, setPaso] = useState<'form' | 'confirmando' | 'listo' | 'error'>('form')
   const [nombre, setNombre] = useState('')
@@ -15,6 +16,15 @@ function ActivarContent() {
   const [showPassword, setShowPassword] = useState(false)
   const [consentimiento, setConsentimiento] = useState(false)
   const [error, setError] = useState('')
+  const [codigoReferido, setCodigoReferido] = useState<string | null>(null)
+
+  // Detectar código de referido en la URL
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      setCodigoReferido(ref)
+    }
+  }, [searchParams])
 
   function validarEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -142,9 +152,31 @@ function ActivarContent() {
           </p>
         </div>
 
+        {/* Banner de referido si hay código */}
+        {codigoReferido && (
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-4 mb-6 shadow-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">🎁</span>
+              <div className="flex-1">
+                <p className="text-white font-bold text-lg mb-1">
+                  ¡Tu amigo te invitó!
+                </p>
+                <p className="text-white/90 text-sm mb-2">
+                  Al registrarte con el código <strong>{codigoReferido}</strong>, ambos reciben beneficios especiales 🤝
+                </p>
+                <div className="bg-white/20 rounded-lg p-2 text-white text-xs">
+                  ✨ <strong>Beneficio mutuo:</strong> Tu amigo sube de nivel y vos comenzás con puntos extra
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Beneficios visibles como incentivo */}
         <div className="bg-blue-50 rounded-2xl p-4 mb-6">
-          <p className="text-sm font-semibold text-blue-800 mb-2">¿Qué ganás?</p>
+          <p className="text-sm font-semibold text-blue-800 mb-2">
+            {codigoReferido ? '¡Y además ganás!' : '¿Qué ganás?'}
+          </p>
           <ul className="space-y-1">
             {[
               'Café gratis mientras lavamos tu auto',
