@@ -219,19 +219,6 @@ export default function PassPage() {
           }}
         />
 
-        {/* Beneficios del Nivel */}
-        {pass.nivel?.descripcionBeneficios && (
-          <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-              <span>⭐</span>
-              Tus Beneficios {pass.nivel.nombre}
-            </h2>
-            <div className="text-sm text-gray-700 whitespace-pre-line">
-              {pass.nivel.descripcionBeneficios}
-            </div>
-          </div>
-        )}
-
         {/* Sección de Referidos */}
         {pass.codigoReferido && (
           <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-sm p-4 mb-4 border border-purple-100">
