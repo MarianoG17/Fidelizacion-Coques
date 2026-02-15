@@ -81,6 +81,7 @@ function ActivarContent() {
           password,
           nombre: nombre.trim(),
           phone: phoneFormatted,
+          codigoReferido: codigoReferido || undefined, // Enviar código de referido si existe
         }),
       })
 

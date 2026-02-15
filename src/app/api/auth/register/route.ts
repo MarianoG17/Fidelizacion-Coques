@@ -13,6 +13,7 @@ const registerSchema = z.object({
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   nombre: z.string().min(1, 'El nombre es requerido'),
   phone: z.string().regex(/^\d{10}$/, 'Teléfono inválido (formato: 1112345678)'),
+  codigoReferido: z.string().optional(), // Código de referido opcional
 })
 
 export async function POST(req: NextRequest) {
@@ -55,6 +56,23 @@ export async function POST(req: NextRequest) {
       where: { orden: 1 },
     })
 
+    // Buscar el cliente que refirió si hay código
+    let referidoPorId: string | undefined
+    if (validatedData.codigoReferido) {
+      const referidor = await prisma.cliente.findUnique({
+        where: { codigoReferido: validatedData.codigoReferido },
+      })
+      if (referidor) {
+        referidoPorId = referidor.id
+        console.log(`[Registro] Cliente referido por: ${referidor.nombre} (${referidor.id})`)
+      } else {
+        console.warn(`[Registro] Código de referido inválido: ${validatedData.codigoReferido}`)
+      }
+    }
+
+    // Generar código de referido único para el nuevo cliente
+    const codigoReferidoCliente = `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
     // Crear el cliente con estado ACTIVO y nivel inicial Bronce
     const cliente = await prisma.cliente.create({
       data: {
@@ -67,8 +85,36 @@ export async function POST(req: NextRequest) {
         consentimientoAt: new Date(),
         otpSecret,
         nivelId: nivelBronce?.id, // Asignar nivel Bronce desde el registro
+        codigoReferido: codigoReferidoCliente, // Código único para compartir
+        referidoPorId, // ID del cliente que lo refirió (si existe)
       },
     })
+
+    // Si fue referido, incrementar contador del referidor y darle beneficio
+    if (referidoPorId) {
+      await prisma.cliente.update({
+        where: { id: referidoPorId },
+        data: {
+          referidosActivados: { increment: 1 },
+        },
+      })
+      
+      // Registrar visita bonus para el referidor
+      const localPrincipal = await prisma.local.findFirst()
+      if (localPrincipal) {
+        await prisma.eventoScan.create({
+          data: {
+            clienteId: referidoPorId,
+            localId: localPrincipal.id,
+            tipoEvento: 'VISITA',
+            metodoValidacion: 'OTP_MANUAL',
+            contabilizada: true,
+            notas: `Visita bonus por referir a ${validatedData.nombre}`,
+          },
+        })
+        console.log(`[Registro] Referidor recibió visita bonus`)
+      }
+    }
 
     // Generar JWT
     const token = await signClienteJWT({

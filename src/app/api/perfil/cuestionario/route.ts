@@ -51,16 +51,19 @@ export async function POST(req: NextRequest) {
         })
 
         // BONUS: Registrar visita extra contabilizada como recompensa
-        await prisma.eventoScan.create({
-            data: {
-                clienteId,
-                localId: process.env.LOCAL_ID!, // Usar el local principal
-                tipoEvento: 'VISITA',
-                metodoValidacion: 'OTP_MANUAL',
-                contabilizada: true,
-                notas: 'Visita bonus por completar cuestionario',
-            },
-        })
+        const localPrincipal = await prisma.local.findFirst()
+        if (localPrincipal) {
+            await prisma.eventoScan.create({
+                data: {
+                    clienteId,
+                    localId: localPrincipal.id,
+                    tipoEvento: 'VISITA',
+                    metodoValidacion: 'OTP_MANUAL',
+                    contabilizada: true,
+                    notas: 'Visita bonus por completar cuestionario',
+                },
+            })
+        }
 
         console.log(`[Cuestionario] Cliente ${clienteId} completó cuestionario y recibió visita extra`)
 

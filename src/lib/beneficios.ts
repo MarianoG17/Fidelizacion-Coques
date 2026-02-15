@@ -93,7 +93,7 @@ export async function evaluarNivel(clienteId: string) {
   })
   if (!cliente) return
 
-  const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'desc' } })
+  const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' } }) // Orden ascendente: Bronce -> Plata -> Oro
 
   // Usar timezone Argentina — el servidor corre en UTC (ver APRENDIZAJES.md)
   const hace30dias = getHaceNDias(30)
@@ -119,33 +119,39 @@ export async function evaluarNivel(clienteId: string) {
   })
   const usosCruzados = localesDistintos.length > 1 ? localesDistintos.length - 1 : 0
 
-  // Buscar el nivel más alto que cumple los criterios
-  for (const nivel of niveles) {
-    const criterios = nivel.criterios as {
-      visitasMinimas?: number
-      diasVentana?: number
-      usosCruzados?: number
-    }
+  // Obtener nivel actual del cliente
+  const nivelActualOrden = cliente.nivel?.orden || 0
+  
+  // Buscar el SIGUIENTE nivel inmediato (upgrade incremental)
+  const siguienteNivel = niveles.find((n) => n.orden === nivelActualOrden + 1)
+  
+  if (!siguienteNivel) {
+    console.log(`[evaluarNivel] Cliente ${clienteId} ya está en el nivel máximo`)
+    return null
+  }
 
-    const visitasRequeridas = criterios.visitasMinimas || 0
-    const usosCruzadosRequeridos = criterios.usosCruzados || 0
+  const criterios = siguienteNivel.criterios as {
+    visitasMinimas?: number
+    diasVentana?: number
+    usosCruzados?: number
+  }
 
-    if (
-      visitasRecientes >= visitasRequeridas &&
-      usosCruzados >= usosCruzadosRequeridos
-    ) {
-      // Si el nivel es mayor al actual, subir
-      const nivelActualOrden = cliente.nivel?.orden || 0
-      if (nivel.orden > nivelActualOrden) {
-        await prisma.cliente.update({
-          where: { id: clienteId },
-          data: { nivelId: nivel.id },
-        })
-        console.log(`[evaluarNivel] Cliente ${clienteId} subió a nivel ${nivel.nombre} (${visitasRecientes} visitas)`)
-        return nivel // retorna el nuevo nivel para notificación
-      }
-      break
-    }
+  const visitasRequeridas = criterios.visitasMinimas || 0
+  const usosCruzadosRequeridos = criterios.usosCruzados || 0
+
+  if (
+    visitasRecientes >= visitasRequeridas &&
+    usosCruzados >= usosCruzadosRequeridos
+  ) {
+    // Subir al siguiente nivel
+    await prisma.cliente.update({
+      where: { id: clienteId },
+      data: { nivelId: siguienteNivel.id },
+    })
+    console.log(`[evaluarNivel] Cliente ${clienteId} subió a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados)`)
+    return siguienteNivel // retorna el nuevo nivel para notificación
+  } else {
+    console.log(`[evaluarNivel] Cliente ${clienteId} mantiene nivel actual (${visitasRecientes}/${visitasRequeridas} visitas, ${usosCruzados}/${usosCruzadosRequeridos} usos cruzados)`)
   }
 
   return null
