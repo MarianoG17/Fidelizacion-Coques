@@ -138,18 +138,8 @@ export default function PassPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
       {/* Header */}
       <div className="w-full max-w-sm">
-        {/* Header con Volver y Logout */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="font-medium">Volver</span>
-          </button>
-
+        {/* Header con Logout */}
+        <div className="flex items-center justify-end mb-4">
           <button
             onClick={() => {
               localStorage.removeItem('fidelizacion_token')
