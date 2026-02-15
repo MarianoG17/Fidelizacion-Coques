@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
         beneficio: {
           select: {
             nombre: true,
-            descripcion: true,
+            descripcionCaja: true,
           },
         },
         local: {
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
       local: v.local?.nombre || 'Desconocido',
       mesa: v.sesionMesa?.mesa?.numero || '-',
       beneficioCanjeado: v.beneficio?.nombre || '-',
-      descripcionBeneficio: v.beneficio?.descripcion || '-',
+      descripcionBeneficio: v.beneficio?.descripcionCaja || '-',
       contabilizada: v.contabilizada ? 'Sí' : 'No',
     }))
 
