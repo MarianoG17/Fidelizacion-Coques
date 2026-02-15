@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
           select: { nombre: true },
         },
         mesa: {
-          select: { numero: true },
+          select: { nombre: true },
         },
       },
       orderBy: { timestamp: 'desc' },
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
       email: v.cliente?.email || '',
       nivel: v.cliente?.nivel?.nombre || 'Sin nivel',
       local: v.local?.nombre || 'Desconocido',
-      mesa: v.mesa?.numero || '-',
+      mesa: v.mesa?.nombre || '-',
       beneficioCanjeado: v.beneficio?.nombre || '-',
       descripcionBeneficio: v.beneficio?.descripcionCaja || '-',
       contabilizada: v.contabilizada ? 'Sí' : 'No',
