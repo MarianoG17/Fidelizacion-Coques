@@ -17,6 +17,7 @@ export function Clientes({ adminKey }: { adminKey: string }) {
   const [cargando, setCargando] = useState(true)
   const [filtro, setFiltro] = useState('')
   const [nivelFiltro, setNivelFiltro] = useState('TODOS')
+  const [eliminando, setEliminando] = useState<string | null>(null)
 
   useEffect(() => {
     fetchClientes()
@@ -35,6 +36,35 @@ export function Clientes({ adminKey }: { adminKey: string }) {
       console.error('Error al cargar clientes:', e)
     } finally {
       setCargando(false)
+    }
+  }
+
+  async function eliminarCliente(clienteId: string, nombre: string) {
+    if (!confirm(`¿Estás seguro de eliminar a ${nombre}? Esta acción cambiará su estado a INACTIVO.`)) {
+      return
+    }
+
+    setEliminando(clienteId)
+    try {
+      const res = await fetch(`/api/admin/clientes/${clienteId}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-key': adminKey },
+      })
+
+      if (res.ok) {
+        const json = await res.json()
+        alert(json.message || 'Cliente eliminado correctamente')
+        // Refrescar lista
+        await fetchClientes()
+      } else {
+        const json = await res.json()
+        alert(json.error || 'Error al eliminar cliente')
+      }
+    } catch (error) {
+      console.error('Error al eliminar cliente:', error)
+      alert('Error de conexión al eliminar cliente')
+    } finally {
+      setEliminando(null)
     }
   }
 
@@ -131,6 +161,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                 <th className="text-left p-4 text-slate-300 font-semibold">
                   Desde
                 </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -181,6 +214,26 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                     <p className="text-slate-400 text-sm">
                       {new Date(cliente.createdAt).toLocaleDateString('es-AR')}
                     </p>
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => eliminarCliente(cliente.id, cliente.nombre || 'Sin nombre')}
+                      disabled={eliminando === cliente.id}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Eliminar cliente (cambia estado a INACTIVO)"
+                    >
+                      {eliminando === cliente.id ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Eliminando
+                        </span>
+                      ) : (
+                        '🗑️ Eliminar'
+                      )}
+                    </button>
                   </td>
                 </tr>
               ))}
