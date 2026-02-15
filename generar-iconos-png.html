@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Generar Iconos PWA</title>
+</head>
+
+<body>
+    <h1>Generar Iconos PWA</h1>
+    <button onclick="generarIcono(192)">Descargar 192x192</button>
+    <button onclick="generarIcono(512)">Descargar 512x512</button>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        function generarIcono(size) {
+            const canvas = document.getElementById('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo blanco/crema
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, size, size);
+
+            // Emoji café
+            ctx.font = `${size * 0.55}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('☕', size / 2, size / 2);
+
+            // Descargar
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `icon-${size}x${size}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+    </script>
+</body>
+
+</html>
