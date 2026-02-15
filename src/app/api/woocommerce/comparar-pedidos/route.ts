@@ -39,10 +39,38 @@ export async function GET(req: NextRequest) {
     }
 
     // Obtener ambos pedidos
-    const [pedidoBueno, pedidoApp] = await Promise.all([
-      fetch(`${wooUrl}/wp-json/wc/v3/orders/${pedidoBuenoId}`, { headers }).then(r => r.json()),
-      fetch(`${wooUrl}/wp-json/wc/v3/orders/${pedidoAppId}`, { headers }).then(r => r.json()),
+    const [respBueno, respApp] = await Promise.all([
+      fetch(`${wooUrl}/wp-json/wc/v3/orders/${pedidoBuenoId}`, { headers }),
+      fetch(`${wooUrl}/wp-json/wc/v3/orders/${pedidoAppId}`, { headers }),
     ])
+
+    // Verificar respuestas
+    if (!respBueno.ok) {
+      const errorText = await respBueno.text()
+      return NextResponse.json(
+        {
+          error: `Error al obtener pedido ${pedidoBuenoId}`,
+          status: respBueno.status,
+          details: errorText.substring(0, 500)
+        },
+        { status: respBueno.status }
+      )
+    }
+
+    if (!respApp.ok) {
+      const errorText = await respApp.text()
+      return NextResponse.json(
+        {
+          error: `Error al obtener pedido ${pedidoAppId}`,
+          status: respApp.status,
+          details: errorText.substring(0, 500)
+        },
+        { status: respApp.status }
+      )
+    }
+
+    const pedidoBueno = await respBueno.json()
+    const pedidoApp = await respApp.json()
 
     // Extraer solo los meta_data para comparar
     const metaBueno = pedidoBueno.meta_data || []
