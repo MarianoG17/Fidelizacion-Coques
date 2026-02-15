@@ -114,8 +114,8 @@ export async function POST(req: NextRequest) {
       year: 'numeric'
     })
     
-    // Formato español para Ayres IT: "16 Febrero, 2026" (con mayúscula en mes)
-    const mesesES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    // Formato español para Ayres IT: "16 febrero, 2026" (mes en minúscula!)
+    const mesesES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
     const [year, month, day] = fechaEntrega.split('-')
     const fechaEspanol = `${parseInt(day)} ${mesesES[parseInt(month) - 1]}, ${year}`
     
