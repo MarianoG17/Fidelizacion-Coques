@@ -167,8 +167,8 @@ export async function POST(req: NextRequest) {
           key: 'cliente_app_id',
           value: cliente.id,
         },
-        // *** CAMPOS ESPECÍFICOS DEL PLUGIN "Edit Order Delivery Date and/or Time" ***
-        // Estos son los nombres exactos que usa el plugin y que reconoce Ayres IT
+        // *** SOLO LOS 2 CAMPOS QUE USA AYRES IT ***
+        // Eliminamos todos los campos técnicos adicionales que confunden al sistema
         {
           key: '¿Para que fecha querés el pedido?',
           value: fechaEspanol, // Formato: "16 Febrero, 2026"
@@ -176,57 +176,6 @@ export async function POST(req: NextRequest) {
         {
           key: '¿En que horario?',
           value: rangoHorario, // Formato: "17:00 - 18:00"
-        },
-        // Fecha y hora en múltiples formatos para compatibilidad adicional
-        {
-          key: 'fecha_entrega',
-          value: fechaEntrega,
-        },
-        {
-          key: 'hora_entrega',
-          value: horaEntrega,
-        },
-        {
-          key: 'fecha_hora_entrega_formateada',
-          value: `${fechaFormateada} - ${horaEntrega} hs`,
-        },
-        // Campos para Ayres IT y otros sistemas de gestión
-        {
-          key: '_delivery_date',
-          value: fechaEntrega,
-        },
-        {
-          key: 'delivery_date',
-          value: fechaEntrega,
-        },
-        {
-          key: '_delivery_time',
-          value: horaEntrega,
-        },
-        {
-          key: 'delivery_time',
-          value: horaEntrega,
-        },
-        {
-          key: '_scheduled_datetime',
-          value: fechaHoraISO,
-        },
-        {
-          key: 'scheduled_datetime',
-          value: fechaHoraISO,
-        },
-        {
-          key: '_delivery_datetime',
-          value: fechaHoraLocal,
-        },
-        {
-          key: 'delivery_datetime',
-          value: fechaHoraLocal,
-        },
-        // Timestamp Unix para sistemas que lo necesiten
-        {
-          key: '_delivery_timestamp',
-          value: Math.floor(fechaHoraEntrega.getTime() / 1000).toString(),
         },
       ],
     }
