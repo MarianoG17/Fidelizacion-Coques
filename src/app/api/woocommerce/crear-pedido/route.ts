@@ -113,7 +113,22 @@ export async function POST(req: NextRequest) {
       month: 'long',
       year: 'numeric'
     })
-
+    
+    // Crear fecha/hora completa de entrega en formato ISO y otros formatos
+    const [year, month, day] = fechaEntrega.split('-')
+    const [hora, minutos] = horaEntrega.split(':')
+    const fechaHoraEntrega = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hora), parseInt(minutos))
+    const fechaHoraISO = fechaHoraEntrega.toISOString()
+    const fechaHoraLocal = fechaHoraEntrega.toLocaleString('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+    
     // Construir notas del cliente con fecha de entrega
     let customerNote = `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
     if (notas) {
@@ -142,6 +157,7 @@ export async function POST(req: NextRequest) {
           key: 'cliente_app_id',
           value: cliente.id,
         },
+        // Fecha y hora en múltiples formatos para compatibilidad con Ayres IT
         {
           key: 'fecha_entrega',
           value: fechaEntrega,
@@ -153,6 +169,44 @@ export async function POST(req: NextRequest) {
         {
           key: 'fecha_hora_entrega_formateada',
           value: `${fechaFormateada} - ${horaEntrega} hs`,
+        },
+        // Campos para Ayres IT y otros sistemas de gestión
+        {
+          key: '_delivery_date',
+          value: fechaEntrega,
+        },
+        {
+          key: 'delivery_date',
+          value: fechaEntrega,
+        },
+        {
+          key: '_delivery_time',
+          value: horaEntrega,
+        },
+        {
+          key: 'delivery_time',
+          value: horaEntrega,
+        },
+        {
+          key: '_scheduled_datetime',
+          value: fechaHoraISO,
+        },
+        {
+          key: 'scheduled_datetime',
+          value: fechaHoraISO,
+        },
+        {
+          key: '_delivery_datetime',
+          value: fechaHoraLocal,
+        },
+        {
+          key: 'delivery_datetime',
+          value: fechaHoraLocal,
+        },
+        // Timestamp Unix para sistemas que lo necesiten
+        {
+          key: '_delivery_timestamp',
+          value: Math.floor(fechaHoraEntrega.getTime() / 1000).toString(),
         },
       ],
     }
