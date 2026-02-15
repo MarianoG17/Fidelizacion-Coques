@@ -1,15 +1,19 @@
 {
   "id": "/",
-  "name": "Fidelización Zona - Coques y Lavadero",
-  "short_name": "FidZona",
-  "description": "Tu programa de beneficios en Coques y el Lavadero. Acumulá puntos, conseguí descuentos y disfrutá de beneficios exclusivos.",
+  "name": "Coques Bakery",
+  "short_name": "Coques",
+  "description": "Tu programa de beneficios en Coques Bakery. Acumulá puntos, conseguí descuentos y disfrutá de beneficios exclusivos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#1e293b",
   "orientation": "portrait-primary",
-  "categories": ["lifestyle", "food", "business"],
+  "categories": [
+    "lifestyle",
+    "food",
+    "business"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {

@@ -70,7 +70,8 @@ function ActivarContent() {
     setError('')
 
     try {
-      const phoneFormatted = phone.startsWith('+') ? phone : `+549${phone.replace(/\D/g, '')}`
+      // Solo números, sin prefijo +549
+      const phoneFormatted = phone.replace(/\D/g, '')
       
       const res = await fetch('/api/auth/register', {
         method: 'POST',

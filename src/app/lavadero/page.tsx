@@ -36,9 +36,8 @@ export default function LavaderoPage() {
     setCargando(true)
     setMensaje('')
 
-    const phoneFormatted = phoneTarget.startsWith('+')
-      ? phoneTarget
-      : `+549${phoneTarget.replace(/\D/g, '')}`
+    // Solo números, sin prefijo +549
+    const phoneFormatted = phoneTarget.replace(/\D/g, '')
 
     const patenteNormalizada = normalizarPatente(patenteTarget)
 

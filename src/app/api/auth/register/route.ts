@@ -12,7 +12,7 @@ const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   nombre: z.string().min(1, 'El nombre es requerido'),
-  phone: z.string().regex(/^\+549\d{10}$/, 'Teléfono inválido (formato: +5491112345678)'),
+  phone: z.string().regex(/^\d{10}$/, 'Teléfono inválido (formato: 1112345678)'),
 })
 
 export async function POST(req: NextRequest) {

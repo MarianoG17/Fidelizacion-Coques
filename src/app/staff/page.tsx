@@ -109,7 +109,7 @@ export default function StaffPage() {
           {/* Info adicional */}
           <div className="mt-6 bg-white/10 backdrop-blur-lg rounded-2xl p-5 border-2 border-white/20">
             <p className="text-white/90 text-sm">
-              <strong className="text-white">Cliente de prueba:</strong> Juan Pérez • Tel: <code className="bg-black/20 px-2 py-1 rounded ml-1">+5491112345678</code>
+              <strong className="text-white">Cliente de prueba:</strong> Juan Pérez • Tel: <code className="bg-black/20 px-2 py-1 rounded ml-1">1112345678</code>
             </p>
           </div>
 
