@@ -122,14 +122,17 @@ export async function evaluarNivel(clienteId: string) {
   // Buscar el nivel más alto que cumple los criterios
   for (const nivel of niveles) {
     const criterios = nivel.criterios as {
-      visitas: number
-      diasVentana: number
-      usosCruzados: number
+      visitasMinimas?: number
+      diasVentana?: number
+      usosCruzados?: number
     }
 
+    const visitasRequeridas = criterios.visitasMinimas || 0
+    const usosCruzadosRequeridos = criterios.usosCruzados || 0
+
     if (
-      visitasRecientes >= criterios.visitas &&
-      usosCruzados >= criterios.usosCruzados
+      visitasRecientes >= visitasRequeridas &&
+      usosCruzados >= usosCruzadosRequeridos
     ) {
       // Si el nivel es mayor al actual, subir
       const nivelActualOrden = cliente.nivel?.orden || 0
@@ -138,6 +141,7 @@ export async function evaluarNivel(clienteId: string) {
           where: { id: clienteId },
           data: { nivelId: nivel.id },
         })
+        console.log(`[evaluarNivel] Cliente ${clienteId} subió a nivel ${nivel.nombre} (${visitasRecientes} visitas)`)
         return nivel // retorna el nuevo nivel para notificación
       }
       break

@@ -1,9 +1,17 @@
 'use client'
 // src/app/lavadero/page.tsx
-// Panel interno del lavadero — actualizar estado de autos
-import { useState } from 'react'
+// Panel interno del lavadero — actualizar estado de autos y scanner QR
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { EstadoAuto, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { normalizarPatente, formatearPatenteDisplay } from '@/lib/patente'
+import dynamic from 'next/dynamic'
+
+// Importar QRScanner dinámicamente para evitar problemas de SSR
+const QRScanner = dynamic(() => import('@/components/local/QRScanner'), {
+  ssr: false,
+  loading: () => <div className="text-center text-slate-400">Cargando escáner...</div>,
+})
 
 const LAVADERO_API_KEY = process.env.NEXT_PUBLIC_LAVADERO_API_KEY || ''
 
@@ -19,12 +27,32 @@ interface AutoActivo {
 }
 
 export default function LavaderoPage() {
+  const router = useRouter()
+  const [authenticated, setAuthenticated] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [phone, setPhone] = useState('')
   const [patente, setPatente] = useState('')
   const [nombre, setNombre] = useState('')
   const [cargando, setCargando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [autosActivos, setAutosActivos] = useState<AutoActivo[]>([])
+  const [mostrarScanner, setMostrarScanner] = useState(false)
+
+  // Verificar autenticación al cargar
+  useEffect(() => {
+    const token = localStorage.getItem('empleado_token')
+    if (!token) {
+      router.push('/lavadero/login')
+      return
+    }
+    setAuthenticated(true)
+    setLoading(false)
+  }, [router])
+
+  const handleLogout = () => {
+    localStorage.removeItem('empleado_token')
+    router.push('/lavadero/login')
+  }
 
   async function actualizarEstado(
     phoneTarget: string,
@@ -102,26 +130,101 @@ export default function LavaderoPage() {
     }
   }
 
+  const handleScanSuccess = async (otp: string) => {
+    setCargando(true)
+    setMensaje('')
+    setMostrarScanner(false)
+
+    try {
+      // Validar el QR escaneado
+      const res = await fetch('/api/clientes/validar-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp }),
+      })
+
+      const json = await res.json()
+
+      if (res.ok && json.valido && json.cliente) {
+        // Obtener datos del cliente
+        setNombre(json.cliente.nombre || '')
+        
+        // Si el cliente tiene autos, usar el primero
+        if (json.cliente.autos && json.cliente.autos.length > 0) {
+          const primerAuto = json.cliente.autos[0]
+          setPatente(primerAuto.patente)
+          
+          // Extraer teléfono del cliente (necesitamos agregarlo a la respuesta)
+          setMensaje(`✓ Cliente identificado: ${json.cliente.nombre}`)
+        } else {
+          setMensaje(`✓ Cliente identificado: ${json.cliente.nombre}. Agregá la patente manualmente.`)
+        }
+      } else {
+        setMensaje('Error: QR inválido o expirado')
+      }
+    } catch {
+      setMensaje('Error de conexión')
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-white">Verificando autenticación...</div>
+      </div>
+    )
+  }
+
+  if (!authenticated) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white py-8 px-4">
       <div className="max-w-md mx-auto">
-        {/* Botón Volver */}
+        {/* Header con logout */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Panel Lavadero</h1>
+            <p className="text-slate-400 text-sm">Gestión de estados de autos</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="text-sm font-medium">Salir</span>
+          </button>
+        </div>
+
+        {/* Botón Scanner QR */}
         <button
-          onClick={() => (window.location.href = '/')}
-          className="flex items-center gap-2 text-slate-300 hover:text-white mb-6 transition-colors"
+          onClick={() => setMostrarScanner(!mostrarScanner)}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-2xl font-semibold mb-4 transition-colors flex items-center justify-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
           </svg>
-          <span className="font-medium">Volver</span>
+          {mostrarScanner ? 'Cerrar escáner' : 'Escanear QR del cliente'}
         </button>
 
-        <h1 className="text-2xl font-bold mb-1">Panel Lavadero</h1>
-        <p className="text-slate-400 text-sm mb-8">Gestión de estados de autos</p>
+        {/* Scanner QR */}
+        {mostrarScanner && (
+          <div className="bg-slate-800 rounded-2xl p-5 mb-6">
+            <QRScanner
+              onScanSuccess={handleScanSuccess}
+              onClose={() => setMostrarScanner(false)}
+            />
+          </div>
+        )}
 
-        {/* Ingreso de nuevo auto */}
+        {/* Ingreso manual de auto */}
         <div className="bg-slate-800 rounded-2xl p-5 mb-6">
-          <h2 className="font-semibold text-slate-200 mb-4">Registrar auto</h2>
+          <h2 className="font-semibold text-slate-200 mb-4">Registrar auto manualmente</h2>
           <div className="space-y-3">
             <input
               type="tel"
@@ -163,7 +266,7 @@ export default function LavaderoPage() {
               {autosActivos
                 .filter((a) => a.estado !== 'ENTREGADO')
                 .map((auto) => (
-                  <div key={auto.phone} className="bg-slate-800 rounded-2xl p-4">
+                  <div key={`${auto.phone}-${auto.patente}`} className="bg-slate-800 rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="font-bold text-white text-lg">

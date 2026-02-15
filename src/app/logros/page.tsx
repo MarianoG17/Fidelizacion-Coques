@@ -3,17 +3,56 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { LogroData } from '@/types'
+import { LogroData, NIVEL_COLORS } from '@/types'
+
+interface NivelData {
+  id: string
+  nombre: string
+  orden: number
+  descripcionBeneficios: string | null
+  visitasRequeridas: number
+  esNivelActual: boolean
+  beneficios: Array<{
+    id: string
+    nombre: string
+    descripcion: string
+    tipo: string
+    descuento: number | null
+  }>
+}
+
+interface NivelesResponse {
+  niveles: NivelData[]
+  nivelActual: string
+  totalVisitas: number
+  progreso: {
+    proximoNivel: string
+    visitasActuales: number
+    visitasRequeridas: number
+    visitasFaltantes: number
+  } | null
+}
 
 export default function LogrosPage() {
     const router = useRouter()
     const [obtenidos, setObtenidos] = useState<LogroData[]>([])
     const [disponibles, setDisponibles] = useState<any[]>([])
+    const [nivelesData, setNivelesData] = useState<NivelesResponse | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    const getNivelIcon = (nombreNivel: string): string => {
+        const iconos: Record<string, string> = {
+            'Bronce': '🥉',
+            'Plata': '🥈',
+            'Oro': '🥇',
+            'Platino': '💎',
+        }
+        return iconos[nombreNivel] || '⭐'
+    }
+
     useEffect(() => {
-        const fetchLogros = async () => {
+        const fetchData = async () => {
             const token = localStorage.getItem('fidelizacion_token')
             if (!token) {
                 router.push('/login')
@@ -21,22 +60,33 @@ export default function LogrosPage() {
             }
 
             try {
-                const res = await fetch('/api/logros', {
+                // Cargar logros
+                const resLogros = await fetch('/api/logros', {
                     headers: { Authorization: `Bearer ${token}` },
                 })
 
-                if (res.status === 401) {
+                if (resLogros.status === 401) {
                     router.push('/login')
                     return
                 }
 
-                const json = await res.json()
-                setObtenidos(json.data.obtenidos)
-                setDisponibles(json.data.disponibles)
+                const jsonLogros = await resLogros.json()
+                setObtenidos(jsonLogros.data.obtenidos)
+                setDisponibles(jsonLogros.data.disponibles)
+
+                // Cargar niveles
+                const resNiveles = await fetch('/api/pass/niveles', {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+
+                if (resNiveles.ok) {
+                    const jsonNiveles = await resNiveles.json()
+                    setNivelesData(jsonNiveles.data)
+                }
 
                 // Marcar logros como vistos
-                if (json.data.obtenidos.some((l: LogroData) => !l.visto)) {
-                    const logrosNoVistos = json.data.obtenidos
+                if (jsonLogros.data.obtenidos.some((l: LogroData) => !l.visto)) {
+                    const logrosNoVistos = jsonLogros.data.obtenidos
                         .filter((l: LogroData) => !l.visto)
                         .map((l: LogroData) => l.id)
 
@@ -50,13 +100,13 @@ export default function LogrosPage() {
                     })
                 }
             } catch (err) {
-                setError('Error al cargar logros')
+                setError('Error al cargar datos')
             } finally {
                 setLoading(false)
             }
         }
 
-        fetchLogros()
+        fetchData()
     }, [router])
 
     if (loading) {
@@ -106,6 +156,127 @@ export default function LogrosPage() {
                         <span className="font-semibold">{obtenidos.length}</span> de {obtenidos.length + disponibles.length} logros desbloqueados
                     </div>
                 </div>
+
+                {/* Carrusel de Niveles */}
+                {nivelesData && nivelesData.niveles.length > 0 && (
+                    <div className="mb-8">
+                        <h2 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <span>🏅</span>
+                            Niveles de Membresía
+                        </h2>
+                        
+                        {/* Progreso al próximo nivel */}
+                        {nivelesData.progreso && (
+                            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-4 mb-4 border border-purple-100">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-2xl">{getNivelIcon(nivelesData.progreso.proximoNivel)}</span>
+                                        <div>
+                                            <p className="text-xs text-gray-600 font-medium">Próximo nivel</p>
+                                            <p className="text-sm font-bold text-purple-700">{nivelesData.progreso.proximoNivel}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-gray-600">Te faltan</p>
+                                        <p className="text-xl font-bold text-purple-700">{nivelesData.progreso.visitasFaltantes}</p>
+                                        <p className="text-xs text-gray-600">visitas</p>
+                                    </div>
+                                </div>
+                                {/* Barra de progreso */}
+                                <div className="w-full bg-white rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-500"
+                                        style={{
+                                            width: `${Math.min(
+                                                100,
+                                                (nivelesData.progreso.visitasActuales / nivelesData.progreso.visitasRequeridas) * 100
+                                            )}%`,
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-center text-gray-500 mt-1">
+                                    {nivelesData.progreso.visitasActuales} / {nivelesData.progreso.visitasRequeridas} visitas
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Carrusel horizontal de niveles */}
+                        <div className="relative">
+                            <div className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
+                                {nivelesData.niveles.map((nivel) => {
+                                    const color = NIVEL_COLORS[nivel.nombre] || '#6b7280'
+                                    const esActual = nivel.esNivelActual
+                                    
+                                    return (
+                                        <div
+                                            key={nivel.id}
+                                            className={`flex-shrink-0 w-72 rounded-2xl p-4 snap-center transition-all ${
+                                                esActual
+                                                    ? 'bg-white border-2 shadow-lg'
+                                                    : 'bg-white border border-gray-200 shadow-sm'
+                                            }`}
+                                            style={esActual ? { borderColor: color } : {}}
+                                        >
+                                            {/* Header del nivel */}
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-3xl">{getNivelIcon(nivel.nombre)}</span>
+                                                    <div>
+                                                        <h4 className="font-bold text-lg" style={{ color }}>
+                                                            {nivel.nombre}
+                                                        </h4>
+                                                        {esActual && (
+                                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                                                                Tu nivel actual
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Requisitos */}
+                                            <div className="mb-3 pb-3 border-b border-gray-100">
+                                                <p className="text-xs text-gray-500">Requisito:</p>
+                                                <p className="text-sm font-semibold text-gray-700">
+                                                    {nivel.visitasRequeridas} {nivel.visitasRequeridas === 1 ? 'visita' : 'visitas'}
+                                                </p>
+                                            </div>
+
+                                            {/* Beneficios - TODOS visibles */}
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-600 mb-2">Beneficios:</p>
+                                                {nivel.beneficios.length > 0 ? (
+                                                    <ul className="space-y-1.5 max-h-48 overflow-y-auto">
+                                                        {nivel.beneficios.map((beneficio) => (
+                                                            <li key={beneficio.id} className="flex items-start gap-2 text-xs text-gray-600">
+                                                                <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                                                                <span className="flex-1">{beneficio.nombre}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p className="text-xs text-gray-400 italic">Beneficios básicos</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            
+                            {/* Indicador de scroll */}
+                            <div className="flex justify-center gap-1.5 mt-2">
+                                {nivelesData.niveles.map((nivel) => (
+                                    <div
+                                        key={nivel.id}
+                                        className={`h-1.5 rounded-full transition-all ${
+                                            nivel.esNivelActual ? 'w-6 bg-purple-500' : 'w-1.5 bg-gray-300'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Logros Obtenidos */}
                 {obtenidos.length > 0 && (

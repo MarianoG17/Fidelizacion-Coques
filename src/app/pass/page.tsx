@@ -125,14 +125,14 @@ export default function PassPage() {
   useEffect(() => {
     // Agregar entrada al historial para prevenir volver atrás
     window.history.pushState(null, '', window.location.href)
-    
+
     const handlePopState = () => {
       // Volver a agregar entrada al historial
       window.history.pushState(null, '', window.location.href)
     }
-    
+
     window.addEventListener('popstate', handlePopState)
-    
+
     return () => {
       window.removeEventListener('popstate', handlePopState)
     }
@@ -168,7 +168,7 @@ export default function PassPage() {
 
     // Preferir WhatsApp si está disponible en móvil
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    
+
     if (isMobile) {
       // Abrir WhatsApp directamente
       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
@@ -277,94 +277,6 @@ export default function PassPage() {
           </div>
         )}
 
-        {/* Carrusel de Niveles */}
-        {nivelesData && nivelesData.niveles.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-              <span>🏆</span>
-              <span>Niveles de Membresía</span>
-            </h3>
-            <div className="relative">
-              <div className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
-                {nivelesData.niveles.map((nivel) => {
-                  const color = NIVEL_COLORS[nivel.nombre] || '#6b7280'
-                  const esActual = nivel.esNivelActual
-                  
-                  return (
-                    <div
-                      key={nivel.id}
-                      className={`flex-shrink-0 w-64 rounded-2xl p-4 snap-center transition-all ${
-                        esActual
-                          ? 'bg-white border-2 shadow-lg scale-105'
-                          : 'bg-white border border-gray-200 shadow-sm'
-                      }`}
-                      style={esActual ? { borderColor: color } : {}}
-                    >
-                      {/* Header del nivel */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-3xl">{getNivelIcon(nivel.nombre)}</span>
-                          <div>
-                            <h4 className="font-bold text-lg" style={{ color }}>
-                              {nivel.nombre}
-                            </h4>
-                            {esActual && (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
-                                Tu nivel actual
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Requisitos */}
-                      <div className="mb-3 pb-3 border-b border-gray-100">
-                        <p className="text-xs text-gray-500">Requisito:</p>
-                        <p className="text-sm font-semibold text-gray-700">
-                          {nivel.visitasRequeridas} {nivel.visitasRequeridas === 1 ? 'visita' : 'visitas'}
-                        </p>
-                      </div>
-
-                      {/* Beneficios */}
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-2">Beneficios:</p>
-                        {nivel.beneficios.length > 0 ? (
-                          <ul className="space-y-1.5">
-                            {nivel.beneficios.slice(0, 3).map((beneficio) => (
-                              <li key={beneficio.id} className="flex items-start gap-2 text-xs text-gray-600">
-                                <span className="text-green-500 mt-0.5">✓</span>
-                                <span className="flex-1">{beneficio.nombre}</span>
-                              </li>
-                            ))}
-                            {nivel.beneficios.length > 3 && (
-                              <li className="text-xs text-gray-400 italic">
-                                +{nivel.beneficios.length - 3} más...
-                              </li>
-                            )}
-                          </ul>
-                        ) : (
-                          <p className="text-xs text-gray-400 italic">Beneficios básicos</p>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              
-              {/* Indicador de scroll */}
-              <div className="flex justify-center gap-1.5 mt-2">
-                {nivelesData.niveles.map((nivel) => (
-                  <div
-                    key={nivel.id}
-                    className={`h-1.5 rounded-full transition-all ${
-                      nivel.esNivelActual ? 'w-6 bg-purple-500' : 'w-1.5 bg-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Card del QR */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
