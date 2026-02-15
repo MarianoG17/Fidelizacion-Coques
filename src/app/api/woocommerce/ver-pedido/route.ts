@@ -64,15 +64,15 @@ export async function GET(req: NextRequest) {
       // Filtrar solo campos relacionados con fecha/hora/delivery
       campos_fecha_hora: pedido.meta_data.filter((m: any) => {
         const key = m.key.toLowerCase()
-        return key.includes('fecha') || 
-               key.includes('hora') || 
-               key.includes('delivery') || 
+        return key.includes('fecha') ||
+               key.includes('hora') ||
+               key.includes('delivery') ||
                key.includes('date') ||
                key.includes('time') ||
                key.includes('orddd') ||
                key.includes('querés')
       })
-    }, null, 2)
+    })
   } catch (error) {
     console.error('[Ver Pedido] Error:', error)
     return NextResponse.json(
