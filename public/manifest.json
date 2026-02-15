@@ -1,7 +1,7 @@
 {
-  "id": "/",
+  "id": "/coques-bakery-app",
   "name": "Coques Bakery",
-  "short_name": "Coques",
+  "short_name": "Coques Bakery",
   "description": "Tu programa de beneficios en Coques Bakery. Acumulá puntos, conseguí descuentos y disfrutá de beneficios exclusivos.",
   "start_url": "/",
   "scope": "/",
