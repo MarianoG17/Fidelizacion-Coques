@@ -114,9 +114,19 @@ export async function POST(req: NextRequest) {
       year: 'numeric'
     })
     
-    // Crear fecha/hora completa de entrega en formato ISO y otros formatos
+    // Formato español para Ayres IT: "16 Febrero, 2026" (con mayúscula en mes)
+    const mesesES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
     const [year, month, day] = fechaEntrega.split('-')
+    const fechaEspanol = `${parseInt(day)} ${mesesES[parseInt(month) - 1]}, ${year}`
+    
+    // Crear rango de horario: "17:00 - 18:00"
     const [hora, minutos] = horaEntrega.split(':')
+    const horaInicio = `${hora}:${minutos}`
+    const horaSiguiente = (parseInt(hora) + 1).toString().padStart(2, '0')
+    const horaFin = `${horaSiguiente}:00`
+    const rangoHorario = `${horaInicio} - ${horaFin}`
+    
+    // Crear fecha/hora completa de entrega en formato ISO y otros formatos
     const fechaHoraEntrega = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hora), parseInt(minutos))
     const fechaHoraISO = fechaHoraEntrega.toISOString()
     const fechaHoraLocal = fechaHoraEntrega.toLocaleString('es-AR', {
@@ -157,7 +167,17 @@ export async function POST(req: NextRequest) {
           key: 'cliente_app_id',
           value: cliente.id,
         },
-        // Fecha y hora en múltiples formatos para compatibilidad con Ayres IT
+        // *** CAMPOS ESPECÍFICOS DEL PLUGIN "Edit Order Delivery Date and/or Time" ***
+        // Estos son los nombres exactos que usa el plugin y que reconoce Ayres IT
+        {
+          key: '¿Para que fecha querés el pedido?',
+          value: fechaEspanol, // Formato: "16 Febrero, 2026"
+        },
+        {
+          key: '¿En que horario?',
+          value: rangoHorario, // Formato: "17:00 - 18:00"
+        },
+        // Fecha y hora en múltiples formatos para compatibilidad adicional
         {
           key: 'fecha_entrega',
           value: fechaEntrega,
