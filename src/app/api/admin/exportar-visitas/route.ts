@@ -60,12 +60,8 @@ export async function GET(req: NextRequest) {
         local: {
           select: { nombre: true },
         },
-        sesionMesa: {
-          select: {
-            mesa: {
-              select: { numero: true },
-            },
-          },
+        mesa: {
+          select: { numero: true },
         },
       },
       orderBy: { timestamp: 'desc' },
@@ -85,7 +81,7 @@ export async function GET(req: NextRequest) {
       email: v.cliente?.email || '',
       nivel: v.cliente?.nivel?.nombre || 'Sin nivel',
       local: v.local?.nombre || 'Desconocido',
-      mesa: v.sesionMesa?.mesa?.numero || '-',
+      mesa: v.mesa?.numero || '-',
       beneficioCanjeado: v.beneficio?.nombre || '-',
       descripcionBeneficio: v.beneficio?.descripcionCaja || '-',
       contabilizada: v.contabilizada ? 'Sí' : 'No',
