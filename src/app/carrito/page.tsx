@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
@@ -13,11 +13,71 @@ export default function CarritoPage() {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false)
   const [numeroOrden, setNumeroOrden] = useState('')
 
+  // Fecha y hora de entrega
+  const [fechaEntrega, setFechaEntrega] = useState('')
+  const [horaEntrega, setHoraEntrega] = useState('')
+  const [fechasDisponibles, setFechasDisponibles] = useState<string[]>([])
+
   // Solo notas opcionales
   const [notas, setNotas] = useState('')
 
+  // Generar fechas disponibles (mínimo 24h, solo lun-sáb)
+  useEffect(() => {
+    const fechas: string[] = []
+    const ahora = new Date()
+
+    // Sumar 24 horas
+    ahora.setHours(ahora.getHours() + 24)
+
+    // Generar los próximos 30 días disponibles
+    for (let i = 0; i < 60; i++) {
+      const fecha = new Date(ahora)
+      fecha.setDate(ahora.getDate() + i)
+
+      const diaSemana = fecha.getDay()
+      // 0 = domingo, 6 = sábado. Solo lun(1) a sáb(6)
+      if (diaSemana >= 1 && diaSemana <= 6) {
+        const fechaISO = fecha.toISOString().split('T')[0]
+        fechas.push(fechaISO)
+
+        if (fechas.length >= 30) break
+      }
+    }
+
+    setFechasDisponibles(fechas)
+
+    // Seleccionar primera fecha disponible por defecto
+    if (fechas.length > 0) {
+      setFechaEntrega(fechas[0])
+    }
+  }, [])
+
+  // Generar horarios disponibles (8:30 - 19:00, cada hora)
+  function obtenerHorariosDisponibles(): string[] {
+    return [
+      '08:30',
+      '09:30',
+      '10:30',
+      '11:30',
+      '12:30',
+      '13:30',
+      '14:30',
+      '15:30',
+      '16:30',
+      '17:30',
+      '18:30',
+    ]
+  }
+
   async function procederCheckout() {
     setError(null)
+
+    // Validar fecha y hora
+    if (!fechaEntrega || !horaEntrega) {
+      setError('Por favor seleccioná fecha y hora de entrega')
+      return
+    }
+
     setProcesando(true)
 
     try {
@@ -45,6 +105,8 @@ export default function CarritoPage() {
         body: JSON.stringify({
           items: itemsPedido,
           notas: notas.trim() || undefined,
+          fechaEntrega,
+          horaEntrega,
         }),
       })
 
@@ -61,10 +123,10 @@ export default function CarritoPage() {
 
       if (data.success) {
         setNumeroOrden(data.pedido.numero)
-        
+
         // Vaciar carrito
         vaciarCarrito()
-        
+
         // Mostrar confirmación
         setMostrarConfirmacion(true)
       }
@@ -130,7 +192,7 @@ export default function CarritoPage() {
       <div className="min-h-screen bg-white p-4">
         <div className="max-w-4xl mx-auto">
           <BackButton href="/tortas" />
-          
+
           <div className="mt-8 text-center py-12">
             <span className="text-6xl mb-4 block">🛒</span>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">
@@ -255,6 +317,61 @@ export default function CarritoPage() {
                 </div>
               </div>
 
+              {/* Fecha de entrega */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Fecha de entrega *
+                </label>
+                <select
+                  value={fechaEntrega}
+                  onChange={(e) => setFechaEntrega(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                  required
+                >
+                  <option value="">Seleccionar fecha</option>
+                  {fechasDisponibles.map((fecha) => {
+                    const fechaObj = new Date(fecha + 'T00:00:00')
+                    const nombreDia = fechaObj.toLocaleDateString('es-AR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })
+                    return (
+                      <option key={fecha} value={fecha}>
+                        {nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1)}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+
+              {/* Hora de entrega */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Horario de entrega *
+                </label>
+                <select
+                  value={horaEntrega}
+                  onChange={(e) => setHoraEntrega(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+                  required
+                >
+                  <option value="">Seleccionar horario</option>
+                  {obtenerHorariosDisponibles().map((hora) => (
+                    <option key={hora} value={hora}>
+                      {hora} hs
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Información de horario */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                <p className="text-xs text-orange-800">
+                  ⏰ Horario de atención: Lunes a Sábados de 8:30 a 19:00 hs. Los pedidos requieren mínimo 24hs de anticipación.
+                </p>
+              </div>
+
               {/* Campo de notas opcionales */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -263,7 +380,7 @@ export default function CarritoPage() {
                 <textarea
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
-                  placeholder="Ej: Decoración especial, entrega urgente, etc."
+                  placeholder="Ej: Decoración especial, alergias, etc."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent resize-none"
                   rows={3}
                 />
@@ -279,11 +396,10 @@ export default function CarritoPage() {
               <button
                 onClick={procederCheckout}
                 disabled={procesando}
-                className={`w-full py-3 rounded-lg font-bold transition-colors ${
-                  procesando
-                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                    : 'bg-gray-800 text-white hover:bg-gray-700'
-                }`}
+                className={`w-full py-3 rounded-lg font-bold transition-colors ${procesando
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+                  }`}
               >
                 {procesando ? 'Procesando...' : 'Realizar Pedido'}
               </button>

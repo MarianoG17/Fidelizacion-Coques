@@ -14,6 +14,8 @@ interface ItemPedido {
 interface DatosPedido {
   items: ItemPedido[]
   notas?: string
+  fechaEntrega?: string
+  horaEntrega?: string
 }
 
 /**
@@ -61,12 +63,19 @@ export async function POST(req: NextRequest) {
     }
 
     const body: DatosPedido = await req.json()
-    const { items, notas } = body
+    const { items, notas, fechaEntrega, horaEntrega } = body
 
     // Validaciones
     if (!items || items.length === 0) {
       return NextResponse.json(
         { error: 'El pedido debe contener al menos un producto' },
+        { status: 400 }
+      )
+    }
+
+    if (!fechaEntrega || !horaEntrega) {
+      return NextResponse.json(
+        { error: 'Se requiere fecha y hora de entrega' },
         { status: 400 }
       )
     }
@@ -95,6 +104,22 @@ export async function POST(req: NextRequest) {
 
     // Estructura del pedido para WooCommerce usando datos del cliente
     const nombreCompleto = cliente.nombre || 'Cliente'
+
+    // Formatear fecha y hora para mostrar
+    const fechaObj = new Date(fechaEntrega + 'T00:00:00')
+    const fechaFormateada = fechaObj.toLocaleDateString('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    // Construir notas del cliente con fecha de entrega
+    let customerNote = `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
+    if (notas) {
+      customerNote += `\n📝 Notas adicionales: ${notas}`
+    }
+
     const orderData = {
       payment_method: 'cod', // Cash on delivery (pago en efectivo/transferencia)
       payment_method_title: 'Pago al retirar o por transferencia',
@@ -107,9 +132,7 @@ export async function POST(req: NextRequest) {
         phone: cliente.phone || '',
       },
       line_items: lineItems,
-      customer_note: notas
-        ? `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}\nNotas: ${notas}`
-        : `Pedido desde App de Fidelización\nCliente ID: ${cliente.id}`,
+      customer_note: customerNote,
       meta_data: [
         {
           key: 'origen',
@@ -118,6 +141,18 @@ export async function POST(req: NextRequest) {
         {
           key: 'cliente_app_id',
           value: cliente.id,
+        },
+        {
+          key: 'fecha_entrega',
+          value: fechaEntrega,
+        },
+        {
+          key: 'hora_entrega',
+          value: horaEntrega,
+        },
+        {
+          key: 'fecha_hora_entrega_formateada',
+          value: `${fechaFormateada} - ${horaEntrega} hs`,
         },
       ],
     }
