@@ -164,7 +164,7 @@ export default function PassPage() {
     if (!pass?.codigoReferido) return
 
     const shareUrl = `${window.location.origin}/activar?ref=${pass.codigoReferido}`
-    const shareText = `¡Unite al programa de fidelización de Coques! 🎁\n\nUsá mi código *${pass.codigoReferido}* y obtenemos beneficios ambos 🤝\n\n👉 ${shareUrl}`
+    const shareText = `¡Unite al programa de fidelización de Coques Bakery! 🎁\n\nRegistrate con mi link y ambos obtenemos beneficios 🤝\n\n👉 ${shareUrl}`
 
     // Preferir WhatsApp si está disponible en móvil
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)

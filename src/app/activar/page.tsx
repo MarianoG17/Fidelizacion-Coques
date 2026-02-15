@@ -156,19 +156,16 @@ function ActivarContent() {
 
         {/* Banner de referido si hay código */}
         {codigoReferido && (
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-4 mb-6 shadow-lg">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 mb-6 shadow-lg">
             <div className="flex items-start gap-3">
-              <span className="text-3xl">🎁</span>
+              <span className="text-4xl">🎁</span>
               <div className="flex-1">
-                <p className="text-white font-bold text-lg mb-1">
+                <p className="text-white font-bold text-xl mb-2">
                   ¡Tu amigo te invitó!
                 </p>
-                <p className="text-white/90 text-sm mb-2">
-                  Al registrarte con el código <strong>{codigoReferido}</strong>, ambos reciben beneficios especiales 🤝
+                <p className="text-white text-sm leading-relaxed">
+                  Al registrarte con este link, ambos reciben visitas bonus para subir de nivel más rápido 🚀
                 </p>
-                <div className="bg-white/20 rounded-lg p-2 text-white text-xs">
-                  ✨ <strong>Beneficio mutuo:</strong> Tu amigo sube de nivel y vos comenzás con puntos extra
-                </div>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 
 interface VisitaReciente {
     id: string
@@ -26,9 +27,22 @@ interface MetricasData {
 export function Metricas({ adminKey }: { adminKey: string }) {
     const [data, setData] = useState<MetricasData | null>(null)
     const [cargando, setCargando] = useState(true)
+    const [exportando, setExportando] = useState(false)
+    
+    // Filtros de exportación
+    const [fechaDesde, setFechaDesde] = useState('')
+    const [fechaHasta, setFechaHasta] = useState('')
 
     useEffect(() => {
         fetchMetricas()
+        
+        // Setear fechas por defecto (últimos 30 días)
+        const hoy = new Date()
+        const hace30Dias = new Date()
+        hace30Dias.setDate(hoy.getDate() - 30)
+        
+        setFechaHasta(hoy.toISOString().split('T')[0])
+        setFechaDesde(hace30Dias.toISOString().split('T')[0])
     }, [])
 
     async function fetchMetricas() {
@@ -44,6 +58,58 @@ export function Metricas({ adminKey }: { adminKey: string }) {
             console.error('Error al cargar métricas:', e)
         } finally {
             setCargando(false)
+        }
+    }
+
+    async function exportarAExcel() {
+        if (!fechaDesde || !fechaHasta) {
+            alert('Por favor seleccioná ambas fechas')
+            return
+        }
+
+        setExportando(true)
+        try {
+            const params = new URLSearchParams({
+                fechaDesde,
+                fechaHasta,
+            })
+
+            const res = await fetch(`/api/admin/exportar-visitas?${params}`, {
+                headers: { 'x-admin-key': adminKey },
+            })
+
+            if (!res.ok) {
+                throw new Error('Error al exportar')
+            }
+
+            const json = await res.json()
+            const { visitas, resumen, totales } = json.data
+
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new()
+
+            // Hoja 1: Visitas detalladas
+            const wsVisitas = XLSX.utils.json_to_sheet(visitas)
+            XLSX.utils.book_append_sheet(wb, wsVisitas, 'Visitas')
+
+            // Hoja 2: Resumen de beneficios
+            const wsResumen = XLSX.utils.json_to_sheet(resumen)
+            XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen Beneficios')
+
+            // Hoja 3: Totales
+            const wsTotales = XLSX.utils.json_to_sheet([totales])
+            XLSX.utils.book_append_sheet(wb, wsTotales, 'Totales')
+
+            // Descargar archivo
+            const nombreArchivo = `visitas_${fechaDesde}_${fechaHasta}.xlsx`
+            XLSX.writeFile(wb, nombreArchivo)
+
+            alert('✅ Excel descargado correctamente')
+        } catch (error) {
+            console.error('Error al exportar:', error)
+            alert('❌ Error al exportar. Intentá de nuevo.')
+        } finally {
+            setExportando(false)
         }
     }
 
@@ -89,6 +155,67 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                     valor={data.eventosProximos}
                     color="orange"
                 />
+            </div>
+
+            {/* Exportar a Excel */}
+            <div className="bg-slate-800 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    📊 Exportar Visitas a Excel
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Desde
+                        </label>
+                        <input
+                            type="date"
+                            value={fechaDesde}
+                            onChange={(e) => setFechaDesde(e.target.value)}
+                            className="w-full bg-slate-700 text-white border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            Hasta
+                        </label>
+                        <input
+                            type="date"
+                            value={fechaHasta}
+                            onChange={(e) => setFechaHasta(e.target.value)}
+                            className="w-full bg-slate-700 text-white border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    
+                    <button
+                        onClick={exportarAExcel}
+                        disabled={exportando || !fechaDesde || !fechaHasta}
+                        className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {exportando ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Exportando...
+                            </>
+                        ) : (
+                            <>
+                                📥 Exportar a Excel
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                <div className="mt-4 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+                    <p className="text-sm text-blue-300">
+                        💡 <strong>El archivo Excel incluye:</strong>
+                    </p>
+                    <ul className="text-sm text-blue-200 mt-2 space-y-1 ml-4">
+                        <li>• <strong>Hoja 1:</strong> Visitas detalladas (fecha, cliente, teléfono, email, nivel, beneficio canjeado)</li>
+                        <li>• <strong>Hoja 2:</strong> Resumen de beneficios canjeados por tipo (para cruzar con AyresIT)</li>
+                        <li>• <strong>Hoja 3:</strong> Totales del período seleccionado</li>
+                    </ul>
+                </div>
             </div>
 
             {/* Distribución por niveles */}
