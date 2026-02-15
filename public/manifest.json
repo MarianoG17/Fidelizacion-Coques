@@ -1,49 +1,60 @@
 {
-  "name": "Fidelización Zona",
+  "id": "/",
+  "name": "Fidelización Zona - Coques y Lavadero",
   "short_name": "FidZona",
-  "description": "Tu programa de beneficios en Coques y el Lavadero",
-  "start_url": "/pass",
+  "description": "Tu programa de beneficios en Coques y el Lavadero. Acumulá puntos, conseguí descuentos y disfrutá de beneficios exclusivos.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#1e293b",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["lifestyle", "food", "business"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-simple.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Mi Pass",
+      "short_name": "Pass",
       "url": "/pass",
-      "description": "Ver mi QR y beneficios"
+      "description": "Ver mi QR y beneficios",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Tortas",
+      "short_name": "Tortas",
+      "url": "/tortas",
+      "description": "Encargá tortas online",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
-  ]
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "lang": "es-AR",
+  "dir": "ltr"
 }
