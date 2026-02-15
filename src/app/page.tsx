@@ -2,8 +2,10 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
+  const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loading, setLoading] = useState(true)
   
@@ -17,9 +19,14 @@ export default function HomePage() {
   useEffect(() => {
     // Verificar si el usuario tiene token
     const token = localStorage.getItem('fidelizacion_token')
-    setIsLoggedIn(!!token)
-    setLoading(false)
-  }, [])
+    if (token) {
+      // Redirigir automáticamente a pass si está autenticado
+      router.push('/pass')
+    } else {
+      // Si no está autenticado, redirigir a login
+      router.push('/login')
+    }
+  }, [router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 p-6 md:p-12">
