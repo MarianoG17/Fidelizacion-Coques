@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireClienteAuth } from '@/lib/auth'
+import { evaluarNivel } from '@/lib/beneficios'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Obtener cliente con su nivel actual
+    // Evaluar y actualizar nivel si es necesario
+    await evaluarNivel(payload.clienteId)
+
+    // Obtener cliente con su nivel actual (refrescado después de evaluar)
     const cliente = await prisma.cliente.findUnique({
       where: { id: payload.clienteId },
       include: {
