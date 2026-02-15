@@ -216,9 +216,15 @@ export default function LavaderoPage() {
         {mostrarScanner && (
           <div className="bg-slate-800 rounded-2xl p-5 mb-6">
             <QRScanner
-              onScanSuccess={handleScanSuccess}
-              onClose={() => setMostrarScanner(false)}
+              onScan={handleScanSuccess}
+              isActive={mostrarScanner}
             />
+            <button
+              onClick={() => setMostrarScanner(false)}
+              className="w-full mt-3 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-xl transition-colors"
+            >
+              Cerrar escáner
+            </button>
           </div>
         )}
 
