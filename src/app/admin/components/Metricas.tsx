@@ -28,19 +28,21 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     const [data, setData] = useState<MetricasData | null>(null)
     const [cargando, setCargando] = useState(true)
     const [exportando, setExportando] = useState(false)
-    
-    // Filtros de exportación
+
+    // Filtros de exportación y visualización
     const [fechaDesde, setFechaDesde] = useState('')
     const [fechaHasta, setFechaHasta] = useState('')
+    const [resumenBeneficios, setResumenBeneficios] = useState<Array<{ beneficio: string; cantidad: number }>>([])
+    const [cargandoResumen, setCargandoResumen] = useState(false)
 
     useEffect(() => {
         fetchMetricas()
-        
+
         // Setear fechas por defecto (últimos 30 días)
         const hoy = new Date()
         const hace30Dias = new Date()
         hace30Dias.setDate(hoy.getDate() - 30)
-        
+
         setFechaHasta(hoy.toISOString().split('T')[0])
         setFechaDesde(hace30Dias.toISOString().split('T')[0])
     }, [])
@@ -58,6 +60,36 @@ export function Metricas({ adminKey }: { adminKey: string }) {
             console.error('Error al cargar métricas:', e)
         } finally {
             setCargando(false)
+        }
+    }
+
+    async function cargarResumenBeneficios() {
+        if (!fechaDesde || !fechaHasta) {
+            return
+        }
+
+        setCargandoResumen(true)
+        try {
+            const params = new URLSearchParams({
+                fechaDesde,
+                fechaHasta,
+            })
+
+            const res = await fetch(`/api/admin/exportar-visitas?${params}`, {
+                headers: { 'x-admin-key': adminKey },
+            })
+
+            if (!res.ok) {
+                throw new Error('Error al cargar resumen')
+            }
+
+            const json = await res.json()
+            setResumenBeneficios(json.data.resumen)
+        } catch (error) {
+            console.error('Error al cargar resumen:', error)
+            setResumenBeneficios([])
+        } finally {
+            setCargandoResumen(false)
         }
     }
 
@@ -162,7 +194,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     📊 Exportar Visitas a Excel
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -175,7 +207,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                             className="w-full bg-slate-700 text-white border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">
                             Hasta
@@ -187,7 +219,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                             className="w-full bg-slate-700 text-white border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
-                    
+
                     <button
                         onClick={exportarAExcel}
                         disabled={exportando || !fechaDesde || !fechaHasta}
@@ -216,6 +248,65 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                         <li>• <strong>Hoja 3:</strong> Totales del período seleccionado</li>
                     </ul>
                 </div>
+            </div>
+
+            {/* Resumen de Beneficios Canjeados */}
+            <div className="bg-slate-800 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">
+                        📊 Resumen de Beneficios Canjeados
+                    </h3>
+                    <button
+                        onClick={cargarResumenBeneficios}
+                        disabled={!fechaDesde || !fechaHasta || cargandoResumen}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {cargandoResumen ? 'Cargando...' : 'Ver Resumen'}
+                    </button>
+                </div>
+
+                {cargandoResumen ? (
+                    <div className="flex justify-center py-8">
+                        <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                ) : resumenBeneficios.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-slate-700">
+                                    <th className="text-left py-3 px-4 text-slate-400 font-medium">Beneficio</th>
+                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Cantidad Canjeada</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {resumenBeneficios.map((item, idx) => (
+                                    <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                        <td className="py-3 px-4 text-white">{item.beneficio}</td>
+                                        <td className="py-3 px-4 text-right">
+                                            <span className="inline-flex items-center justify-center bg-green-500/20 text-green-300 font-semibold px-3 py-1 rounded-full">
+                                                {item.cantidad}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot>
+                                <tr className="border-t-2 border-slate-600">
+                                    <td className="py-3 px-4 text-white font-semibold">Total</td>
+                                    <td className="py-3 px-4 text-right">
+                                        <span className="inline-flex items-center justify-center bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full">
+                                            {resumenBeneficios.reduce((sum, item) => sum + item.cantidad, 0)}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="text-center py-8 text-slate-400">
+                        Seleccioná un rango de fechas y hacé clic en "Ver Resumen" para visualizar los beneficios canjeados
+                    </div>
+                )}
             </div>
 
             {/* Distribución por niveles */}
