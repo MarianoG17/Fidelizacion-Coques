@@ -81,18 +81,24 @@ export async function GET(req: NextRequest) {
 
         const products = await productsResponse.json()
 
-        // Formatear productos para upselling
-        const upsellingProducts = products.map((product: any) => ({
-            id: product.id,
-            nombre: product.name,
-            descripcion: product.short_description?.replace(/<[^>]*>/g, '') || '',
-            imagen: product.images?.[0]?.src || null,
-            precio: product.price,
-            precioRegular: product.regular_price,
-            precioOferta: product.sale_price,
-            enStock: product.stock_status === 'instock',
-            tipo: product.type,
-        }))
+        // Filtrar solo el box alfajor de nuez
+        const boxAlfajor = products.find((product: any) =>
+            product.name.toLowerCase().includes('alfajor') &&
+            product.name.toLowerCase().includes('nuez')
+        )
+
+        // Formatear productos para upselling (solo box alfajor de nuez)
+        const upsellingProducts = boxAlfajor ? [{
+            id: boxAlfajor.id,
+            nombre: boxAlfajor.name,
+            descripcion: boxAlfajor.short_description?.replace(/<[^>]*>/g, '') || '',
+            imagen: boxAlfajor.images?.[0]?.src || null,
+            precio: boxAlfajor.price,
+            precioRegular: boxAlfajor.regular_price,
+            precioOferta: boxAlfajor.sale_price,
+            enStock: boxAlfajor.stock_status === 'instock',
+            tipo: boxAlfajor.type,
+        }] : []
 
         return NextResponse.json({
             success: true,
