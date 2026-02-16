@@ -21,11 +21,17 @@ export default function PerfilPage() {
 
   // Función para formatear teléfono de +54911... a 11...
   const formatearTelefono = (telefono: string): string => {
+    // Remover +54 9 del inicio (código país + código celular)
     if (telefono.startsWith('+549')) {
-      return telefono.substring(3) // Remover +549
+      return telefono.substring(4) // Remover +549 (4 caracteres)
     }
+    // Si tiene +54 pero no el 9, remover +54
     if (telefono.startsWith('+54')) {
       return telefono.substring(3) // Remover +54
+    }
+    // Si empieza con 549 sin el +
+    if (telefono.startsWith('549')) {
+      return telefono.substring(3) // Remover 549
     }
     return telefono
   }
