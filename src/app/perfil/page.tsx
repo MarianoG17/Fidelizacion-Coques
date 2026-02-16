@@ -12,11 +12,23 @@ export default function PerfilPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [perfil, setPerfil] = useState<PerfilData | null>(null)
+  const [modoEdicion, setModoEdicion] = useState(false)
 
   // Form state
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [fechaCumpleanos, setFechaCumpleanos] = useState('')
+
+  // Función para formatear teléfono de +54911... a 11...
+  const formatearTelefono = (telefono: string): string => {
+    if (telefono.startsWith('+549')) {
+      return telefono.substring(3) // Remover +549
+    }
+    if (telefono.startsWith('+54')) {
+      return telefono.substring(3) // Remover +54
+    }
+    return telefono
+  }
 
   const fetchPerfil = useCallback(async () => {
     try {
@@ -62,6 +74,23 @@ export default function PerfilPage() {
     fetchPerfil()
   }, [fetchPerfil])
 
+  const handleEditar = () => {
+    setModoEdicion(true)
+    setError(null)
+    setSuccess(false)
+  }
+
+  const handleCancelar = () => {
+    setModoEdicion(false)
+    // Restaurar valores originales
+    if (perfil) {
+      setNombre(perfil.nombre || '')
+      setEmail(perfil.email || '')
+      setFechaCumpleanos(perfil.fechaCumpleanos ? perfil.fechaCumpleanos.split('T')[0] : '')
+    }
+    setError(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -102,6 +131,7 @@ export default function PerfilPage() {
       const data = await response.json()
       setPerfil(data.data)
       setSuccess(true)
+      setModoEdicion(false)
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000)
@@ -243,212 +273,206 @@ export default function PerfilPage() {
           </div>
         )}
 
-        {/* Edit Profile Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-md p-6 space-y-4">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">
-            ✏️ Editar Información
-          </h3>
-
-          {/* Read-only fields */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono
-            </label>
-            <input
-              type="text"
-              value={perfil.telefono}
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              El teléfono no puede modificarse
-            </p>
-          </div>
-
-          {/* Editable: Name */}
-          <div>
-            <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre Completo *
-            </label>
-            <input
-              type="text"
-              id="nombre"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              minLength={2}
-              maxLength={100}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="Tu nombre completo"
-            />
-          </div>
-
-          {/* Editable: Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="tu@email.com"
-            />
-          </div>
-
-          {/* Editable: Birthday */}
-          <div>
-            <label htmlFor="fechaCumpleanos" className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Cumpleaños
-            </label>
-            <input
-              type="date"
-              id="fechaCumpleanos"
-              value={fechaCumpleanos}
-              onChange={(e) => setFechaCumpleanos(e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              🎂 ¡Recibí un 20% de descuento en tortas durante la semana de tu cumpleaños!
-            </p>
-          </div>
-
-          {/* Save Button */}
-          <button
-            type="submit"
-            disabled={saving}
-            className={`w-full py-3 rounded-xl font-semibold text-white transition-all shadow-md ${saving
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700'
-              }`}
-          >
-            {saving ? '💾 Guardando...' : '💾 Guardar Cambios'}
-          </button>
-        </form>
-
-        {/* Account Info */}
+        {/* Profile Information Card */}
         <div className="bg-white rounded-2xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">
-            📊 Información de la Cuenta
-          </h3>
-
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-600">Estado:</span>
-              <span className={`font-semibold ${perfil.estado === 'ACTIVO' ? 'text-green-600' : 'text-gray-500'
-                }`}>
-                {perfil.estado === 'ACTIVO' ? '✅ Activo' : '⏸️ Inactivo'}
-              </span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-600">Registro:</span>
-              <span className="font-medium text-gray-800">
-                {new Date(perfil.createdAt).toLocaleDateString('es-AR', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </span>
-            </div>
-
-            {perfil.fechaCumpleanos && (
-              <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-gray-600">Cumpleaños:</span>
-                <span className="font-medium text-gray-800">
-                  🎂 {(() => {
-                    // Parse date without timezone conversion
-                    const [year, month, day] = perfil.fechaCumpleanos.split('-')
-                    const fecha = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-                    return fecha.toLocaleDateString('es-AR', {
-                      day: '2-digit',
-                      month: 'long'
-                    })
-                  })()}
-                </span>
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">
+              👤 Información Personal
+            </h3>
+            {!modoEdicion && (
+              <button
+                onClick={handleEditar}
+                className="text-purple-600 hover:text-purple-700 font-semibold text-sm flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Editar
+              </button>
             )}
           </div>
+
+          {!modoEdicion ? (
+            // Modo Visualización
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Teléfono
+                </label>
+                <p className="text-gray-800 font-medium">{formatearTelefono(perfil.telefono)}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Nombre Completo
+                </label>
+                <p className="text-gray-800 font-medium">{perfil.nombre || 'Sin especificar'}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Email
+                </label>
+                <p className="text-gray-800 font-medium">{perfil.email || 'Sin especificar'}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Fecha de Cumpleaños
+                </label>
+                <p className="text-gray-800 font-medium">
+                  {perfil.fechaCumpleanos
+                    ? new Date(perfil.fechaCumpleanos).toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: 'long'
+                      })
+                    : 'Sin especificar'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Modo Edición
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Read-only: Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Teléfono
+                </label>
+                <input
+                  type="text"
+                  value={formatearTelefono(perfil.telefono)}
+                  disabled
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  El teléfono no puede modificarse
+                </p>
+              </div>
+
+              {/* Editable: Name */}
+              <div>
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre Completo *
+                </label>
+                <input
+                  type="text"
+                  id="nombre"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={100}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="Tu nombre completo"
+                />
+              </div>
+
+              {/* Editable: Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="tu@email.com"
+                />
+              </div>
+
+              {/* Editable: Birthday */}
+              <div>
+                <label htmlFor="fechaCumpleanos" className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Cumpleaños (opcional)
+                </label>
+                <input
+                  type="date"
+                  id="fechaCumpleanos"
+                  value={fechaCumpleanos}
+                  onChange={(e) => setFechaCumpleanos(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Recibí un regalo especial el día de tu cumpleaños 🎂
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Guardando...' : '💾 Guardar Cambios'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelar}
+                  disabled={saving}
+                  className="px-6 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
-        {/* Logout Button */}
-        <button
-          onClick={() => {
-            localStorage.removeItem('fidelizacion_token')
-            router.push('/login')
-          }}
-          className="w-full bg-red-500 text-white py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          🚪 Cerrar Sesión
-        </button>
+        {/* Actions */}
+        <div className="space-y-3">
+          <Link
+            href="/pass"
+            className="block w-full bg-purple-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+          >
+            ← Volver al Pass
+          </Link>
+
+          <button
+            onClick={() => {
+              localStorage.removeItem('fidelizacion_token')
+              router.push('/login')
+            }}
+            className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors"
+          >
+            🚪 Cerrar Sesión
+          </button>
+        </div>
       </div>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-        <div className="max-w-lg mx-auto flex justify-around items-center py-3 px-4">
-          <Link href="/pass" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            <span className="text-xs font-medium">Pass</span>
-          </Link>
-
-          <Link href="/logros" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-            </svg>
-            <span className="text-xs font-medium">Logros</span>
-          </Link>
-
-          <Link href="/historial" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-xs font-medium">Historial</span>
-          </Link>
-
-          <Link href="/perfil" className="flex flex-col items-center gap-1 text-purple-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs font-medium">Perfil</span>
-          </Link>
-        </div>
-      </nav>
     </div>
   )
 }
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
-      <p className="mt-4 text-gray-600">Cargando perfil...</p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-purple-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Cargando perfil...</p>
+      </div>
     </div>
   )
 }
 
 function ErrorScreen({ message }: { message: string }) {
   const router = useRouter()
-
+  
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <div className="text-6xl mb-4">😕</div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
-      <p className="text-gray-600 text-center mb-6">{message}</p>
-      <button
-        onClick={() => router.push('/login')}
-        className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-colors"
-      >
-        Volver al login
-      </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+        <div className="text-6xl mb-4">😕</div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <button
+          onClick={() => router.push('/pass')}
+          className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+        >
+          Volver al Pass
+        </button>
+      </div>
     </div>
   )
 }
