@@ -4,6 +4,39 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 /**
+ * Extrae el rendimiento de la descripción del producto
+ * Busca patrones como "Rendimiento: 10 a 12 porciones medianas", "Para 20 personas", etc.
+ */
+function extraerRendimiento(descripcion: string): string | null {
+  if (!descripcion) return null
+
+  // Limpiar HTML tags pero mantener el texto
+  const textoLimpio = descripcion.replace(/<[^>]*>/g, ' ')
+
+  // Patrones a buscar (con rangos y tipos)
+  const patrones = [
+    // "Rendimiento: 10 a 12 porciones medianas"
+    /rendimiento[:\s]+(\d+\s*a\s*\d+|\d+)\s*(porciones?|personas?|invitados?)\s*(\w+)?/i,
+    // "Para 10 a 12 personas"
+    /para\s+(\d+\s*a\s*\d+|\d+)\s*(porciones?|personas?|invitados?)\s*(\w+)?/i,
+    // "Alcanza para 15 porciones"
+    /alcanza\s+para\s+(\d+\s*a\s*\d+|\d+)\s*(porciones?|personas?|invitados?)\s*(\w+)?/i,
+  ]
+
+  for (const patron of patrones) {
+    const match = textoLimpio.match(patron)
+    if (match && match[1]) {
+      const cantidad = match[1].trim()
+      const unidad = match[2] || 'porciones'
+      const tipo = match[3] ? ` ${match[3]}` : ''
+      return `${cantidad} ${unidad}${tipo}`
+    }
+  }
+
+  return null
+}
+
+/**
  * GET /api/woocommerce/tortas
  * Obtener tortas clásicas con sus variantes (tamaños)
  */
@@ -45,10 +78,10 @@ export async function GET(req: NextRequest) {
     }
 
     const categories = await categoriesResponse.json()
-    
+
     // Buscar la categoría que coincida exactamente
-    const tortasCategory = categories.find((cat: any) => 
-      cat.name.toLowerCase() === 'tortas clasicas' || 
+    const tortasCategory = categories.find((cat: any) =>
+      cat.name.toLowerCase() === 'tortas clasicas' ||
       cat.slug === 'tortas-clasicas'
     )
 
@@ -99,28 +132,37 @@ export async function GET(req: NextRequest) {
 
             if (variationsResponse.ok) {
               const variationsData = await variationsResponse.json()
-              
-              variations = variationsData.map((v: any) => ({
-                id: v.id,
-                sku: v.sku,
-                precio: v.price,
-                precioRegular: v.regular_price,
-                precioOferta: v.sale_price,
-                enStock: v.stock_status === 'instock',
-                stock: v.stock_quantity,
-                atributos: v.attributes.map((attr: any) => ({
-                  nombre: attr.name,
-                  valor: attr.option,
-                })),
-                // Construir nombre descriptivo (ej: "Grande", "Mediana")
-                nombreVariante: v.attributes.map((a: any) => a.option).join(' - '),
-                imagen: v.image?.src || product.images?.[0]?.src || null,
-              }))
+
+              variations = variationsData.map((v: any) => {
+                // Intentar extraer rendimiento de la descripción de la variante
+                const rendimientoVariante = extraerRendimiento(v.description || product.description || product.short_description)
+
+                return {
+                  id: v.id,
+                  sku: v.sku,
+                  precio: v.price,
+                  precioRegular: v.regular_price,
+                  precioOferta: v.sale_price,
+                  enStock: v.stock_status === 'instock',
+                  stock: v.stock_quantity,
+                  atributos: v.attributes.map((attr: any) => ({
+                    nombre: attr.name,
+                    valor: attr.option,
+                  })),
+                  // Construir nombre descriptivo (ej: "Grande", "Mediana")
+                  nombreVariante: v.attributes.map((a: any) => a.option).join(' - '),
+                  imagen: v.image?.src || product.images?.[0]?.src || null,
+                  rendimiento: rendimientoVariante,
+                }
+              })
             }
           } catch (error) {
             console.error(`Error obteniendo variaciones de producto ${product.id}:`, error)
           }
         }
+
+        // Extraer rendimiento del producto
+        const rendimientoProducto = extraerRendimiento(product.description || product.short_description)
 
         return {
           id: product.id,
@@ -137,11 +179,12 @@ export async function GET(req: NextRequest) {
           precioOferta: product.sale_price,
           stock: product.stock_quantity,
           enStock: product.stock_status === 'instock',
+          rendimiento: rendimientoProducto,
           // Para productos variables
           variantes: variations,
           // Rango de precios para productos variables
           precioMin: product.price ? parseFloat(product.price) : null,
-          precioMax: variations.length > 0 
+          precioMax: variations.length > 0
             ? Math.max(...variations.map((v: any) => parseFloat(v.precio || 0)))
             : null,
           categorias: product.categories?.map((c: any) => c.name) || [],
@@ -164,7 +207,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('[WooCommerce Tortas] Error:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Error al obtener tortas',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

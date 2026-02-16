@@ -11,6 +11,7 @@ export interface ItemCarrito {
   precio: number
   cantidad: number
   imagen: string | null
+  rendimiento?: string | null
 }
 
 const CARRITO_KEY = 'fidelizacion_carrito'
@@ -42,8 +43,8 @@ export function useCarrito() {
   const agregarItem = (item: Omit<ItemCarrito, 'cantidad'>) => {
     setItems(prevItems => {
       // Buscar si ya existe (mismo producto y misma variante)
-      const existe = prevItems.find(i => 
-        i.productoId === item.productoId && 
+      const existe = prevItems.find(i =>
+        i.productoId === item.productoId &&
         i.varianteId === item.varianteId
       )
 

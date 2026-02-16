@@ -145,6 +145,33 @@ export default function CarritoPage() {
     })
   }
 
+  // Función para extraer el número de porciones del texto de rendimiento
+  function extraerPorciones(rendimiento: string | null | undefined): number {
+    if (!rendimiento) return 0
+
+    // Buscar rangos como "10 a 12" y tomar el valor promedio
+    const rangoMatch = rendimiento.match(/(\d+)\s*a\s*(\d+)/)
+    if (rangoMatch) {
+      const min = parseInt(rangoMatch[1])
+      const max = parseInt(rangoMatch[2])
+      return Math.round((min + max) / 2)
+    }
+
+    // Buscar un solo número
+    const numeroMatch = rendimiento.match(/(\d+)/)
+    if (numeroMatch) {
+      return parseInt(numeroMatch[1])
+    }
+
+    return 0
+  }
+
+  // Calcular rendimiento total del carrito
+  const rendimientoTotal = items.reduce((total, item) => {
+    const porcionesItem = extraerPorciones(item.rendimiento)
+    return total + (porcionesItem * item.cantidad)
+  }, 0)
+
   if (!cargado) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -262,6 +289,12 @@ export default function CarritoPage() {
                     {item.nombreVariante && (
                       <p className="text-sm text-gray-600 mt-1">{item.nombreVariante}</p>
                     )}
+                    {/* Mostrar rendimiento */}
+                    {item.rendimiento && (
+                      <p className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
+                        <span>👥</span> {item.rendimiento}
+                      </p>
+                    )}
                     <p className="text-lg font-semibold text-green-600 mt-2">
                       ${formatearPrecio(item.precio)}
                     </p>
@@ -308,6 +341,16 @@ export default function CarritoPage() {
                   <span>Productos ({cantidadTotal})</span>
                   <span className="font-semibold">${formatearPrecio(precioTotal)}</span>
                 </div>
+                {/* Mostrar rendimiento total si hay items con rendimiento */}
+                {rendimientoTotal > 0 && (
+                  <div className="flex justify-between text-purple-700 bg-purple-50 p-2 rounded">
+                    <span className="flex items-center gap-1">
+                      <span>👥</span>
+                      <span className="font-medium">Rendimiento total</span>
+                    </span>
+                    <span className="font-bold">{rendimientoTotal} porciones</span>
+                  </div>
+                )}
               </div>
 
               <div className="mb-6 pb-6 border-b border-gray-300">

@@ -15,6 +15,7 @@ interface Variante {
   nombreVariante: string
   atributos: Array<{ nombre: string; valor: string }>
   imagen: string | null
+  rendimiento?: string | null
 }
 
 interface Producto {
@@ -32,12 +33,13 @@ interface Producto {
   variantes: Variante[]
   precioMin: number | null
   precioMax: number | null
+  rendimiento?: string | null
 }
 
 export default function TortasPage() {
   const router = useRouter()
   const { agregarItem, cantidadTotal } = useCarrito()
-  
+
   const [loading, setLoading] = useState(true)
   const [productos, setProductos] = useState<Producto[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -116,11 +118,12 @@ export default function TortasPage() {
       nombreVariante: varianteSeleccionada?.nombreVariante,
       precio: varianteSeleccionada ? parseFloat(varianteSeleccionada.precio) : parseFloat(productoSeleccionado.precio),
       imagen: varianteSeleccionada?.imagen || productoSeleccionado.imagen,
+      rendimiento: varianteSeleccionada?.rendimiento || productoSeleccionado.rendimiento,
     }
 
     agregarItem(item)
     setAgregado(true)
-    
+
     // Ocultar mensaje después de 2 segundos
     setTimeout(() => setAgregado(false), 2000)
   }
@@ -216,6 +219,13 @@ export default function TortasPage() {
                     </p>
                   )}
 
+                  {/* Mostrar rendimiento si está disponible */}
+                  {producto.rendimiento && (
+                    <p className="text-xs text-purple-600 font-medium mb-3 flex items-center gap-1">
+                      <span>👥</span> {producto.rendimiento}
+                    </p>
+                  )}
+
                   {/* Precio */}
                   <div className="mb-3">
                     {producto.tipo === 'simple' ? (
@@ -305,11 +315,10 @@ export default function TortasPage() {
                         <button
                           key={variante.id}
                           onClick={() => setVarianteSeleccionada(variante)}
-                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                            varianteSeleccionada?.id === variante.id
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${varianteSeleccionada?.id === variante.id
                               ? 'border-purple-600 bg-purple-50'
                               : 'border-gray-200 hover:border-purple-300'
-                          }`}
+                            }`}
                           disabled={!variante.enStock}
                         >
                           <div className="flex justify-between items-start">
@@ -317,6 +326,12 @@ export default function TortasPage() {
                               <p className="font-semibold text-gray-800">
                                 {variante.nombreVariante}
                               </p>
+                              {/* Mostrar rendimiento de la variante */}
+                              {variante.rendimiento && (
+                                <p className="text-xs text-purple-600 mt-1 flex items-center gap-1">
+                                  <span>👥</span> {variante.rendimiento}
+                                </p>
+                              )}
                             </div>
                             <div className="text-right ml-4">
                               <p className="text-xl font-bold text-green-600">
@@ -339,6 +354,11 @@ export default function TortasPage() {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-sm text-gray-600">Precio</p>
+                        {productoSeleccionado.rendimiento && (
+                          <p className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
+                            <span>👥</span> {productoSeleccionado.rendimiento}
+                          </p>
+                        )}
                         {productoSeleccionado.enStock ? (
                           <p className="text-sm text-green-600 font-medium mt-1">
                             ✓ En stock
@@ -381,19 +401,18 @@ export default function TortasPage() {
                       (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
                       (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
                     }
-                    className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
-                      (productoSeleccionado.tipo === 'variable' && !varianteSeleccionada) ||
-                      (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
-                      (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
+                    className={`flex-1 py-3 rounded-xl font-bold transition-colors ${(productoSeleccionado.tipo === 'variable' && !varianteSeleccionada) ||
+                        (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
+                        (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-gray-800 text-white hover:bg-gray-700'
-                    }`}
+                      }`}
                   >
                     {productoSeleccionado.tipo === 'variable' && !varianteSeleccionada
                       ? 'Seleccioná un tamaño'
                       : '🛒 Agregar al Carrito'}
                   </button>
-                  
+
                   <button
                     onClick={cerrarDetalles}
                     className="px-6 py-3 rounded-xl font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
