@@ -51,6 +51,26 @@ export default function TortasPage() {
     cargarTortas()
   }, [])
 
+  // Manejar el botón atrás del navegador cuando el modal está abierto
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (productoSeleccionado) {
+        e.preventDefault()
+        cerrarDetalles()
+      }
+    }
+
+    if (productoSeleccionado) {
+      // Agregar entrada al historial para poder detectar el botón atrás
+      window.history.pushState({ modalAbierto: true }, '')
+      window.addEventListener('popstate', handlePopState)
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [productoSeleccionado])
+
   async function cargarTortas() {
     setLoading(true)
     setError(null)
@@ -100,6 +120,11 @@ export default function TortasPage() {
     setProductoSeleccionado(null)
     setVarianteSeleccionada(null)
     setAgregado(false)
+
+    // Si hay una entrada de historial del modal, ir atrás
+    if (window.history.state?.modalAbierto) {
+      window.history.back()
+    }
   }
 
   function agregarAlCarrito() {
@@ -316,8 +341,8 @@ export default function TortasPage() {
                           key={variante.id}
                           onClick={() => setVarianteSeleccionada(variante)}
                           className={`w-full p-4 rounded-xl border-2 transition-all text-left ${varianteSeleccionada?.id === variante.id
-                              ? 'border-purple-600 bg-purple-50'
-                              : 'border-gray-200 hover:border-purple-300'
+                            ? 'border-purple-600 bg-purple-50'
+                            : 'border-gray-200 hover:border-purple-300'
                             }`}
                           disabled={!variante.enStock}
                         >
@@ -402,10 +427,10 @@ export default function TortasPage() {
                       (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
                     }
                     className={`flex-1 py-3 rounded-xl font-bold transition-colors ${(productoSeleccionado.tipo === 'variable' && !varianteSeleccionada) ||
-                        (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
-                        (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-800 text-white hover:bg-gray-700'
+                      (productoSeleccionado.tipo === 'variable' && varianteSeleccionada && !varianteSeleccionada.enStock) ||
+                      (productoSeleccionado.tipo === 'simple' && !productoSeleccionado.enStock)
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 text-white hover:bg-gray-700'
                       }`}
                   >
                     {productoSeleccionado.tipo === 'variable' && !varianteSeleccionada
