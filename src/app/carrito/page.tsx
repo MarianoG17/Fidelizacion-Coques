@@ -5,13 +5,29 @@ import { useRouter } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
 
+interface ProductoUpselling {
+  id: number
+  nombre: string
+  descripcion: string
+  imagen: string | null
+  precio: string
+  precioRegular: string
+  precioOferta: string | null
+  enStock: boolean
+  tipo: string
+}
+
 export default function CarritoPage() {
   const router = useRouter()
-  const { items, actualizarCantidad, eliminarItem, vaciarCarrito, cantidadTotal, precioTotal, cargado } = useCarrito()
+  const { items, actualizarCantidad, eliminarItem, vaciarCarrito, cantidadTotal, precioTotal, cargado, agregarItem } = useCarrito()
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false)
   const [numeroOrden, setNumeroOrden] = useState('')
+
+  // Estado para productos de upselling
+  const [productosUpselling, setProductosUpselling] = useState<ProductoUpselling[]>([])
+  const [cargandoUpselling, setCargandoUpselling] = useState(false)
 
   // Fecha y hora de entrega
   const [fechaEntrega, setFechaEntrega] = useState('')
@@ -67,6 +83,45 @@ export default function CarritoPage() {
       '17:00',
       '18:00',
     ]
+  }
+
+  // Cargar productos de upselling
+  useEffect(() => {
+    if (items.length > 0) {
+      cargarProductosUpselling()
+    }
+  }, [items.length])
+
+  async function cargarProductosUpselling() {
+    setCargandoUpselling(true)
+    try {
+      const response = await fetch('/api/woocommerce/upselling')
+      const data = await response.json()
+
+      if (data.success && data.products) {
+        // Filtrar productos que no estén ya en el carrito
+        const productosNoEnCarrito = data.products.filter((prod: ProductoUpselling) =>
+          !items.some(item => item.productoId === prod.id)
+        )
+        setProductosUpselling(productosNoEnCarrito.slice(0, 3)) // Máximo 3 productos
+      }
+    } catch (error) {
+      console.error('Error cargando upselling:', error)
+    } finally {
+      setCargandoUpselling(false)
+    }
+  }
+
+  function agregarUpselling(producto: ProductoUpselling) {
+    agregarItem({
+      productoId: producto.id,
+      nombre: producto.nombre,
+      precio: parseFloat(producto.precio),
+      imagen: producto.imagen,
+    })
+
+    // Remover de la lista de upselling
+    setProductosUpselling(prev => prev.filter(p => p.id !== producto.id))
   }
 
   async function procederCheckout() {
@@ -149,12 +204,12 @@ export default function CarritoPage() {
   function extraerPorciones(rendimiento: string | null | undefined): number {
     if (!rendimiento) return 0
 
-    // Buscar rangos como "10 a 12" y tomar el valor promedio
+    // Buscar rangos como "10 a 12" y tomar el valor máximo
     const rangoMatch = rendimiento.match(/(\d+)\s*a\s*(\d+)/)
     if (rangoMatch) {
       const min = parseInt(rangoMatch[1])
       const max = parseInt(rangoMatch[2])
-      return Math.round((min + max) / 2)
+      return max // Tomar el valor máximo
     }
 
     // Buscar un solo número
@@ -435,6 +490,58 @@ export default function CarritoPage() {
                   ℹ️ Los datos de contacto se tomarán de tu perfil. Te contactaremos para coordinar el pago y la entrega.
                 </p>
               </div>
+
+              {/* Sección de Upselling */}
+              {productosUpselling.length > 0 && (
+                <div className="mb-6 pb-6 border-b border-gray-300">
+                  <h4 className="font-bold text-sm text-gray-700 mb-3">
+                    ¿Querés agregar algo más? 🍪
+                  </h4>
+                  <div className="space-y-3">
+                    {productosUpselling.map((producto) => (
+                      <div
+                        key={producto.id}
+                        className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex gap-3 items-start">
+                          {producto.imagen ? (
+                            <img
+                              src={producto.imagen}
+                              alt={producto.nombre}
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <span className="text-2xl">🍪</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-semibold text-sm text-gray-800 line-clamp-1">
+                              {producto.nombre}
+                            </h5>
+                            {producto.descripcion && (
+                              <p className="text-xs text-gray-600 line-clamp-2 mt-1">
+                                {producto.descripcion}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-sm font-bold text-green-600">
+                                ${formatearPrecio(parseFloat(producto.precio))}
+                              </span>
+                              <button
+                                onClick={() => agregarUpselling(producto)}
+                                className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg transition-colors"
+                              >
+                                + Agregar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={procederCheckout}
