@@ -1,16 +1,13 @@
 'use client'
-import { useState } from 'react'
-import { use, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function ResetPasswordPage({
-  params,
-}: {
-  params: Promise<{ token: string }>
-}) {
-  const { token } = use(params)
+export default function ResetPasswordPage() {
+  const params = useParams()
+  const token = params?.token as string
   const router = useRouter()
-  
+
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
