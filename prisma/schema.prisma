@@ -336,6 +336,7 @@ enum TipoLogro {
   USO_CRUZADO
   MADRUGADOR
   CLIENTE_VIP
+  PERFIL_COMPLETO
 }
 
 model Logro {

@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verificarToken } from '@/lib/auth'
+import { evaluarNivel } from '@/lib/beneficios'
+import { evaluarLogros } from '@/lib/logros'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +70,10 @@ export async function POST(req: NextRequest) {
                     notas: 'Visita bonus por completar cuestionario',
                 },
             })
+            
+            // Evaluar nivel y logros después de la visita bonus
+            evaluarNivel(clienteId).catch(console.error)
+            evaluarLogros(clienteId).catch(console.error)
         }
 
         console.log(`[Cuestionario] Cliente ${clienteId} completó cuestionario y recibió visita extra`)

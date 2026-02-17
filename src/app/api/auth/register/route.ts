@@ -117,6 +117,11 @@ export async function POST(req: NextRequest) {
             notas: `Visita bonus por referir a ${validatedData.nombre}`,
           },
         })
+        
+        // Evaluar nivel y logros del referidor después de la visita bonus
+        evaluarNivel(referidoPorId).catch(console.error)
+        evaluarLogros(referidoPorId).catch(console.error)
+        
         console.log(`[Registro] Referidor recibió visita bonus`)
       }
     }

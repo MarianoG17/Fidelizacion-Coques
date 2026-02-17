@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { getHaceNDias } from './timezone'
 
 /**
  * Evalúa y otorga logros automáticamente después de un evento
@@ -47,6 +48,10 @@ export async function evaluarLogros(clienteId: string) {
           cumple = await verificarUsoCruzado(clienteId)
           break
 
+        case 'PERFIL_COMPLETO':
+          cumple = await verificarPerfilCompleto(clienteId)
+          break
+
         // Agregar más tipos según necesites
       }
 
@@ -83,13 +88,17 @@ async function verificarVisitasConsecutivas(
   clienteId: string,
   criterios: { visitas?: number; visitasConsecutivas?: number; diasVentana?: number }
 ): Promise<boolean> {
-  // Si es total de visitas (Cliente Frecuente: 5 visitas)
+  // Si es total de visitas (Cliente Frecuente: 5 visitas en últimos 30 días)
   if (criterios.visitas) {
+    const diasVentana = criterios.diasVentana || 30
+    const hace30dias = getHaceNDias(diasVentana)
+    
     const visitasTotal = await prisma.eventoScan.count({
       where: {
         clienteId,
         contabilizada: true,
         tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
+        timestamp: { gte: hace30dias },
       },
     })
 
@@ -140,4 +149,13 @@ async function verificarUsoCruzado(clienteId: string): Promise<boolean> {
   })
 
   return localesUsados.length >= 2
+}
+
+async function verificarPerfilCompleto(clienteId: string): Promise<boolean> {
+  const cliente = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    select: { fechaCumpleanos: true, fuenteConocimiento: true },
+  })
+
+  return !!(cliente?.fechaCumpleanos && cliente?.fuenteConocimiento)
 }

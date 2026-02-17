@@ -134,24 +134,36 @@ export async function evaluarNivel(clienteId: string) {
     visitasMinimas?: number
     diasVentana?: number
     usosCruzados?: number
+    referidosMinimos?: number
+    perfilCompleto?: boolean
   }
 
   const visitasRequeridas = criterios.visitasMinimas || 0
   const usosCruzadosRequeridos = criterios.usosCruzados || 0
+  const referidosRequeridos = criterios.referidosMinimos || 0
+  const requierePerfilCompleto = criterios.perfilCompleto || false
+
+  // Verificar si tiene perfil completo
+  const perfilCompleto = !!(cliente.fechaCumpleanos && cliente.fuenteConocimiento)
+  
+  // Verificar referidos
+  const referidosActuales = cliente.referidosActivados || 0
 
   if (
     visitasRecientes >= visitasRequeridas &&
-    usosCruzados >= usosCruzadosRequeridos
+    usosCruzados >= usosCruzadosRequeridos &&
+    referidosActuales >= referidosRequeridos &&
+    (!requierePerfilCompleto || perfilCompleto)
   ) {
     // Subir al siguiente nivel
     await prisma.cliente.update({
       where: { id: clienteId },
       data: { nivelId: siguienteNivel.id },
     })
-    console.log(`[evaluarNivel] Cliente ${clienteId} subió a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados)`)
+    console.log(`[evaluarNivel] Cliente ${clienteId} subió a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados, ${referidosActuales} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'})`)
     return siguienteNivel // retorna el nuevo nivel para notificación
   } else {
-    console.log(`[evaluarNivel] Cliente ${clienteId} mantiene nivel actual (${visitasRecientes}/${visitasRequeridas} visitas, ${usosCruzados}/${usosCruzadosRequeridos} usos cruzados)`)
+    console.log(`[evaluarNivel] Cliente ${clienteId} mantiene nivel actual (${visitasRecientes}/${visitasRequeridas} visitas, ${usosCruzados}/${usosCruzadosRequeridos} usos cruzados, ${referidosActuales}/${referidosRequeridos} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'} ${requierePerfilCompleto ? '(requerido)' : ''})`)
   }
 
   return null
