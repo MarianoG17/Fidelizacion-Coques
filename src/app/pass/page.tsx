@@ -19,6 +19,7 @@ interface BeneficioDisponible {
   maxPorDia: number
   usosHoy: number
   disponible: boolean
+  yaUsado?: boolean
 }
 
 interface NivelData {
@@ -447,7 +448,10 @@ export default function PassPage() {
                           </span>
                         </div>
                         <p className="text-xs text-gray-500">
-                          Renueva mañana · {beneficio.usosHoy}/{beneficio.maxPorDia} usado{beneficio.maxPorDia > 1 ? 's' : ''}
+                          {beneficio.yaUsado
+                            ? `Beneficio de uso único ya utilizado`
+                            : `Renueva mañana · ${beneficio.usosHoy}/${beneficio.maxPorDia} usado${beneficio.maxPorDia > 1 ? 's' : ''}`
+                          }
                         </p>
                       </div>
                     </div>
