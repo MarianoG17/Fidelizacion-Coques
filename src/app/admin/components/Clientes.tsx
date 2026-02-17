@@ -8,6 +8,7 @@ interface Cliente {
   email: string | null
   estado: string
   nivel: { nombre: string; orden: number } | null
+  referidosActivados: number
   createdAt: string
   _count: { eventos: number }
 }
@@ -197,6 +198,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   Visitas
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  Referidos
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Desde
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -247,6 +251,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   </td>
                   <td className="p-4">
                     <p className="text-white">{cliente._count.eventos}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-white">{cliente.referidosActivados || 0}</p>
                   </td>
                   <td className="p-4">
                     <p className="text-slate-400 text-sm">
