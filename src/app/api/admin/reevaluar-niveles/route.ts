@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         nombre: true,
-        apellido: true,
+        phone: true,
         nivel: {
           select: {
             nombre: true,
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       try {
         const nivelAnterior = cliente.nivel?.nombre || 'Sin nivel'
         const ordenAnterior = cliente.nivel?.orden || 0
+        const nombreDisplay = cliente.nombre || cliente.phone
 
         // Evaluar nivel (puede retornar el nuevo nivel si cambió)
         const nuevoNivel = await evaluarNivel(cliente.id)
@@ -60,26 +61,27 @@ export async function POST(req: NextRequest) {
           cambios++
           resultados.push({
             clienteId: cliente.id,
-            nombre: `${cliente.nombre} ${cliente.apellido}`,
+            nombre: nombreDisplay,
             nivelAnterior,
             nivelNuevo: nuevoNivel.nombre,
             cambio: true,
           })
-          console.log(`[Admin] ✅ ${cliente.nombre} ${cliente.apellido}: ${nivelAnterior} → ${nuevoNivel.nombre}`)
+          console.log(`[Admin] ✅ ${nombreDisplay}: ${nivelAnterior} → ${nuevoNivel.nombre}`)
         } else {
           resultados.push({
             clienteId: cliente.id,
-            nombre: `${cliente.nombre} ${cliente.apellido}`,
+            nombre: nombreDisplay,
             nivelActual: nivelAnterior,
             cambio: false,
           })
         }
       } catch (error) {
         errores++
-        console.error(`[Admin] ❌ Error evaluando cliente ${cliente.nombre} ${cliente.apellido}:`, error)
+        const nombreDisplay = cliente.nombre || cliente.phone
+        console.error(`[Admin] ❌ Error evaluando cliente ${nombreDisplay}:`, error)
         resultados.push({
           clienteId: cliente.id,
-          nombre: `${cliente.nombre} ${cliente.apellido}`,
+          nombre: nombreDisplay,
           error: error instanceof Error ? error.message : 'Error desconocido',
         })
       }
