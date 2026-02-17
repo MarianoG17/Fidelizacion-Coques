@@ -50,9 +50,9 @@ const MINI_PRODUCTOS_POR_PRODUCTO: { [key: number]: string } = {
   343: '134',  // Rogel -> Mini Rogel
   764: '107',  // Doble Oreo -> Mini Oreo
   404: '108',  // Brownie -> Mini Brownie
-  382: '119',  // Cheesecake -> Mini Cheesecake
-  396: '395',  // Key Lime Pie -> Mini Key Lime Pie
-  410: '109',  // Pavlova -> Mini Pavlova
+  359: '119',  // Cheesecake (ID: 359) -> Mini Cheesecake
+  327: '395',  // Key Lime Pie (ID: 327) -> Mini Key Lime Pie
+  267: '109',  // Pavlova (ID: 267) -> Mini Pavlova
 }
 
 /**
@@ -164,10 +164,8 @@ export async function GET(req: NextRequest) {
 
     // Agregar SKUs de productos mini
     const skusMinis = Object.values(MINI_PRODUCTOS_POR_PRODUCTO)
-    console.log('[DEBUG MINIS] SKUs de productos mini a buscar:', skusMinis)
 
     const adicionalesSkus = [...new Set([...skusSimples, ...skusAgrupados, ...skusMinis])]
-    console.log('[DEBUG] Total de SKUs adicionales a buscar:', adicionalesSkus.length)
 
     // Mapeo de SKU -> {id, precio, nombre} para productos adicionales
     const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
@@ -176,12 +174,6 @@ export async function GET(req: NextRequest) {
       try {
         // Buscar productos por SKU
         for (const sku of adicionalesSkus) {
-          // Debug específico para SKUs problemáticos
-          const isProblematicSku = ['109', '119', '395'].includes(sku)
-          if (isProblematicSku) {
-            console.log(`[DEBUG SKU ${sku}] Buscando producto en WooCommerce...`)
-          }
-          
           const skuResponse = await fetch(
             `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
             { headers }
@@ -189,10 +181,6 @@ export async function GET(req: NextRequest) {
 
           if (skuResponse.ok) {
             const skuData = await skuResponse.json()
-            if (isProblematicSku) {
-              console.log(`[DEBUG SKU ${sku}] Respuesta WooCommerce:`, JSON.stringify(skuData))
-            }
-            
             if (skuData.length > 0) {
               const prod = skuData[0]
               adicionalesInfo[sku] = {
@@ -200,17 +188,6 @@ export async function GET(req: NextRequest) {
                 precio: parseFloat(prod.price || '0'),
                 nombre: prod.name
               }
-              if (isProblematicSku) {
-                console.log(`[DEBUG SKU ${sku}] ✓ Producto encontrado:`, prod.name, `ID: ${prod.id}`)
-              }
-            } else {
-              if (isProblematicSku) {
-                console.log(`[DEBUG SKU ${sku}] ✗ No se encontró producto con este SKU`)
-              }
-            }
-          } else {
-            if (isProblematicSku) {
-              console.log(`[DEBUG SKU ${sku}] ✗ Error en la respuesta:`, skuResponse.status)
             }
           }
         }
@@ -335,17 +312,6 @@ export async function GET(req: NextRequest) {
 
         // Agregar variante sintética para mini producto si existe
         const skuMini = MINI_PRODUCTOS_POR_PRODUCTO[product.id]
-        
-        // Debug: Log para productos con mini configurado
-        if (['Key Lime', 'Pavlova', 'Cheesecake'].some(name => product.name.includes(name))) {
-          console.log(`[DEBUG MINI] Producto: ${product.name} (ID: ${product.id})`)
-          console.log(`[DEBUG MINI] SKU Mini configurado: ${skuMini}`)
-          console.log(`[DEBUG MINI] Info mini disponible:`, skuMini ? !!adicionalesInfo[skuMini] : false)
-          if (skuMini && adicionalesInfo[skuMini]) {
-            console.log(`[DEBUG MINI] Agregando variante mini`)
-          }
-        }
-        
         if (skuMini) {
           const infoMini = adicionalesInfo[skuMini]
           if (infoMini) {
