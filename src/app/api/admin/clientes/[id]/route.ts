@@ -16,6 +16,8 @@ export async function DELETE(
 
   try {
     const { id } = params
+    const url = new URL(req.url)
+    const permanent = url.searchParams.get('permanent') === 'true'
 
     // Verificar si el cliente existe
     const cliente = await prisma.cliente.findUnique({
@@ -30,21 +32,83 @@ export async function DELETE(
       )
     }
 
-    // Soft delete: cambiar estado a INACTIVO en lugar de borrar
-    await prisma.cliente.update({
-      where: { id },
-      data: { estado: 'INACTIVO' },
-    })
+    if (permanent) {
+      // ELIMINACIÓN PERMANENTE: Borrar todas las relaciones y el cliente
+      console.log(`[Admin] ELIMINACIÓN PERMANENTE iniciada para cliente ${cliente.nombre} (${cliente.phone})`)
+      
+      // Borrar en orden de dependencias
+      await prisma.$transaction(async (tx) => {
+        // 1. Borrar relaciones de referidos (actualizar referidoPorId a null)
+        await tx.cliente.updateMany({
+          where: { referidoPorId: id },
+          data: { referidoPorId: null },
+        })
 
-    console.log(
-      `[Admin] Cliente ${cliente.nombre} (${cliente.phone}) marcado como INACTIVO`
-    )
+        // 2. Borrar eventos
+        await tx.eventoScan.deleteMany({
+          where: { clienteId: id },
+        })
 
-    return NextResponse.json({
-      success: true,
-      message: `Cliente ${cliente.nombre} eliminado correctamente`,
-      data: { id, estado: 'INACTIVO' },
-    })
+        // 3. Borrar logros
+        await tx.logroCliente.deleteMany({
+          where: { clienteId: id },
+        })
+
+        // 4. Borrar feedbacks
+        await tx.feedback.deleteMany({
+          where: { clienteId: id },
+        })
+
+        // 5. Borrar inscripciones a eventos
+        await tx.inscripcion.deleteMany({
+          where: { clienteId: id },
+        })
+
+        // 6. Borrar noticias
+        await tx.noticia.deleteMany({
+          where: { clienteId: id },
+        })
+
+        // 7. Borrar sesiones de mesa
+        await tx.sesionMesa.deleteMany({
+          where: { clienteId: id },
+        })
+
+        // 8. Borrar autos
+        await tx.auto.deleteMany({
+          where: { clienteId: id },
+        })
+
+        // 9. Finalmente, borrar el cliente
+        await tx.cliente.delete({
+          where: { id },
+        })
+      })
+
+      console.log(`[Admin] Cliente ${cliente.nombre} ELIMINADO PERMANENTEMENTE`)
+
+      return NextResponse.json({
+        success: true,
+        message: `Cliente ${cliente.nombre} eliminado permanentemente de la base de datos`,
+        data: { id, deleted: true },
+      })
+    } else {
+      // Soft delete: cambiar estado a INACTIVO en lugar de borrar
+      await prisma.cliente.update({
+        where: { id },
+        data: { estado: 'INACTIVO' },
+      })
+
+      console.log(
+        `[Admin] Cliente ${cliente.nombre} (${cliente.phone}) marcado como INACTIVO`
+      )
+
+      return NextResponse.json({
+        success: true,
+        message: `Cliente ${cliente.nombre} desactivado correctamente`,
+        data: { id, estado: 'INACTIVO' },
+      })
+    }
   } catch (error) {
     console.error('[DELETE /api/admin/clientes/[id]] Error:', error)
     return NextResponse.json(

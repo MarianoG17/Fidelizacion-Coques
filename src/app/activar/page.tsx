@@ -279,8 +279,7 @@ function ActivarContent() {
               disabled={paso === 'confirmando'}
             />
             <span className="text-sm text-gray-600">
-              Acepto recibir comunicaciones sobre mis beneficios y el estado de mi auto. Mis datos
-              no se compartirán con terceros.
+              Acepto recibir comunicaciones sobre mis beneficios. Mis datos no se compartirán con terceros.
             </span>
           </label>
 

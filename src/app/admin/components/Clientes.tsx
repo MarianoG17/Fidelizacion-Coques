@@ -40,7 +40,7 @@ export function Clientes({ adminKey }: { adminKey: string }) {
   }
 
   async function eliminarCliente(clienteId: string, nombre: string) {
-    if (!confirm(`¿Estás seguro de eliminar a ${nombre}? Esta acción cambiará su estado a INACTIVO.`)) {
+    if (!confirm(`¿Estás seguro de desactivar a ${nombre}? Su estado cambiará a INACTIVO (se puede reactivar después).`)) {
       return
     }
 
@@ -53,16 +53,54 @@ export function Clientes({ adminKey }: { adminKey: string }) {
 
       if (res.ok) {
         const json = await res.json()
-        alert(json.message || 'Cliente eliminado correctamente')
+        alert(json.message || 'Cliente desactivado correctamente')
         // Refrescar lista
         await fetchClientes()
       } else {
         const json = await res.json()
-        alert(json.error || 'Error al eliminar cliente')
+        alert(json.error || 'Error al desactivar cliente')
       }
     } catch (error) {
-      console.error('Error al eliminar cliente:', error)
-      alert('Error de conexión al eliminar cliente')
+      console.error('Error al desactivar cliente:', error)
+      alert('Error de conexión al desactivar cliente')
+    } finally {
+      setEliminando(null)
+    }
+  }
+
+  async function eliminarClientePermanente(clienteId: string, nombre: string) {
+    // Primera confirmación
+    if (!confirm(`⚠️ ELIMINACIÓN PERMANENTE de ${nombre}\n\nEsta acción NO se puede deshacer y borrará:\n- Todos los eventos y visitas\n- Todos los logros\n- Todos los autos\n- Todas las relaciones\n\n¿Estás ABSOLUTAMENTE seguro?`)) {
+      return
+    }
+
+    // Segunda confirmación - requiere escribir el nombre
+    const confirmacion = prompt(`Para confirmar la eliminación permanente de ${nombre}, escribe "ELIMINAR" en mayúsculas:`);
+    
+    if (confirmacion !== 'ELIMINAR') {
+      alert('Eliminación cancelada. No se escribió "ELIMINAR" correctamente.')
+      return
+    }
+
+    setEliminando(clienteId)
+    try {
+      const res = await fetch(`/api/admin/clientes/${clienteId}?permanent=true`, {
+        method: 'DELETE',
+        headers: { 'x-admin-key': adminKey },
+      })
+
+      if (res.ok) {
+        const json = await res.json()
+        alert(json.message || 'Cliente eliminado permanentemente')
+        // Refrescar lista
+        await fetchClientes()
+      } else {
+        const json = await res.json()
+        alert(json.error || 'Error al eliminar permanentemente')
+      }
+    } catch (error) {
+      console.error('Error al eliminar permanentemente:', error)
+      alert('Error de conexión al eliminar permanentemente')
     } finally {
       setEliminando(null)
     }
@@ -216,24 +254,24 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                     </p>
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => eliminarCliente(cliente.id, cliente.nombre || 'Sin nombre')}
-                      disabled={eliminando === cliente.id}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Eliminar cliente (cambia estado a INACTIVO)"
-                    >
-                      {eliminando === cliente.id ? (
-                        <span className="flex items-center gap-2">
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                          Eliminando
-                        </span>
-                      ) : (
-                        '🗑️ Eliminar'
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => eliminarCliente(cliente.id, cliente.nombre || 'Sin nombre')}
+                        disabled={eliminando === cliente.id}
+                        className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Desactivar cliente (cambia estado a INACTIVO, reversible)"
+                      >
+                        {eliminando === cliente.id ? '⏳' : '⏸️'}
+                      </button>
+                      <button
+                        onClick={() => eliminarClientePermanente(cliente.id, cliente.nombre || 'Sin nombre')}
+                        disabled={eliminando === cliente.id}
+                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="⚠️ ELIMINAR PERMANENTEMENTE (borra todo, NO reversible)"
+                      >
+                        {eliminando === cliente.id ? '⏳' : '🗑️'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
