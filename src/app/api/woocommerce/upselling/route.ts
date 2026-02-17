@@ -42,6 +42,9 @@ export async function GET(req: NextRequest) {
         ]
 
         const upsellingProducts: any[] = []
+        const skuStatus: any[] = []
+
+        console.log('🔍 [Upselling] Iniciando búsqueda de productos...')
 
         // Buscar cada producto por SKU
         for (const sku of upsellingSkus) {
@@ -49,6 +52,7 @@ export async function GET(req: NextRequest) {
                 const controller = new AbortController()
                 const timeout = setTimeout(() => controller.abort(), 5000)
 
+                console.log(`[Upselling] Buscando SKU ${sku}...`)
                 const response = await fetch(
                     `${wooUrl}/wp-json/wc/v3/products?sku=${sku}&per_page=1`,
                     { headers, signal: controller.signal }
@@ -71,17 +75,33 @@ export async function GET(req: NextRequest) {
                             tipo: product.type,
                             sku: product.sku,
                         })
+                        skuStatus.push({ sku, status: '✅ FOUND', nombre: product.name, stock: product.stock_status })
+                        console.log(`✅ [Upselling] SKU ${sku} encontrado: ${product.name} (${product.stock_status})`)
+                    } else {
+                        skuStatus.push({ sku, status: '❌ EMPTY_RESPONSE' })
+                        console.log(`❌ [Upselling] SKU ${sku} NO encontrado (respuesta vacía)`)
                     }
+                } else {
+                    skuStatus.push({ sku, status: '❌ HTTP_ERROR', code: response.status })
+                    console.log(`❌ [Upselling] SKU ${sku} Error HTTP: ${response.status} ${response.statusText}`)
                 }
-            } catch (error) {
-                console.error(`[Upselling] Error buscando SKU ${sku}:`, error)
-                // Continuar con el siguiente SKU
+            } catch (error: any) {
+                skuStatus.push({ sku, status: '❌ EXCEPTION', error: error.message })
+                console.error(`❌ [Upselling] SKU ${sku} Excepción:`, error.message)
             }
         }
+
+        console.log(`📊 [Upselling] Resumen: ${upsellingProducts.length}/${upsellingSkus.length} productos encontrados`)
+        console.log(`📋 [Upselling] Detalle:`, JSON.stringify(skuStatus, null, 2))
 
         return NextResponse.json({
             success: true,
             products: upsellingProducts,
+            debug: {
+                totalBuscados: upsellingSkus.length,
+                totalEncontrados: upsellingProducts.length,
+                skuStatus,
+            }
         })
     } catch (error) {
         console.error('[WooCommerce Upselling] Error:', error)
