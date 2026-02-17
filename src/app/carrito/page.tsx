@@ -444,27 +444,28 @@ export default function CarritoPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Fecha de entrega *
                 </label>
-                <select
+                <input
+                  type="date"
                   value={fechaEntrega}
-                  onChange={(e) => setFechaEntrega(e.target.value)}
+                  onChange={(e) => {
+                    const fecha = e.target.value
+                    // Validar que sea un día laborable (lun-sáb)
+                    const fechaObj = new Date(fecha + 'T00:00:00')
+                    const diaSemana = fechaObj.getDay()
+                    if (diaSemana === 0) {
+                      alert('Los domingos no hay entregas. Por favor selecciona otro día.')
+                      return
+                    }
+                    setFechaEntrega(fecha)
+                  }}
+                  min={fechasDisponibles[0] || ''}
+                  max={fechasDisponibles[fechasDisponibles.length - 1] || ''}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                   required
-                >
-                  <option value="">Seleccionar fecha</option>
-                  {fechasDisponibles.map((fecha) => {
-                    const fechaObj = new Date(fecha + 'T00:00:00')
-                    const nombreDia = fechaObj.toLocaleDateString('es-AR', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })
-                    return (
-                      <option key={fecha} value={fecha}>
-                        {nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1)}
-                      </option>
-                    )
-                  })}
-                </select>
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Entregas de lunes a sábado (no hay entregas los domingos)
+                </p>
               </div>
 
               {/* Hora de entrega */}
