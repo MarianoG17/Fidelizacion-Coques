@@ -44,47 +44,42 @@ export async function DELETE(
           data: { referidoPorId: null },
         })
 
-        // 2. Borrar estados de beneficios (beneficios usados/aplicados)
-        await tx.beneficioEstado.deleteMany({
-          where: { clienteId: id },
-        })
-
-        // 3. Borrar eventos
+        // 2. Borrar eventos (incluye beneficios aplicados ya que tienen beneficioId)
         await tx.eventoScan.deleteMany({
           where: { clienteId: id },
         })
 
-        // 4. Borrar logros
+        // 3. Borrar logros
         await tx.logroCliente.deleteMany({
           where: { clienteId: id },
         })
 
-        // 5. Borrar feedbacks
+        // 4. Borrar feedbacks
         await tx.feedback.deleteMany({
           where: { clienteId: id },
         })
 
-        // 6. Borrar inscripciones a eventos
+        // 5. Borrar inscripciones a eventos
         await tx.inscripcion.deleteMany({
           where: { clienteId: id },
         })
 
-        // 7. Borrar noticias
+        // 6. Borrar noticias
         await tx.noticia.deleteMany({
           where: { clienteId: id },
         })
 
-        // 8. Borrar sesiones de mesa
+        // 7. Borrar sesiones de mesa
         await tx.sesionMesa.deleteMany({
           where: { clienteId: id },
         })
 
-        // 9. Borrar autos
+        // 8. Borrar autos
         await tx.auto.deleteMany({
           where: { clienteId: id },
         })
 
-        // 10. Finalmente, borrar el cliente
+        // 9. Finalmente, borrar el cliente
         await tx.cliente.delete({
           where: { id },
         })
