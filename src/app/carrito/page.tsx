@@ -360,6 +360,18 @@ export default function CarritoPage() {
                       </div>
                     )}
                     
+                    {/* Mostrar campos de texto personalizados */}
+                    {item.camposTexto && Object.keys(item.camposTexto).length > 0 && (
+                      <div className="mt-1">
+                        {Object.entries(item.camposTexto).map(([nombre, valor]) => (
+                          <div key={nombre} className="text-xs text-gray-600">
+                            <span className="font-medium">{nombre}:</span>{' '}
+                            {valor}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     {/* Mostrar rendimiento */}
                     {item.rendimiento && (
                       <p className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">

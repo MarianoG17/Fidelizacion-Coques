@@ -14,6 +14,7 @@ export interface ItemCarrito {
   rendimiento?: string | null
   addOns?: {[nombre: string]: string[]}
   precioAddOns?: number
+  camposTexto?: {[nombreCampo: string]: string}
 }
 
 const CARRITO_KEY = 'fidelizacion_carrito'

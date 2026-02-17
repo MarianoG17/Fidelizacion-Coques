@@ -71,6 +71,7 @@ export default function TortasPage() {
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
   const [agregado, setAgregado] = useState(false)
   const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: string[] }>({})
+  const [camposTextoValores, setCamposTextoValores] = useState<{ [nombreCampo: string]: string }>({})
 
   useEffect(() => {
     cargarTortas()
@@ -141,6 +142,9 @@ export default function TortasPage() {
       })
     }
     setAddOnsSeleccionados(addOnsIniciales)
+    
+    // Resetear campos de texto
+    setCamposTextoValores({})
   }
 
   // Función para formatear precio con separador de miles
@@ -229,6 +233,16 @@ export default function TortasPage() {
       return
     }
 
+    // Validar campos de texto requeridos
+    if (productoSeleccionado.camposTexto) {
+      for (const campo of productoSeleccionado.camposTexto) {
+        if (campo.requerido && !camposTextoValores[campo.nombre]?.trim()) {
+          alert(`Por favor completá el campo: ${campo.nombre}`)
+          return
+        }
+      }
+    }
+
     // Calcular precio de add-ons
     let precioAddOns = 0
     if (productoSeleccionado.addOns) {
@@ -253,6 +267,7 @@ export default function TortasPage() {
       rendimiento: varianteSeleccionada?.rendimiento || productoSeleccionado.rendimiento,
       addOns: Object.keys(addOnsSeleccionados).length > 0 ? addOnsSeleccionados : undefined,
       precioAddOns: precioAddOns > 0 ? precioAddOns : undefined,
+      camposTexto: Object.keys(camposTextoValores).length > 0 ? camposTextoValores : undefined,
     }
 
     agregarItem(item)
@@ -560,6 +575,32 @@ export default function TortasPage() {
                               </label>
                             ))}
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Campos de texto personalizados */}
+                {productoSeleccionado.camposTexto && productoSeleccionado.camposTexto.length > 0 && (
+                  <div className="mb-6">
+                    <div className="space-y-4">
+                      {productoSeleccionado.camposTexto.map((campo) => (
+                        <div key={campo.nombre}>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            {campo.nombre}
+                            {campo.requerido && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          <input
+                            type="text"
+                            value={camposTextoValores[campo.nombre] || ''}
+                            onChange={(e) => setCamposTextoValores(prev => ({
+                              ...prev,
+                              [campo.nombre]: e.target.value
+                            }))}
+                            placeholder={campo.placeholder}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
                         </div>
                       ))}
                     </div>
