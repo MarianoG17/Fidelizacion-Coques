@@ -135,7 +135,7 @@ export default function TortasPage() {
     const addOnsIniciales: { [key: string]: string[] } = {}
     if (producto.addOns && producto.addOns.length > 0) {
       producto.addOns.forEach(addOn => {
-        if (addOn.requerido && addOn.tipo === 'radio' && addOn.opciones.length > 0) {
+        if (addOn.requerido && addOn.opciones.length > 0) {
           addOnsIniciales[addOn.nombre] = [addOn.opciones[0].etiqueta]
         }
       })

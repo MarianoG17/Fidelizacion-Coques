@@ -310,6 +310,31 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        // Agregar variante sintética para mini producto si existe
+        const skuMini = MINI_PRODUCTOS_POR_PRODUCTO[product.id]
+        if (skuMini) {
+          const infoMini = adicionalesInfo[skuMini]
+          if (infoMini) {
+            // Agregar como primera variante (al inicio del array)
+            variations.unshift({
+              id: infoMini.id,
+              sku: skuMini,
+              precio: infoMini.precio.toString(),
+              precioRegular: infoMini.precio.toString(),
+              precioOferta: '',
+              enStock: true,
+              stock: null,
+              atributos: [{
+                nombre: 'Tamaño',
+                valor: 'Mini'
+              }],
+              nombreVariante: 'Mini',
+              imagen: product.images?.[0]?.src || null,
+              rendimiento: null,
+            })
+          }
+        }
+
         // Extraer rendimiento del producto
         const rendimientoProducto = extraerRendimiento(product.description || product.short_description)
 
@@ -325,38 +350,6 @@ export async function GET(req: NextRequest) {
             precioTipo: opt.price_type || 'flat_fee'
           })) : []
         })) : []
-
-        // Agregar opción de tamaño mini si existe para este producto (aparece PRIMERO)
-        const skuMini = MINI_PRODUCTOS_POR_PRODUCTO[product.id]
-        if (skuMini) {
-          const infoMini = adicionalesInfo[skuMini]
-          const precioBase = parseFloat(product.price || '0')
-          
-          if (infoMini) {
-            addOnsFormateados.unshift({ // unshift para que aparezca primero
-              nombre: 'Tamaño',
-              descripcion: '',
-              tipo: 'radio',
-              requerido: true,
-              opciones: [
-                {
-                  etiqueta: 'Normal',
-                  precio: 0, // Sin costo adicional (es el precio base)
-                  precioTipo: 'flat_fee',
-                  wooId: product.id,
-                  sku: product.sku || ''
-                },
-                {
-                  etiqueta: `Mini - ${infoMini.nombre}`,
-                  precio: infoMini.precio - precioBase, // Diferencia de precio
-                  precioTipo: 'flat_fee',
-                  wooId: infoMini.id,
-                  sku: skuMini
-                }
-              ]
-            })
-          }
-        }
 
         // Agregar adicionales manuales si este producto los tiene configurados
         const adicionalesManuales = ADICIONALES_POR_PRODUCTO[product.id]
