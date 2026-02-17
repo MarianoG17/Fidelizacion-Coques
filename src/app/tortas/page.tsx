@@ -21,6 +21,12 @@ interface AddOn {
   opciones: AddOnOpcion[]
 }
 
+interface CampoTexto {
+  nombre: string
+  placeholder: string
+  requerido: boolean
+}
+
 interface Variante {
   id: number
   precio: string
@@ -51,6 +57,7 @@ interface Producto {
   precioMax: number | null
   rendimiento?: string | null
   addOns?: AddOn[]
+  camposTexto?: CampoTexto[]
 }
 
 export default function TortasPage() {

@@ -42,11 +42,40 @@ function extraerRendimiento(descripcion: string): string | null {
  */
 /**
  * Mapeo manual de adicionales para productos
- * Formato: { productoId: [{ wooId, nombre, precio }] }
+ * Formato: { productoId: [{ sku, nombre }] }
+ * El sistema busca automáticamente el producto adicional por SKU y obtiene su precio
  */
-const ADICIONALES_POR_PRODUCTO: { [key: number]: { wooId: number; nombre: string; sku: string }[] } = {
+const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }[] } = {
   333: [ // Tarta de Frutilla Grande
-    { wooId: 777, nombre: 'Cubierta de Dulce de Leche', sku: '257' }
+    { sku: '257', nombre: 'Cubierta de Dulce de Leche' }
+  ],
+  338: [ // Chocotorta
+    { sku: '260', nombre: 'Adicional Chocotorta' }
+  ],
+  325: [ // Torta Ganache de Chocolate
+    // Rellenos obligatorios (sin costo adicional, incluidos en precio base)
+    { sku: '467', nombre: 'Relleno de Dulce de Leche' },
+    { sku: '466', nombre: 'Relleno de Chocolate' },
+    // Rellenos opcionales (con costo adicional)
+    { sku: '300', nombre: 'Relleno de Nutella' },
+    { sku: '260', nombre: 'Adicional' },
+    // Bizcochuelos
+    { sku: '461', nombre: 'Bizcochuelo Marmolado' },
+    { sku: '398', nombre: 'Bizcochuelo de Chocolate' },
+    { sku: '399', nombre: 'Bizcochuelo de Vainilla' },
+    // Cubiertas
+    { sku: '465', nombre: 'Cubierta Merengue' },
+    { sku: '464', nombre: 'Cubierta Ganache' }
+  ],
+}
+
+/**
+ * Mapeo de campos de texto personalizados para productos
+ * Formato: { productoId: [{ nombre, placeholder, requerido }] }
+ */
+const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder: string; requerido: boolean }[] } = {
+  764: [ // Torta Doble Oreo con Golosinas
+    { nombre: 'Color de decoración', placeholder: 'Ej: Rosa, Celeste, Multicolor...', requerido: false }
   ],
 }
 
@@ -70,31 +99,39 @@ export async function GET(req: NextRequest) {
       'User-Agent': 'FidelizacionApp/1.0',
     }
 
-    // Paso 0: Obtener precios de productos adicionales
-    const adicionalesIds = [...new Set(
+    // Paso 0: Obtener información de productos adicionales por SKU
+    const adicionalesSkus = [...new Set(
       Object.values(ADICIONALES_POR_PRODUCTO)
         .flat()
-        .map(a => a.wooId)
+        .map(a => a.sku)
     )]
     
-    const adicionalesPrecios: { [id: number]: number } = {}
+    // Mapeo de SKU -> {id, precio} para productos adicionales
+    const adicionalesInfo: { [sku: string]: { id: number; precio: number } } = {}
     
-    if (adicionalesIds.length > 0) {
+    if (adicionalesSkus.length > 0) {
       try {
-        const adicionalesResponse = await fetch(
-          `${wooUrl}/wp-json/wc/v3/products?include=${adicionalesIds.join(',')}&per_page=50`,
-          { headers }
-        )
-        
-        if (adicionalesResponse.ok) {
-          const adicionalesData = await adicionalesResponse.json()
-          adicionalesData.forEach((prod: any) => {
-            adicionalesPrecios[prod.id] = parseFloat(prod.price || '0')
-          })
-          console.log('[Tortas API] Precios de adicionales obtenidos:', adicionalesPrecios)
+        // Buscar productos por SKU
+        for (const sku of adicionalesSkus) {
+          const skuResponse = await fetch(
+            `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
+            { headers }
+          )
+          
+          if (skuResponse.ok) {
+            const skuData = await skuResponse.json()
+            if (skuData.length > 0) {
+              const prod = skuData[0]
+              adicionalesInfo[sku] = {
+                id: prod.id,
+                precio: parseFloat(prod.price || '0')
+              }
+            }
+          }
         }
+        console.log('[Tortas API] Info de adicionales obtenida por SKU:', adicionalesInfo)
       } catch (error) {
-        console.error('[Tortas API] Error obteniendo precios de adicionales:', error)
+        console.error('[Tortas API] Error obteniendo info de adicionales:', error)
       }
     }
 
@@ -231,22 +268,29 @@ export async function GET(req: NextRequest) {
         const adicionalesManuales = ADICIONALES_POR_PRODUCTO[product.id]
         if (adicionalesManuales) {
           adicionalesManuales.forEach(adicional => {
-            const precio = adicionalesPrecios[adicional.wooId] || 0
-            addOnsFormateados.push({
-              nombre: adicional.nombre,
-              descripcion: '',
-              tipo: 'checkbox',
-              requerido: false,
-              opciones: [{
-                etiqueta: adicional.nombre,
-                precio: precio,
-                precioTipo: 'flat_fee',
-                wooId: adicional.wooId,
-                sku: adicional.sku
-              }]
-            })
+            const info = adicionalesInfo[adicional.sku]
+            if (info) {
+              addOnsFormateados.push({
+                nombre: adicional.nombre,
+                descripcion: '',
+                tipo: 'checkbox',
+                requerido: false,
+                opciones: [{
+                  etiqueta: adicional.nombre,
+                  precio: info.precio,
+                  precioTipo: 'flat_fee',
+                  wooId: info.id,
+                  sku: adicional.sku
+                }]
+              })
+            } else {
+              console.warn(`[Tortas API] No se encontró info para SKU ${adicional.sku}`)
+            }
           })
         }
+
+        // Obtener campos de texto personalizados
+        const camposTexto = CAMPOS_TEXTO_POR_PRODUCTO[product.id] || []
 
         return {
           id: product.id,
@@ -274,6 +318,8 @@ export async function GET(req: NextRequest) {
           categorias: product.categories?.map((c: any) => c.name) || [],
           // Add-ons opcionales
           addOns: addOnsFormateados,
+          // Campos de texto personalizados
+          camposTexto: camposTexto,
         }
       })
     )
