@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { signClienteJWT } from '@/lib/auth'
 import { generarSecretoOTP } from '@/lib/otp'
+import { evaluarNivel } from '@/lib/beneficios'
+import { evaluarLogros } from '@/lib/logros'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 
