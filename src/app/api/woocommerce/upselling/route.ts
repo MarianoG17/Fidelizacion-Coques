@@ -27,80 +27,60 @@ export async function GET(req: NextRequest) {
             'User-Agent': 'FidelizacionApp/1.0',
         }
 
-        // Paso 1: Buscar la categoría "eventos" o "dulce"
-        const controller1 = new AbortController()
-        const timeout1 = setTimeout(() => controller1.abort(), 10000)
+        // SKUs específicos para upselling
+        const upsellingSkus = [
+            '88',   // Alfajor de maicena
+            '272',  // Box alfajor de nuez
+            '97',   // Alfajor sablee
+            '81',   // Mini Chocotorta
+            '134',  // Mini Rogel
+            '107',  // Mini Oreo
+            '108',  // Mini Brownie
+            '119',  // Mini Cheesecake
+            '395',  // Mini Key Lime Pie
+            '109',  // Mini Pavlova
+        ]
 
-        const categoriesResponse = await fetch(
-            `${wooUrl}/wp-json/wc/v3/products/categories?per_page=100`,
-            { headers, signal: controller1.signal }
-        )
-        clearTimeout(timeout1)
+        const upsellingProducts: any[] = []
 
-        if (!categoriesResponse.ok) {
-            return NextResponse.json(
-                { error: 'No se pudo obtener las categorías' },
-                { status: categoriesResponse.status }
-            )
+        // Buscar cada producto por SKU
+        for (const sku of upsellingSkus) {
+            try {
+                const controller = new AbortController()
+                const timeout = setTimeout(() => controller.abort(), 5000)
+
+                const response = await fetch(
+                    `${wooUrl}/wp-json/wc/v3/products?sku=${sku}&per_page=1`,
+                    { headers, signal: controller.signal }
+                )
+                clearTimeout(timeout)
+
+                if (response.ok) {
+                    const products = await response.json()
+                    if (products.length > 0) {
+                        const product = products[0]
+                        upsellingProducts.push({
+                            id: product.id,
+                            nombre: product.name,
+                            descripcion: product.short_description?.replace(/<[^>]*>/g, '') || '',
+                            imagen: product.images?.[0]?.src || null,
+                            precio: product.price,
+                            precioRegular: product.regular_price,
+                            precioOferta: product.sale_price,
+                            enStock: product.stock_status === 'instock',
+                            tipo: product.type,
+                            sku: product.sku,
+                        })
+                    }
+                }
+            } catch (error) {
+                console.error(`[Upselling] Error buscando SKU ${sku}:`, error)
+                // Continuar con el siguiente SKU
+            }
         }
-
-        const categories = await categoriesResponse.json()
-
-        // Buscar categoría que contenga "eventos" o "dulce"
-        const upsellingCategory = categories.find((cat: any) =>
-            cat.slug.includes('eventos') ||
-            cat.slug.includes('dulce') ||
-            cat.name.toLowerCase().includes('eventos') ||
-            cat.name.toLowerCase().includes('dulce')
-        )
-
-        if (!upsellingCategory) {
-            return NextResponse.json({
-                success: true,
-                message: 'No se encontró la categoría de upselling',
-                products: [],
-            })
-        }
-
-        // Paso 2: Obtener productos de esa categoría
-        const controller2 = new AbortController()
-        const timeout2 = setTimeout(() => controller2.abort(), 15000)
-
-        const productsResponse = await fetch(
-            `${wooUrl}/wp-json/wc/v3/products?category=${upsellingCategory.id}&per_page=10&status=publish&orderby=popularity`,
-            { headers, signal: controller2.signal }
-        )
-        clearTimeout(timeout2)
-
-        if (!productsResponse.ok) {
-            return NextResponse.json(
-                { error: 'No se pudieron obtener los productos' },
-                { status: productsResponse.status }
-            )
-        }
-
-        const products = await productsResponse.json()
-
-        // Formatear todos los productos para upselling
-        const upsellingProducts = products.map((product: any) => ({
-            id: product.id,
-            nombre: product.name,
-            descripcion: product.short_description?.replace(/<[^>]*>/g, '') || '',
-            imagen: product.images?.[0]?.src || null,
-            precio: product.price,
-            precioRegular: product.regular_price,
-            precioOferta: product.sale_price,
-            enStock: product.stock_status === 'instock',
-            tipo: product.type,
-        }))
 
         return NextResponse.json({
             success: true,
-            categoria: {
-                id: upsellingCategory.id,
-                nombre: upsellingCategory.name,
-                slug: upsellingCategory.slug,
-            },
             products: upsellingProducts,
         })
     } catch (error) {
