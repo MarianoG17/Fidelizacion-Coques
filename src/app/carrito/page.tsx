@@ -551,50 +551,93 @@ export default function CarritoPage() {
                   <h4 className="font-bold text-sm text-gray-700 mb-3">
                     ¿Querés agregar algo más? 🍪
                   </h4>
-                  {/* Grid responsive que muestra todos los productos */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {productosUpselling.map((producto) => (
-                      <div
-                        key={producto.id}
-                        className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex flex-col gap-2">
-                          {producto.imagen ? (
-                            <img
-                              src={producto.imagen}
-                              alt={producto.nombre}
-                              className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => setImagenExpandida(producto.imagen)}
-                            />
-                          ) : (
-                            <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <span className="text-4xl">🍪</span>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <h5 className="font-semibold text-xs text-gray-800 line-clamp-2">
-                              {producto.nombre}
-                            </h5>
-                            {producto.descripcion && (
-                              <p className="text-xs text-gray-600 line-clamp-1 mt-1">
-                                {producto.descripcion}
-                              </p>
+                  <div className="relative">
+                    {/* Carousel horizontal con 3 items visibles */}
+                    <div
+                      id="upselling-carousel"
+                      className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth"
+                      style={{
+                        scrollbarWidth: 'thin',
+                        msOverflowStyle: 'auto',
+                        WebkitOverflowScrolling: 'touch'
+                      }}
+                    >
+                      {productosUpselling.map((producto) => (
+                        <div
+                          key={producto.id}
+                          className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow flex-shrink-0 w-64 snap-start"
+                        >
+                          <div className="flex flex-col gap-2">
+                            {producto.imagen ? (
+                              <img
+                                src={producto.imagen}
+                                alt={producto.nombre}
+                                className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setImagenExpandida(producto.imagen)}
+                              />
+                            ) : (
+                              <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <span className="text-4xl">🍪</span>
+                              </div>
                             )}
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-sm font-bold text-green-600">
-                                ${formatearPrecio(parseFloat(producto.precio))}
-                              </span>
-                              <button
-                                onClick={() => agregarUpselling(producto)}
-                                className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-2 py-1.5 rounded-lg transition-colors"
-                              >
-                                + Agregar
-                              </button>
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-sm text-gray-800 line-clamp-1">
+                                {producto.nombre}
+                              </h5>
+                              {producto.descripcion && (
+                                <p className="text-xs text-gray-600 line-clamp-2 mt-1">
+                                  {producto.descripcion}
+                                </p>
+                              )}
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-sm font-bold text-green-600">
+                                  ${formatearPrecio(parseFloat(producto.precio))}
+                                </span>
+                                <button
+                                  onClick={() => agregarUpselling(producto)}
+                                  className="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                  + Agregar
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    
+                    {/* Botones de navegación */}
+                    {productosUpselling.length > 3 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            const carousel = document.getElementById('upselling-carousel')
+                            if (carousel) carousel.scrollBy({ left: -280, behavior: 'smooth' })
+                          }}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 z-10 transition-all"
+                          aria-label="Anterior"
+                        >
+                          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => {
+                            const carousel = document.getElementById('upselling-carousel')
+                            if (carousel) carousel.scrollBy({ left: 280, behavior: 'smooth' })
+                          }}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 z-10 transition-all"
+                          aria-label="Siguiente"
+                        >
+                          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                    
+                    {/* Indicador de scroll */}
+                    <p className="text-xs text-gray-500 text-center mt-2">← Deslizá o usá las flechas para ver más →</p>
                   </div>
                 </div>
               )}
