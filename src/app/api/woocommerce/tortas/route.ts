@@ -50,7 +50,8 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
     { sku: '257', nombre: 'Cubierta de Dulce de Leche' }
   ],
   338: [ // Chocotorta
-    { sku: '260', nombre: 'Adicional Chocotorta' }
+    { sku: '260', nombre: 'Adicional Chocotorta' },
+    { sku: '81', nombre: 'Mini Chocotorta' }
   ],
   325: [ // Torta Ganache de Chocolate - solo adicional extra
     { sku: '260', nombre: 'Adicional' }
@@ -59,7 +60,23 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
     { sku: '260', nombre: 'Adicional' }
   ],
   343: [ // Torta Rogel
-    { sku: '260', nombre: 'Adicional' }
+    { sku: '260', nombre: 'Adicional' },
+    { sku: '134', nombre: 'Mini Rogel' }
+  ],
+  764: [ // Torta Doble Oreo con Golosinas
+    { sku: '107', nombre: 'Mini Oreo' }
+  ],
+  404: [ // Brownie
+    { sku: '108', nombre: 'Mini Brownie' }
+  ],
+  382: [ // Cheesecake
+    { sku: '119', nombre: 'Mini Cheesecake' }
+  ],
+  396: [ // Key Lime Pie
+    { sku: '395', nombre: 'Mini Key Lime Pie' }
+  ],
+  410: [ // Pavlova
+    { sku: '109', nombre: 'Mini Pavlova' }
   ],
 }
 
