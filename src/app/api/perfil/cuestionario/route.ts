@@ -51,7 +51,12 @@ export async function POST(req: NextRequest) {
         })
 
         // BONUS: Registrar visita extra contabilizada como recompensa
-        const localPrincipal = await prisma.local.findFirst()
+        const localPrincipal = await prisma.local.findFirst({
+            where: {
+                tipo: 'cafeteria',
+                activo: true
+            }
+        })
         if (localPrincipal) {
             await prisma.eventoScan.create({
                 data: {
