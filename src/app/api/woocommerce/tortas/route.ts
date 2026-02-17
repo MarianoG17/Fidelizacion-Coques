@@ -118,6 +118,11 @@ export async function GET(req: NextRequest) {
       products.map(async (product: any) => {
         let variations = []
 
+        // Extraer add-ons del meta_data
+        const addOns = product.meta_data?.filter((meta: any) =>
+          meta.key === '_product_addons'
+        )?.[0]?.value || []
+
         // Si es un producto variable, obtener las variaciones
         if (product.type === 'variable') {
           try {
@@ -164,6 +169,19 @@ export async function GET(req: NextRequest) {
         // Extraer rendimiento del producto
         const rendimientoProducto = extraerRendimiento(product.description || product.short_description)
 
+        // Procesar add-ons para formato más simple
+        const addOnsFormateados = Array.isArray(addOns) ? addOns.map((addon: any) => ({
+          nombre: addon.name || '',
+          descripcion: addon.description || '',
+          tipo: addon.type || 'checkbox',
+          requerido: addon.required === 1 || addon.required === '1',
+          opciones: Array.isArray(addon.options) ? addon.options.map((opt: any) => ({
+            etiqueta: opt.label || '',
+            precio: parseFloat(opt.price || '0'),
+            precioTipo: opt.price_type || 'flat_fee'
+          })) : []
+        })) : []
+
         return {
           id: product.id,
           nombre: product.name,
@@ -188,6 +206,8 @@ export async function GET(req: NextRequest) {
             ? Math.max(...variations.map((v: any) => parseFloat(v.precio || 0)))
             : null,
           categorias: product.categories?.map((c: any) => c.name) || [],
+          // Add-ons opcionales
+          addOns: addOnsFormateados,
         }
       })
     )

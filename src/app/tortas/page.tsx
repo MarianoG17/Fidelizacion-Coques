@@ -5,6 +5,20 @@ import { useRouter } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
 
+interface AddOnOpcion {
+  etiqueta: string
+  precio: number
+  precioTipo: string
+}
+
+interface AddOn {
+  nombre: string
+  descripcion: string
+  tipo: string
+  requerido: boolean
+  opciones: AddOnOpcion[]
+}
+
 interface Variante {
   id: number
   precio: string
@@ -34,6 +48,7 @@ interface Producto {
   precioMin: number | null
   precioMax: number | null
   rendimiento?: string | null
+  addOns?: AddOn[]
 }
 
 export default function TortasPage() {
@@ -46,6 +61,7 @@ export default function TortasPage() {
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
   const [agregado, setAgregado] = useState(false)
+  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{[key: string]: string[]}>({})
 
   useEffect(() => {
     cargarTortas()
@@ -105,6 +121,8 @@ export default function TortasPage() {
     } else {
       setVarianteSeleccionada(null)
     }
+    // Resetear add-ons seleccionados
+    setAddOnsSeleccionados({})
   }
 
   // Función para formatear precio con separador de miles
