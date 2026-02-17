@@ -41,6 +41,21 @@ function extraerRendimiento(descripcion: string): string | null {
  * Obtener tortas clásicas con sus variantes (tamaños)
  */
 /**
+ * Mapeo de versiones mini por producto (para opciones de tamaño)
+ * Clave: ID del producto grande en WooCommerce
+ * Valor: SKU de Ayres del producto mini
+ */
+const MINI_PRODUCTOS_POR_PRODUCTO: { [key: number]: string } = {
+  338: '81',   // Chocotorta -> Mini Chocotorta
+  343: '134',  // Rogel -> Mini Rogel
+  764: '107',  // Doble Oreo -> Mini Oreo
+  404: '108',  // Brownie -> Mini Brownie
+  382: '119',  // Cheesecake -> Mini Cheesecake
+  396: '395',  // Key Lime Pie -> Mini Key Lime Pie
+  410: '109',  // Pavlova -> Mini Pavlova
+}
+
+/**
  * Mapeo manual de adicionales para productos
  * Formato: { productoId: [{ sku, nombre }] }
  * El sistema busca automáticamente el producto adicional por SKU y obtiene su precio
@@ -50,8 +65,7 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
     { sku: '257', nombre: 'Cubierta de Dulce de Leche' }
   ],
   338: [ // Chocotorta
-    { sku: '260', nombre: 'Adicional Chocotorta' },
-    { sku: '81', nombre: 'Mini Chocotorta' }
+    { sku: '260', nombre: 'Adicional Chocotorta' }
   ],
   325: [ // Torta Ganache de Chocolate - solo adicional extra
     { sku: '260', nombre: 'Adicional' }
@@ -60,23 +74,7 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
     { sku: '260', nombre: 'Adicional' }
   ],
   343: [ // Torta Rogel
-    { sku: '260', nombre: 'Adicional' },
-    { sku: '134', nombre: 'Mini Rogel' }
-  ],
-  764: [ // Torta Doble Oreo con Golosinas
-    { sku: '107', nombre: 'Mini Oreo' }
-  ],
-  404: [ // Brownie
-    { sku: '108', nombre: 'Mini Brownie' }
-  ],
-  382: [ // Cheesecake
-    { sku: '119', nombre: 'Mini Cheesecake' }
-  ],
-  396: [ // Key Lime Pie
-    { sku: '395', nombre: 'Mini Key Lime Pie' }
-  ],
-  410: [ // Pavlova
-    { sku: '109', nombre: 'Mini Pavlova' }
+    { sku: '260', nombre: 'Adicional' }
   ],
 }
 
@@ -164,7 +162,10 @@ export async function GET(req: NextRequest) {
       .flat()
       .flatMap(grupo => grupo.opciones.map(opt => opt.sku))
 
-    const adicionalesSkus = [...new Set([...skusSimples, ...skusAgrupados])]
+    // Agregar SKUs de productos mini
+    const skusMinis = Object.values(MINI_PRODUCTOS_POR_PRODUCTO)
+
+    const adicionalesSkus = [...new Set([...skusSimples, ...skusAgrupados, ...skusMinis])]
 
     // Mapeo de SKU -> {id, precio, nombre} para productos adicionales
     const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
@@ -324,6 +325,38 @@ export async function GET(req: NextRequest) {
             precioTipo: opt.price_type || 'flat_fee'
           })) : []
         })) : []
+
+        // Agregar opción de tamaño mini si existe para este producto (aparece PRIMERO)
+        const skuMini = MINI_PRODUCTOS_POR_PRODUCTO[product.id]
+        if (skuMini) {
+          const infoMini = adicionalesInfo[skuMini]
+          const precioBase = parseFloat(product.price || '0')
+          
+          if (infoMini) {
+            addOnsFormateados.unshift({ // unshift para que aparezca primero
+              nombre: 'Tamaño',
+              descripcion: '',
+              tipo: 'radio',
+              requerido: true,
+              opciones: [
+                {
+                  etiqueta: 'Normal',
+                  precio: 0, // Sin costo adicional (es el precio base)
+                  precioTipo: 'flat_fee',
+                  wooId: product.id,
+                  sku: product.sku || ''
+                },
+                {
+                  etiqueta: `Mini - ${infoMini.nombre}`,
+                  precio: infoMini.precio - precioBase, // Diferencia de precio
+                  precioTipo: 'flat_fee',
+                  wooId: infoMini.id,
+                  sku: skuMini
+                }
+              ]
+            })
+          }
+        }
 
         // Agregar adicionales manuales si este producto los tiene configurados
         const adicionalesManuales = ADICIONALES_POR_PRODUCTO[product.id]

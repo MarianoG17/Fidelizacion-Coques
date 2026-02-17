@@ -130,8 +130,17 @@ export default function TortasPage() {
     } else {
       setVarianteSeleccionada(null)
     }
-    // Resetear add-ons seleccionados
-    setAddOnsSeleccionados({})
+    
+    // Inicializar add-ons requeridos con su primera opción
+    const addOnsIniciales: { [key: string]: string[] } = {}
+    if (producto.addOns && producto.addOns.length > 0) {
+      producto.addOns.forEach(addOn => {
+        if (addOn.requerido && addOn.tipo === 'radio' && addOn.opciones.length > 0) {
+          addOnsIniciales[addOn.nombre] = [addOn.opciones[0].etiqueta]
+        }
+      })
+    }
+    setAddOnsSeleccionados(addOnsIniciales)
   }
 
   // Función para formatear precio con separador de miles
