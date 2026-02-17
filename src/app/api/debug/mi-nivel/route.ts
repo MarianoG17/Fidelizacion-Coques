@@ -61,11 +61,12 @@ export async function GET(req: NextRequest) {
     // Verificar qué nivel debería tener
     const nivelDeberia = niveles.find((nivel) => {
       const criterios = nivel.criterios as {
+        visitas?: number
         visitasMinimas?: number
         diasVentana?: number
         usosCruzados?: number
       }
-      const visitasRequeridas = criterios.visitasMinimas || 0
+      const visitasRequeridas = criterios.visitas || criterios.visitasMinimas || 0
       const usosCruzadosRequeridos = criterios.usosCruzados || 0
 
       return visitasRecientes >= visitasRequeridas && usosCruzados >= usosCruzadosRequeridos

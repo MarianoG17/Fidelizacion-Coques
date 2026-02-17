@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     const nivelesData = niveles.map((nivel) => {
       const esNivelActual = cliente.nivel?.id === nivel.id
       const criterio = nivel.criterios as any
-      const visitasRequeridas = criterio?.visitasMinimas || 0
+      const visitasRequeridas = criterio?.visitas || criterio?.visitasMinimas || 0
       
       return {
         id: nivel.id,
