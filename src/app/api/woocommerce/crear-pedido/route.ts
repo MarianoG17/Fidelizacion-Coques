@@ -174,7 +174,9 @@ export async function POST(req: NextRequest) {
                 product_id: skuToProductId[sku],
                 quantity: item.cantidad, // Cantidad basada en el producto principal
               })
-              console.log(`[Crear Pedido] Agregando add-on: ${opcionNombre} (SKU ${sku}, ID ${skuToProductId[sku]})`)
+              console.log(`[Crear Pedido] ✓ Agregando add-on: ${opcionNombre} (SKU ${sku}, ID ${skuToProductId[sku]})`)
+            } else {
+              console.warn(`[Crear Pedido] ✗ Add-on no encontrado: "${opcionNombre}" | SKU: ${sku || 'NO MAPEADO'} | ID: ${sku ? skuToProductId[sku] || 'NO ENCONTRADO EN WOOCOMMERCE' : 'N/A'}`)
             }
           })
         }
