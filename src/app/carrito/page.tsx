@@ -28,6 +28,9 @@ export default function CarritoPage() {
   // Estado para productos de upselling
   const [productosUpselling, setProductosUpselling] = useState<ProductoUpselling[]>([])
   const [cargandoUpselling, setCargandoUpselling] = useState(false)
+  
+  // Estado para imagen expandida
+  const [imagenExpandida, setImagenExpandida] = useState<string | null>(null)
 
   // Fecha y hora de entrega
   const [fechaEntrega, setFechaEntrega] = useState('')
@@ -508,7 +511,8 @@ export default function CarritoPage() {
                             <img
                               src={producto.imagen}
                               alt={producto.nombre}
-                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => setImagenExpandida(producto.imagen)}
                             />
                           ) : (
                             <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -557,6 +561,29 @@ export default function CarritoPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de imagen expandida */}
+      {imagenExpandida && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={() => setImagenExpandida(null)}
+        >
+          <div className="relative max-w-4xl w-full">
+            <button
+              onClick={() => setImagenExpandida(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl font-bold"
+            >
+              ✕
+            </button>
+            <img
+              src={imagenExpandida}
+              alt="Imagen ampliada"
+              className="w-full h-auto rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
