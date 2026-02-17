@@ -58,27 +58,18 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
 
   async function cargarNiveles() {
     try {
-      const res = await fetch('/api/admin/clientes', {
+      const res = await fetch('/api/admin/niveles', {
         headers: { 'x-admin-key': adminKey },
       })
       if (res.ok) {
         const data = await res.json()
-        // Extraer niveles únicos de los clientes
-        const nivelesUnicos: Nivel[] = []
-        const nivelesSet = new Set<string>()
-        
-        data.data.forEach((cliente: any) => {
-          if (cliente.nivel && !nivelesSet.has(cliente.nivel.id)) {
-            nivelesSet.add(cliente.nivel.id)
-            nivelesUnicos.push({
-              id: cliente.nivel.id,
-              nombre: cliente.nivel.nombre,
-              orden: cliente.nivel.orden,
-            })
-          }
-        })
-        
-        setNiveles(nivelesUnicos.sort((a, b) => a.orden - b.orden))
+        // Usar niveles directamente desde la tabla Nivel
+        const nivelesData = data.data.map((nivel: any) => ({
+          id: nivel.id,
+          nombre: nivel.nombre,
+          orden: nivel.orden,
+        }))
+        setNiveles(nivelesData)
       }
     } catch (err) {
       console.error('Error al cargar niveles:', err)
