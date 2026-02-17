@@ -515,12 +515,17 @@ export default function TortasPage() {
                     <div className="space-y-4">
                       {productoSeleccionado.addOns.map((addOn) => (
                         <div key={addOn.nombre} className="border border-gray-200 rounded-xl p-4">
-                          <h4 className="font-semibold text-gray-800 mb-2">
-                            {addOn.nombre}
-                            {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
-                          </h4>
-                          {addOn.descripcion && (
-                            <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
+                          {/* Solo mostrar título si hay más de una opción */}
+                          {addOn.opciones.length > 1 && (
+                            <>
+                              <h4 className="font-semibold text-gray-800 mb-2">
+                                {addOn.nombre}
+                                {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
+                              </h4>
+                              {addOn.descripcion && (
+                                <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
+                              )}
+                            </>
                           )}
                           <div className="space-y-2">
                             {addOn.opciones.map((opcion) => (
