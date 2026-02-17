@@ -86,11 +86,21 @@ export async function GET(req: NextRequest) {
 
     const orders = await response.json()
 
+    console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}`)
+    console.log(`[Mis Pedidos] Total orders fetched: ${orders.length}`)
+    
     // Filtrar solo pedidos con el cliente_app_id correcto o email coincidente
     const pedidosFiltrados = orders.filter((order: any) => {
       const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
-      return order.billing.email === cliente.email || clienteAppId === cliente.id
+      const emailMatch = order.billing.email === cliente.email
+      const idMatch = clienteAppId === cliente.id
+      
+      console.log(`[Mis Pedidos] Order #${order.number}: email=${order.billing.email} (match: ${emailMatch}), cliente_app_id=${clienteAppId} (match: ${idMatch})`)
+      
+      return emailMatch || idMatch
     })
+    
+    console.log(`[Mis Pedidos] Filtered orders: ${pedidosFiltrados.length}`)
 
     // Formatear respuesta
     const pedidos = pedidosFiltrados.map((order: any) => ({
