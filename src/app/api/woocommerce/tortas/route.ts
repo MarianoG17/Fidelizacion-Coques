@@ -123,6 +123,13 @@ export async function GET(req: NextRequest) {
           meta.key === '_product_addons'
         )?.[0]?.value || []
 
+        // Debug: Log para verificar add-ons
+        if (product.name.toLowerCase().includes('frutilla')) {
+          console.log(`[DEBUG] Producto: ${product.name}`)
+          console.log(`[DEBUG] Meta data count: ${product.meta_data?.length || 0}`)
+          console.log(`[DEBUG] Add-ons encontrados:`, JSON.stringify(addOns, null, 2))
+        }
+
         // Si es un producto variable, obtener las variaciones
         if (product.type === 'variable') {
           try {
