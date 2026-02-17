@@ -131,14 +131,15 @@ export async function evaluarNivel(clienteId: string) {
   }
 
   const criterios = siguienteNivel.criterios as {
-    visitasMinimas?: number
+    visitas?: number          // nombre correcto en BD
+    visitasMinimas?: number   // retrocompatibilidad
     diasVentana?: number
     usosCruzados?: number
     referidosMinimos?: number
     perfilCompleto?: boolean
   }
 
-  const visitasRequeridas = criterios.visitasMinimas || 0
+  const visitasRequeridas = criterios.visitas || criterios.visitasMinimas || 0
   const usosCruzadosRequeridos = criterios.usosCruzados || 0
   const referidosRequeridos = criterios.referidosMinimos || 0
   const requierePerfilCompleto = criterios.perfilCompleto || false
