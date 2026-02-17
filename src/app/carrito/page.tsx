@@ -347,15 +347,36 @@ export default function CarritoPage() {
                     {item.nombreVariante && (
                       <p className="text-sm text-gray-600 mt-1">{item.nombreVariante}</p>
                     )}
+                    
+                    {/* Mostrar add-ons si existen */}
+                    {item.addOns && Object.keys(item.addOns).length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {Object.entries(item.addOns).map(([nombre, opciones]) => (
+                          <div key={nombre} className="text-xs text-gray-600">
+                            <span className="font-medium">{nombre}:</span>{' '}
+                            {(opciones as string[]).join(', ')}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     {/* Mostrar rendimiento */}
                     {item.rendimiento && (
                       <p className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
                         <span>👥</span> {item.rendimiento}
                       </p>
                     )}
-                    <p className="text-lg font-semibold text-green-600 mt-2">
-                      ${formatearPrecio(item.precio)}
-                    </p>
+                    
+                    <div className="mt-2">
+                      <p className="text-lg font-semibold text-green-600">
+                        ${formatearPrecio(item.precio)}
+                      </p>
+                      {item.precioAddOns && item.precioAddOns > 0 && (
+                        <p className="text-xs text-gray-600">
+                          + ${formatearPrecio(item.precioAddOns)} en adicionales
+                        </p>
+                      )}
+                    </div>
 
                     {/* Controles de cantidad */}
                     <div className="flex items-center gap-3 mt-3">

@@ -144,6 +144,56 @@ export default function TortasPage() {
       window.history.back()
     }
   }
+  
+  function toggleAddOn(addOnNombre: string, opcionEtiqueta: string) {
+    setAddOnsSeleccionados(prev => {
+      const nuevosAddOns = { ...prev }
+      if (!nuevosAddOns[addOnNombre]) {
+        nuevosAddOns[addOnNombre] = []
+      }
+      
+      const index = nuevosAddOns[addOnNombre].indexOf(opcionEtiqueta)
+      if (index > -1) {
+        // Ya está seleccionado, removerlo
+        nuevosAddOns[addOnNombre] = nuevosAddOns[addOnNombre].filter(o => o !== opcionEtiqueta)
+        if (nuevosAddOns[addOnNombre].length === 0) {
+          delete nuevosAddOns[addOnNombre]
+        }
+      } else {
+        // No está seleccionado, agregarlo
+        nuevosAddOns[addOnNombre].push(opcionEtiqueta)
+      }
+      
+      return nuevosAddOns
+    })
+  }
+  
+  function calcularPrecioTotal(): number {
+    let precioBase = 0
+    
+    if (productoSeleccionado) {
+      if (varianteSeleccionada) {
+        precioBase = parseFloat(varianteSeleccionada.precio)
+      } else {
+        precioBase = parseFloat(productoSeleccionado.precio)
+      }
+      
+      // Sumar precios de add-ons seleccionados
+      if (productoSeleccionado.addOns) {
+        productoSeleccionado.addOns.forEach(addOn => {
+          const seleccionados = addOnsSeleccionados[addOn.nombre] || []
+          seleccionados.forEach(etiqueta => {
+            const opcion = addOn.opciones.find(o => o.etiqueta === etiqueta)
+            if (opcion) {
+              precioBase += opcion.precio
+            }
+          })
+        })
+      }
+    }
+    
+    return precioBase
+  }
 
   function agregarAlCarrito() {
     if (!productoSeleccionado) return
@@ -154,6 +204,20 @@ export default function TortasPage() {
       return
     }
 
+    // Calcular precio de add-ons
+    let precioAddOns = 0
+    if (productoSeleccionado.addOns) {
+      productoSeleccionado.addOns.forEach(addOn => {
+        const seleccionados = addOnsSeleccionados[addOn.nombre] || []
+        seleccionados.forEach(etiqueta => {
+          const opcion = addOn.opciones.find(o => o.etiqueta === etiqueta)
+          if (opcion) {
+            precioAddOns += opcion.precio
+          }
+        })
+      })
+    }
+
     const item = {
       productoId: productoSeleccionado.id,
       varianteId: varianteSeleccionada?.id,
@@ -162,6 +226,8 @@ export default function TortasPage() {
       precio: varianteSeleccionada ? parseFloat(varianteSeleccionada.precio) : parseFloat(productoSeleccionado.precio),
       imagen: varianteSeleccionada?.imagen || productoSeleccionado.imagen,
       rendimiento: varianteSeleccionada?.rendimiento || productoSeleccionado.rendimiento,
+      addOns: Object.keys(addOnsSeleccionados).length > 0 ? addOnsSeleccionados : undefined,
+      precioAddOns: precioAddOns > 0 ? precioAddOns : undefined,
     }
 
     agregarItem(item)
@@ -422,6 +488,56 @@ export default function TortasPage() {
                           </p>
                         )}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Add-ons opcionales */}
+                {productoSeleccionado.addOns && productoSeleccionado.addOns.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="font-bold text-lg mb-3">Adicionales</h3>
+                    <div className="space-y-4">
+                      {productoSeleccionado.addOns.map((addOn) => (
+                        <div key={addOn.nombre} className="border border-gray-200 rounded-xl p-4">
+                          <h4 className="font-semibold text-gray-800 mb-2">{addOn.nombre}</h4>
+                          {addOn.descripcion && (
+                            <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
+                          )}
+                          <div className="space-y-2">
+                            {addOn.opciones.map((opcion) => (
+                              <label
+                                key={opcion.etiqueta}
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={addOnsSeleccionados[addOn.nombre]?.includes(opcion.etiqueta) || false}
+                                    onChange={() => toggleAddOn(addOn.nombre, opcion.etiqueta)}
+                                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                  />
+                                  <span className="text-gray-800">{opcion.etiqueta}</span>
+                                </div>
+                                <span className="text-green-600 font-semibold">
+                                  +${formatearPrecio(opcion.precio)}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Precio total */}
+                {(productoSeleccionado.addOns && productoSeleccionado.addOns.length > 0 && Object.keys(addOnsSeleccionados).length > 0) && (
+                  <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-gray-800">Precio Total:</span>
+                      <span className="text-2xl font-bold text-purple-600">
+                        ${formatearPrecio(calcularPrecioTotal())}
+                      </span>
                     </div>
                   </div>
                 )}

@@ -12,6 +12,8 @@ export interface ItemCarrito {
   cantidad: number
   imagen: string | null
   rendimiento?: string | null
+  addOns?: {[nombre: string]: string[]}
+  precioAddOns?: number
 }
 
 const CARRITO_KEY = 'fidelizacion_carrito'
@@ -90,7 +92,11 @@ export function useCarrito() {
   }
 
   const cantidadTotal = items.reduce((total, item) => total + item.cantidad, 0)
-  const precioTotal = items.reduce((total, item) => total + (item.precio * item.cantidad), 0)
+  const precioTotal = items.reduce((total, item) => {
+    const precioBase = item.precio * item.cantidad
+    const precioAddOns = (item.precioAddOns || 0) * item.cantidad
+    return total + precioBase + precioAddOns
+  }, 0)
 
   return {
     items,
