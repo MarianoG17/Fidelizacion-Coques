@@ -67,6 +67,12 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
     { sku: '465', nombre: 'Cubierta Merengue' },
     { sku: '464', nombre: 'Cubierta Ganache' }
   ],
+  388: [ // Torta Havannet
+    { sku: '260', nombre: 'Adicional' }
+  ],
+  343: [ // Torta Rogel
+    { sku: '260', nombre: 'Adicional' }
+  ],
 }
 
 /**
@@ -106,8 +112,8 @@ export async function GET(req: NextRequest) {
         .map(a => a.sku)
     )]
     
-    // Mapeo de SKU -> {id, precio} para productos adicionales
-    const adicionalesInfo: { [sku: string]: { id: number; precio: number } } = {}
+    // Mapeo de SKU -> {id, precio, nombre} para productos adicionales
+    const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
     
     if (adicionalesSkus.length > 0) {
       try {
@@ -124,7 +130,8 @@ export async function GET(req: NextRequest) {
               const prod = skuData[0]
               adicionalesInfo[sku] = {
                 id: prod.id,
-                precio: parseFloat(prod.price || '0')
+                precio: parseFloat(prod.price || '0'),
+                nombre: prod.name
               }
             }
           }
@@ -271,12 +278,12 @@ export async function GET(req: NextRequest) {
             const info = adicionalesInfo[adicional.sku]
             if (info) {
               addOnsFormateados.push({
-                nombre: adicional.nombre,
+                nombre: info.nombre, // Usar nombre de WooCommerce
                 descripcion: '',
                 tipo: 'checkbox',
                 requerido: false,
                 opciones: [{
-                  etiqueta: adicional.nombre,
+                  etiqueta: info.nombre, // Usar nombre de WooCommerce
                   precio: info.precio,
                   precioTipo: 'flat_fee',
                   wooId: info.id,
