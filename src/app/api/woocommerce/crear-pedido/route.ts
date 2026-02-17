@@ -5,10 +5,32 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+// Mapeo de nombres de add-ons a SKUs de Ayres (mismo que en tortas/route.ts)
+const ADDON_NOMBRE_A_SKU: { [key: string]: string } = {
+  // Rellenos
+  'Relleno de Dulce de Leche': '467',
+  'Relleno de Chocolate': '466',
+  'Relleno de Nutella': '300',
+  'Relleno Dulce de Leche': '257', // Tarta Frutilla
+  'ADICIONALES: Chocolates, Oreos Bañadas y Bombones de DDL.': '260', // Chocotorta
+  
+  // Bizcochuelos
+  'Bizcochuelo de Vainilla': '399',
+  'Bizcochuelo de Chocolate': '398',
+  'Bizcochuelo Marmolado': '461',
+  
+  // Cubiertas
+  'Cubierta Ganache': '464',
+  'Cubierta Merengue': '465',
+}
+
 interface ItemPedido {
   productoId: number
   varianteId?: number
   cantidad: number
+  addOns?: {[nombre: string]: string[]}
+  addOnsSkus?: {sku: string; nombre: string}[]
+  camposTexto?: {[nombreCampo: string]: string}
 }
 
 interface DatosPedido {
@@ -88,7 +110,48 @@ export async function POST(req: NextRequest) {
     }
 
     // Construir line_items para WooCommerce
-    const lineItems = items.map(item => {
+    const lineItems: any[] = []
+    
+    // Recopilar todos los SKUs de add-ons para buscar sus IDs en WooCommerce
+    const addOnSkus: string[] = []
+    for (const item of items) {
+      if (item.addOns) {
+        for (const [nombre, opciones] of Object.entries(item.addOns)) {
+          opciones.forEach((opcionNombre: string) => {
+            const sku = ADDON_NOMBRE_A_SKU[opcionNombre]
+            if (sku && !addOnSkus.includes(sku)) {
+              addOnSkus.push(sku)
+            }
+          })
+        }
+      }
+    }
+
+    // Obtener IDs de WooCommerce para los add-ons por SKU
+    const skuToProductId: { [sku: string]: number } = {}
+    if (addOnSkus.length > 0) {
+      try {
+        for (const sku of addOnSkus) {
+          const skuResponse = await fetch(
+            `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
+            { headers }
+          )
+          if (skuResponse.ok) {
+            const skuData = await skuResponse.json()
+            if (skuData.length > 0) {
+              skuToProductId[sku] = skuData[0].id
+            }
+          }
+        }
+        console.log('[Crear Pedido] SKUs de add-ons encontrados:', skuToProductId)
+      } catch (error) {
+        console.error('[Crear Pedido] Error buscando SKUs de add-ons:', error)
+      }
+    }
+
+    // Procesar cada item del pedido
+    for (const item of items) {
+      // Agregar producto principal
       const lineItem: any = {
         product_id: item.productoId,
         quantity: item.cantidad,
@@ -99,8 +162,24 @@ export async function POST(req: NextRequest) {
         lineItem.variation_id = item.varianteId
       }
 
-      return lineItem
-    })
+      lineItems.push(lineItem)
+
+      // Agregar add-ons como productos separados
+      if (item.addOns) {
+        for (const [nombre, opciones] of Object.entries(item.addOns)) {
+          opciones.forEach((opcionNombre: string) => {
+            const sku = ADDON_NOMBRE_A_SKU[opcionNombre]
+            if (sku && skuToProductId[sku]) {
+              lineItems.push({
+                product_id: skuToProductId[sku],
+                quantity: item.cantidad, // Cantidad basada en el producto principal
+              })
+              console.log(`[Crear Pedido] Agregando add-on: ${opcionNombre} (SKU ${sku}, ID ${skuToProductId[sku]})`)
+            }
+          })
+        }
+      }
+    }
 
     // Estructura del pedido para WooCommerce usando datos del cliente
     const nombreCompleto = cliente.nombre || 'Cliente'
@@ -141,8 +220,25 @@ export async function POST(req: NextRequest) {
     
     // Construir notas del cliente con fecha de entrega
     let customerNote = `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
+    
+    // Agregar campos de texto personalizados (ej: Color de decoración)
+    const camposTextoDetalle: string[] = []
+    items.forEach((item, index) => {
+      if (item.camposTexto && Object.keys(item.camposTexto).length > 0) {
+        Object.entries(item.camposTexto).forEach(([nombreCampo, valor]) => {
+          if (valor) {
+            camposTextoDetalle.push(`${nombreCampo}: ${valor}`)
+          }
+        })
+      }
+    })
+    
+    if (camposTextoDetalle.length > 0) {
+      customerNote += `\n\n🎨 Personalizaciones:\n${camposTextoDetalle.join('\n')}`
+    }
+    
     if (notas) {
-      customerNote += `\n📝 Notas adicionales: ${notas}`
+      customerNote += `\n\n📝 Notas adicionales: ${notas}`
     }
 
     const orderData = {

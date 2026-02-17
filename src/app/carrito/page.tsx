@@ -152,6 +152,8 @@ export default function CarritoPage() {
         productoId: item.productoId,
         varianteId: item.varianteId,
         cantidad: item.cantidad,
+        addOns: item.addOns,
+        camposTexto: item.camposTexto,
       }))
 
       const response = await fetch('/api/woocommerce/crear-pedido', {
