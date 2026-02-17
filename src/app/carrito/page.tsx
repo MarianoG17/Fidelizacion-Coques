@@ -355,11 +355,17 @@ export default function CarritoPage() {
                       <div className="mt-2 space-y-1">
                         {Object.entries(item.addOns).map(([nombre, opciones]) => {
                           // Soportar formato antiguo (string[]) y nuevo ({sku, etiqueta}[])
-                          const etiquetas = Array.isArray(opciones) && opciones.length > 0
-                            ? typeof opciones[0] === 'string'
-                              ? (opciones as string[])
-                              : (opciones as Array<{sku: string, etiqueta: string}>).map(o => o.etiqueta)
-                            : []
+                          let etiquetas: string[] = []
+                          
+                          if (Array.isArray(opciones) && opciones.length > 0) {
+                            if (typeof opciones[0] === 'string') {
+                              // Formato antiguo
+                              etiquetas = opciones as unknown as string[]
+                            } else if (typeof opciones[0] === 'object' && 'etiqueta' in opciones[0]) {
+                              // Formato nuevo
+                              etiquetas = (opciones as Array<{sku: string, etiqueta: string}>).map(o => o.etiqueta)
+                            }
+                          }
                           
                           return (
                             <div key={nombre} className="text-xs text-gray-600">
