@@ -103,13 +103,19 @@ export async function GET(req: NextRequest) {
       total: order.total,
       moneda: order.currency,
       metodoPago: order.payment_method_title,
-      items: order.line_items?.map((item: any) => ({
-        nombre: item.name,
-        cantidad: item.quantity,
-        precio: item.price,
-        total: item.total,
-        imagen: item.image?.src || null,
-      })) || [],
+      items: order.line_items?.map((item: any) => {
+        // Calcular precio con IVA incluido
+        const precioConIva = parseFloat(item.price) + (parseFloat(item.total_tax) / item.quantity)
+        const totalConIva = parseFloat(item.total) + parseFloat(item.total_tax)
+        
+        return {
+          nombre: item.name,
+          cantidad: item.quantity,
+          precio: precioConIva.toFixed(2),
+          total: totalConIva.toFixed(2),
+          imagen: item.image?.src || null,
+        }
+      }) || [],
       urlAdmin: `${wooUrl}/wp-admin/post.php?post=${order.id}&action=edit`,
     }))
 
