@@ -40,6 +40,16 @@ function extraerRendimiento(descripcion: string): string | null {
  * GET /api/woocommerce/tortas
  * Obtener tortas clásicas con sus variantes (tamaños)
  */
+/**
+ * Mapeo manual de adicionales para productos
+ * Formato: { productoId: [{ wooId, nombre, precio }] }
+ */
+const ADICIONALES_POR_PRODUCTO: { [key: number]: { wooId: number; nombre: string; sku: string }[] } = {
+  333: [ // Tarta de Frutilla Grande
+    { wooId: 777, nombre: 'Cubierta de Dulce de Leche', sku: '257' }
+  ],
+}
+
 export async function GET(req: NextRequest) {
   try {
     const wooUrl = process.env.WOOCOMMERCE_URL
@@ -58,6 +68,34 @@ export async function GET(req: NextRequest) {
       'Authorization': `Basic ${auth}`,
       'Content-Type': 'application/json',
       'User-Agent': 'FidelizacionApp/1.0',
+    }
+
+    // Paso 0: Obtener precios de productos adicionales
+    const adicionalesIds = [...new Set(
+      Object.values(ADICIONALES_POR_PRODUCTO)
+        .flat()
+        .map(a => a.wooId)
+    )]
+    
+    const adicionalesPrecios: { [id: number]: number } = {}
+    
+    if (adicionalesIds.length > 0) {
+      try {
+        const adicionalesResponse = await fetch(
+          `${wooUrl}/wp-json/wc/v3/products?include=${adicionalesIds.join(',')}&per_page=50`,
+          { headers }
+        )
+        
+        if (adicionalesResponse.ok) {
+          const adicionalesData = await adicionalesResponse.json()
+          adicionalesData.forEach((prod: any) => {
+            adicionalesPrecios[prod.id] = parseFloat(prod.price || '0')
+          })
+          console.log('[Tortas API] Precios de adicionales obtenidos:', adicionalesPrecios)
+        }
+      } catch (error) {
+        console.error('[Tortas API] Error obteniendo precios de adicionales:', error)
+      }
     }
 
     // Paso 1: Obtener el ID de la categoría "tortas clasicas"
@@ -176,7 +214,7 @@ export async function GET(req: NextRequest) {
         // Extraer rendimiento del producto
         const rendimientoProducto = extraerRendimiento(product.description || product.short_description)
 
-        // Procesar add-ons para formato más simple
+        // Procesar add-ons del plugin (si los hay)
         const addOnsFormateados = Array.isArray(addOns) ? addOns.map((addon: any) => ({
           nombre: addon.name || '',
           descripcion: addon.description || '',
@@ -188,6 +226,27 @@ export async function GET(req: NextRequest) {
             precioTipo: opt.price_type || 'flat_fee'
           })) : []
         })) : []
+
+        // Agregar adicionales manuales si este producto los tiene configurados
+        const adicionalesManuales = ADICIONALES_POR_PRODUCTO[product.id]
+        if (adicionalesManuales) {
+          adicionalesManuales.forEach(adicional => {
+            const precio = adicionalesPrecios[adicional.wooId] || 0
+            addOnsFormateados.push({
+              nombre: adicional.nombre,
+              descripcion: '',
+              tipo: 'checkbox',
+              requerido: false,
+              opciones: [{
+                etiqueta: adicional.nombre,
+                precio: precio,
+                precioTipo: 'flat_fee',
+                wooId: adicional.wooId,
+                sku: adicional.sku
+              }]
+            })
+          })
+        }
 
         return {
           id: product.id,

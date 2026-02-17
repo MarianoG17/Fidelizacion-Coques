@@ -9,6 +9,8 @@ interface AddOnOpcion {
   etiqueta: string
   precio: number
   precioTipo: string
+  wooId?: number
+  sku?: string
 }
 
 interface AddOn {
