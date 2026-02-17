@@ -60,11 +60,16 @@ export async function GET(req: NextRequest) {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
 
+    // Agregar timestamp para evitar cache
+    const timestamp = Date.now()
     const response = await fetch(
-      `${wooUrl}/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc`,
+      `${wooUrl}/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc&_=${timestamp}`,
       {
         method: 'GET',
-        headers,
+        headers: {
+          ...headers,
+          'Cache-Control': 'no-cache',
+        },
         signal: controller.signal,
       }
     )
