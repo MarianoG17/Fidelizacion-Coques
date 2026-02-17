@@ -312,6 +312,17 @@ export async function GET(req: NextRequest) {
 
         // Agregar variante sintética para mini producto si existe
         const skuMini = MINI_PRODUCTOS_POR_PRODUCTO[product.id]
+        
+        // Debug: Log para productos con mini configurado
+        if (['Key Lime', 'Pavlova', 'Cheesecake'].some(name => product.name.includes(name))) {
+          console.log(`[DEBUG MINI] Producto: ${product.name} (ID: ${product.id})`)
+          console.log(`[DEBUG MINI] SKU Mini configurado: ${skuMini}`)
+          console.log(`[DEBUG MINI] Info mini disponible:`, skuMini ? !!adicionalesInfo[skuMini] : false)
+          if (skuMini && adicionalesInfo[skuMini]) {
+            console.log(`[DEBUG MINI] Agregando variante mini`)
+          }
+        }
+        
         if (skuMini) {
           const infoMini = adicionalesInfo[skuMini]
           if (infoMini) {
@@ -332,6 +343,8 @@ export async function GET(req: NextRequest) {
               imagen: product.images?.[0]?.src || null,
               rendimiento: null,
             })
+          } else {
+            console.warn(`[MINI] No se encontró info para SKU mini ${skuMini} del producto ${product.name}`)
           }
         }
 
