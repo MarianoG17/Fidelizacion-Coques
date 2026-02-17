@@ -54,13 +54,14 @@ export async function GET(req: NextRequest) {
       'User-Agent': 'FidelizacionApp/1.0',
     }
 
-    // Obtener pedidos del cliente por email
-    // Usando búsqueda por billing_email (funciona mejor que customer)
+    // Obtener pedidos recientes sin filtro de búsqueda
+    // El parámetro 'search' de WooCommerce es poco confiable para emails
+    // Obtenemos más pedidos y filtramos manualmente por email
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)
 
     const response = await fetch(
-      `${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(cliente.email)}&per_page=50&orderby=date&order=desc`,
+      `${wooUrl}/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc`,
       {
         method: 'GET',
         headers,

@@ -353,12 +353,21 @@ export default function CarritoPage() {
                     {/* Mostrar add-ons si existen */}
                     {item.addOns && Object.keys(item.addOns).length > 0 && (
                       <div className="mt-2 space-y-1">
-                        {Object.entries(item.addOns).map(([nombre, opciones]) => (
-                          <div key={nombre} className="text-xs text-gray-600">
-                            <span className="font-medium">{nombre}:</span>{' '}
-                            {(opciones as string[]).join(', ')}
-                          </div>
-                        ))}
+                        {Object.entries(item.addOns).map(([nombre, opciones]) => {
+                          // Soportar formato antiguo (string[]) y nuevo ({sku, etiqueta}[])
+                          const etiquetas = Array.isArray(opciones) && opciones.length > 0
+                            ? typeof opciones[0] === 'string'
+                              ? (opciones as string[])
+                              : (opciones as Array<{sku: string, etiqueta: string}>).map(o => o.etiqueta)
+                            : []
+                          
+                          return (
+                            <div key={nombre} className="text-xs text-gray-600">
+                              <span className="font-medium">{nombre}:</span>{' '}
+                              {etiquetas.join(', ')}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                     

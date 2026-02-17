@@ -10,7 +10,7 @@ const ADDON_NOMBRE_A_SKU: { [key: string]: string } = {
   // Rellenos
   'Relleno de Dulce de Leche': '467',
   'Relleno de Chocolate': '466',
-  'Relleno de Nutella': '300',
+  'Relleno Nutella': '300', // Sin "de"
   'Relleno Dulce de Leche': '257', // Tarta Frutilla
   'ADICIONALES: Chocolates, Oreos Bañadas y Bombones de DDL.': '260', // Chocotorta
   
@@ -117,8 +117,19 @@ export async function POST(req: NextRequest) {
     for (const item of items) {
       if (item.addOns) {
         for (const [nombre, opciones] of Object.entries(item.addOns)) {
-          opciones.forEach((opcionNombre: string) => {
-            const sku = ADDON_NOMBRE_A_SKU[opcionNombre]
+          opciones.forEach((opcion: any) => {
+            let sku: string | undefined
+            
+            // Nuevo formato: objeto con {sku, etiqueta}
+            if (typeof opcion === 'object' && opcion.sku) {
+              sku = opcion.sku
+            }
+            // Formato antiguo (backwards compatibility): string con nombre
+            else if (typeof opcion === 'string') {
+              sku = ADDON_NOMBRE_A_SKU[opcion]
+              console.log(`[Crear Pedido] Usando mapeo legacy para: "${opcion}" -> SKU ${sku}`)
+            }
+            
             if (sku && !addOnSkus.includes(sku)) {
               addOnSkus.push(sku)
             }
@@ -167,16 +178,32 @@ export async function POST(req: NextRequest) {
       // Agregar add-ons como productos separados
       if (item.addOns) {
         for (const [nombre, opciones] of Object.entries(item.addOns)) {
-          opciones.forEach((opcionNombre: string) => {
-            const sku = ADDON_NOMBRE_A_SKU[opcionNombre]
+          opciones.forEach((opcion: any) => {
+            let sku: string | undefined
+            let etiqueta: string
+            
+            // Nuevo formato: objeto con {sku, etiqueta}
+            if (typeof opcion === 'object' && opcion.sku) {
+              sku = opcion.sku
+              etiqueta = opcion.etiqueta
+            }
+            // Formato antiguo (backwards compatibility): string con nombre
+            else if (typeof opcion === 'string') {
+              sku = ADDON_NOMBRE_A_SKU[opcion]
+              etiqueta = opcion
+            } else {
+              console.warn(`[Crear Pedido] ✗ Formato de add-on no reconocido:`, opcion)
+              return
+            }
+            
             if (sku && skuToProductId[sku]) {
               lineItems.push({
                 product_id: skuToProductId[sku],
                 quantity: item.cantidad, // Cantidad basada en el producto principal
               })
-              console.log(`[Crear Pedido] ✓ Agregando add-on: ${opcionNombre} (SKU ${sku}, ID ${skuToProductId[sku]})`)
+              console.log(`[Crear Pedido] ✓ Agregando add-on: ${etiqueta} (SKU ${sku}, ID ${skuToProductId[sku]})`)
             } else {
-              console.warn(`[Crear Pedido] ✗ Add-on no encontrado: "${opcionNombre}" | SKU: ${sku || 'NO MAPEADO'} | ID: ${sku ? skuToProductId[sku] || 'NO ENCONTRADO EN WOOCOMMERCE' : 'N/A'}`)
+              console.warn(`[Crear Pedido] ✗ Add-on no encontrado: "${etiqueta}" | SKU: ${sku || 'NO ENCONTRADO'} | ID: ${sku ? skuToProductId[sku] || 'NO ENCONTRADO EN WOOCOMMERCE' : 'N/A'}`)
             }
           })
         }

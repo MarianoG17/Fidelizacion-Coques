@@ -70,7 +70,7 @@ export default function TortasPage() {
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
   const [agregado, setAgregado] = useState(false)
-  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: string[] }>({})
+  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: Array<{sku: string, etiqueta: string}> }>({})
   const [camposTextoValores, setCamposTextoValores] = useState<{ [nombreCampo: string]: string }>({})
 
   useEffect(() => {
@@ -133,11 +133,15 @@ export default function TortasPage() {
     }
     
     // Inicializar add-ons requeridos con su primera opción
-    const addOnsIniciales: { [key: string]: string[] } = {}
+    const addOnsIniciales: { [key: string]: Array<{sku: string, etiqueta: string}> } = {}
     if (producto.addOns && producto.addOns.length > 0) {
       producto.addOns.forEach(addOn => {
         if (addOn.requerido && addOn.opciones.length > 0) {
-          addOnsIniciales[addOn.nombre] = [addOn.opciones[0].etiqueta]
+          const primeraOpcion = addOn.opciones[0]
+          addOnsIniciales[addOn.nombre] = [{
+            sku: primeraOpcion.sku || '',
+            etiqueta: primeraOpcion.etiqueta
+          }]
         }
       })
     }
@@ -167,29 +171,30 @@ export default function TortasPage() {
     }
   }
 
-  function toggleAddOn(addOnNombre: string, opcionEtiqueta: string, tipo: 'radio' | 'checkbox' = 'checkbox') {
+  function toggleAddOn(addOnNombre: string, opcionSku: string, opcionEtiqueta: string, tipo: 'radio' | 'checkbox' = 'checkbox') {
     setAddOnsSeleccionados(prev => {
       const nuevosAddOns = { ...prev }
+      const opcionObj = { sku: opcionSku, etiqueta: opcionEtiqueta }
 
       if (tipo === 'radio') {
         // Para radio buttons, reemplazar la selección
-        nuevosAddOns[addOnNombre] = [opcionEtiqueta]
+        nuevosAddOns[addOnNombre] = [opcionObj]
       } else {
         // Para checkboxes, toggle normal
         if (!nuevosAddOns[addOnNombre]) {
           nuevosAddOns[addOnNombre] = []
         }
 
-        const index = nuevosAddOns[addOnNombre].indexOf(opcionEtiqueta)
+        const index = nuevosAddOns[addOnNombre].findIndex(o => o.sku === opcionSku)
         if (index > -1) {
           // Ya está seleccionado, removerlo
-          nuevosAddOns[addOnNombre] = nuevosAddOns[addOnNombre].filter(o => o !== opcionEtiqueta)
+          nuevosAddOns[addOnNombre] = nuevosAddOns[addOnNombre].filter(o => o.sku !== opcionSku)
           if (nuevosAddOns[addOnNombre].length === 0) {
             delete nuevosAddOns[addOnNombre]
           }
         } else {
           // No está seleccionado, agregarlo
-          nuevosAddOns[addOnNombre].push(opcionEtiqueta)
+          nuevosAddOns[addOnNombre].push(opcionObj)
         }
       }
 
@@ -211,8 +216,8 @@ export default function TortasPage() {
       if (productoSeleccionado.addOns) {
         productoSeleccionado.addOns.forEach(addOn => {
           const seleccionados = addOnsSeleccionados[addOn.nombre] || []
-          seleccionados.forEach(etiqueta => {
-            const opcion = addOn.opciones.find(o => o.etiqueta === etiqueta)
+          seleccionados.forEach(seleccion => {
+            const opcion = addOn.opciones.find(o => o.sku === seleccion.sku)
             if (opcion) {
               precioBase += opcion.precio
             }
@@ -248,8 +253,8 @@ export default function TortasPage() {
     if (productoSeleccionado.addOns) {
       productoSeleccionado.addOns.forEach(addOn => {
         const seleccionados = addOnsSeleccionados[addOn.nombre] || []
-        seleccionados.forEach(etiqueta => {
-          const opcion = addOn.opciones.find(o => o.etiqueta === etiqueta)
+        seleccionados.forEach(seleccion => {
+          const opcion = addOn.opciones.find(o => o.sku === seleccion.sku)
           if (opcion) {
             precioAddOns += opcion.precio
           }
@@ -561,8 +566,8 @@ export default function TortasPage() {
                                   <input
                                     type={addOn.tipo === 'radio' ? 'radio' : 'checkbox'}
                                     name={addOn.tipo === 'radio' ? addOn.nombre : undefined}
-                                    checked={addOnsSeleccionados[addOn.nombre]?.includes(opcion.etiqueta) || false}
-                                    onChange={() => toggleAddOn(addOn.nombre, opcion.etiqueta, addOn.tipo)}
+                                    checked={addOnsSeleccionados[addOn.nombre]?.some(o => o.sku === opcion.sku) || false}
+                                    onChange={() => toggleAddOn(addOn.nombre, opcion.sku || '', opcion.etiqueta, addOn.tipo)}
                                     className="w-5 h-5 text-purple-600 focus:ring-purple-500"
                                   />
                                   <span className="text-gray-800">{opcion.etiqueta}</span>

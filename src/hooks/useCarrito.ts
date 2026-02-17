@@ -12,7 +12,7 @@ export interface ItemCarrito {
   cantidad: number
   imagen: string | null
   rendimiento?: string | null
-  addOns?: {[nombre: string]: string[]}
+  addOns?: {[addOnNombre: string]: Array<{sku: string, etiqueta: string}>}
   precioAddOns?: number
   camposTexto?: {[nombreCampo: string]: string}
 }
