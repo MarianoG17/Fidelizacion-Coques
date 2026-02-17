@@ -100,7 +100,12 @@ export async function POST(req: NextRequest) {
       })
       
       // Registrar visita bonus para el referidor
-      const localPrincipal = await prisma.local.findFirst()
+      const localPrincipal = await prisma.local.findFirst({
+          where: {
+              tipo: 'cafeteria',
+              activo: true
+          }
+      })
       if (localPrincipal) {
         await prisma.eventoScan.create({
           data: {
