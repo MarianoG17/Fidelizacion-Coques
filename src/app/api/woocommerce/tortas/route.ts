@@ -52,20 +52,8 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
   338: [ // Chocotorta
     { sku: '260', nombre: 'Adicional Chocotorta' }
   ],
-  325: [ // Torta Ganache de Chocolate
-    // Rellenos obligatorios (sin costo adicional, incluidos en precio base)
-    { sku: '467', nombre: 'Relleno de Dulce de Leche' },
-    { sku: '466', nombre: 'Relleno de Chocolate' },
-    // Rellenos opcionales (con costo adicional)
-    { sku: '300', nombre: 'Relleno de Nutella' },
-    { sku: '260', nombre: 'Adicional' },
-    // Bizcochuelos
-    { sku: '461', nombre: 'Bizcochuelo Marmolado' },
-    { sku: '398', nombre: 'Bizcochuelo de Chocolate' },
-    { sku: '399', nombre: 'Bizcochuelo de Vainilla' },
-    // Cubiertas
-    { sku: '465', nombre: 'Cubierta Merengue' },
-    { sku: '464', nombre: 'Cubierta Ganache' }
+  325: [ // Torta Ganache de Chocolate - solo adicional extra
+    { sku: '260', nombre: 'Adicional' }
   ],
   388: [ // Torta Havannet
     { sku: '260', nombre: 'Adicional' }
@@ -73,6 +61,51 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
   343: [ // Torta Rogel
     { sku: '260', nombre: 'Adicional' }
   ],
+}
+
+/**
+ * Mapeo de adicionales agrupados por categorías
+ * Para productos que requieren selección entre opciones agrupadas
+ */
+const ADICIONALES_AGRUPADOS: {
+  [key: number]: {
+    nombre: string;
+    tipo: 'radio' | 'checkbox';
+    requerido: boolean;
+    opciones: { sku: string }[]
+  }[]
+} = {
+  325: [ // Torta Ganache de Chocolate
+    {
+      nombre: 'Relleno',
+      tipo: 'radio',
+      requerido: true,
+      opciones: [
+        { sku: '467' }, // Relleno de Dulce de Leche (sin costo)
+        { sku: '466' }, // Relleno de Chocolate (sin costo)
+        { sku: '300' }  // Relleno de Nutella (con costo)
+      ]
+    },
+    {
+      nombre: 'Bizcochuelo',
+      tipo: 'radio',
+      requerido: true,
+      opciones: [
+        { sku: '461' }, // Marmolado
+        { sku: '398' }, // Chocolate
+        { sku: '399' }  // Vainilla
+      ]
+    },
+    {
+      nombre: 'Cubierta',
+      tipo: 'radio',
+      requerido: true,
+      opciones: [
+        { sku: '465' }, // Merengue
+        { sku: '464' }  // Ganache
+      ]
+    }
+  ]
 }
 
 /**
@@ -106,15 +139,19 @@ export async function GET(req: NextRequest) {
     }
 
     // Paso 0: Obtener información de productos adicionales por SKU
-    const adicionalesSkus = [...new Set(
-      Object.values(ADICIONALES_POR_PRODUCTO)
-        .flat()
-        .map(a => a.sku)
-    )]
-    
+    const skusSimples = Object.values(ADICIONALES_POR_PRODUCTO)
+      .flat()
+      .map(a => a.sku)
+
+    const skusAgrupados = Object.values(ADICIONALES_AGRUPADOS)
+      .flat()
+      .flatMap(grupo => grupo.opciones.map(opt => opt.sku))
+
+    const adicionalesSkus = [...new Set([...skusSimples, ...skusAgrupados])]
+
     // Mapeo de SKU -> {id, precio, nombre} para productos adicionales
     const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
-    
+
     if (adicionalesSkus.length > 0) {
       try {
         // Buscar productos por SKU
@@ -123,7 +160,7 @@ export async function GET(req: NextRequest) {
             `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
             { headers }
           )
-          
+
           if (skuResponse.ok) {
             const skuData = await skuResponse.json()
             if (skuData.length > 0) {
@@ -292,6 +329,38 @@ export async function GET(req: NextRequest) {
               })
             } else {
               console.warn(`[Tortas API] No se encontró info para SKU ${adicional.sku}`)
+            }
+          })
+        }
+
+        // Agregar adicionales agrupados si este producto los tiene configurados
+        const adicionalesAgrupados = ADICIONALES_AGRUPADOS[product.id]
+        if (adicionalesAgrupados) {
+          adicionalesAgrupados.forEach(grupo => {
+            const opcionesFormateadas = grupo.opciones
+              .map(opt => {
+                const info = adicionalesInfo[opt.sku]
+                if (info) {
+                  return {
+                    etiqueta: info.nombre,
+                    precio: info.precio,
+                    precioTipo: 'flat_fee' as const,
+                    wooId: info.id,
+                    sku: opt.sku
+                  }
+                }
+                return null
+              })
+              .filter(opt => opt !== null) as any[]
+
+            if (opcionesFormateadas.length > 0) {
+              addOnsFormateados.push({
+                nombre: grupo.nombre,
+                descripcion: '',
+                tipo: grupo.tipo,
+                requerido: grupo.requerido,
+                opciones: opcionesFormateadas
+              })
             }
           })
         }

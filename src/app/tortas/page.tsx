@@ -16,7 +16,7 @@ interface AddOnOpcion {
 interface AddOn {
   nombre: string
   descripcion: string
-  tipo: string
+  tipo: 'radio' | 'checkbox'
   requerido: boolean
   opciones: AddOnOpcion[]
 }
@@ -70,7 +70,7 @@ export default function TortasPage() {
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
   const [agregado, setAgregado] = useState(false)
-  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{[key: string]: string[]}>({})
+  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: string[] }>({})
 
   useEffect(() => {
     cargarTortas()
@@ -153,40 +153,47 @@ export default function TortasPage() {
       window.history.back()
     }
   }
-  
-  function toggleAddOn(addOnNombre: string, opcionEtiqueta: string) {
+
+  function toggleAddOn(addOnNombre: string, opcionEtiqueta: string, tipo: 'radio' | 'checkbox' = 'checkbox') {
     setAddOnsSeleccionados(prev => {
       const nuevosAddOns = { ...prev }
-      if (!nuevosAddOns[addOnNombre]) {
-        nuevosAddOns[addOnNombre] = []
-      }
-      
-      const index = nuevosAddOns[addOnNombre].indexOf(opcionEtiqueta)
-      if (index > -1) {
-        // Ya está seleccionado, removerlo
-        nuevosAddOns[addOnNombre] = nuevosAddOns[addOnNombre].filter(o => o !== opcionEtiqueta)
-        if (nuevosAddOns[addOnNombre].length === 0) {
-          delete nuevosAddOns[addOnNombre]
-        }
+
+      if (tipo === 'radio') {
+        // Para radio buttons, reemplazar la selección
+        nuevosAddOns[addOnNombre] = [opcionEtiqueta]
       } else {
-        // No está seleccionado, agregarlo
-        nuevosAddOns[addOnNombre].push(opcionEtiqueta)
+        // Para checkboxes, toggle normal
+        if (!nuevosAddOns[addOnNombre]) {
+          nuevosAddOns[addOnNombre] = []
+        }
+
+        const index = nuevosAddOns[addOnNombre].indexOf(opcionEtiqueta)
+        if (index > -1) {
+          // Ya está seleccionado, removerlo
+          nuevosAddOns[addOnNombre] = nuevosAddOns[addOnNombre].filter(o => o !== opcionEtiqueta)
+          if (nuevosAddOns[addOnNombre].length === 0) {
+            delete nuevosAddOns[addOnNombre]
+          }
+        } else {
+          // No está seleccionado, agregarlo
+          nuevosAddOns[addOnNombre].push(opcionEtiqueta)
+        }
       }
-      
+
       return nuevosAddOns
     })
   }
-  
+
   function calcularPrecioTotal(): number {
     let precioBase = 0
-    
+
     if (productoSeleccionado) {
       if (varianteSeleccionada) {
         precioBase = parseFloat(varianteSeleccionada.precio)
       } else {
         precioBase = parseFloat(productoSeleccionado.precio)
       }
-      
+
       // Sumar precios de add-ons seleccionados
       if (productoSeleccionado.addOns) {
         productoSeleccionado.addOns.forEach(addOn => {
@@ -200,7 +207,7 @@ export default function TortasPage() {
         })
       }
     }
-    
+
     return precioBase
   }
 
@@ -508,7 +515,10 @@ export default function TortasPage() {
                     <div className="space-y-4">
                       {productoSeleccionado.addOns.map((addOn) => (
                         <div key={addOn.nombre} className="border border-gray-200 rounded-xl p-4">
-                          <h4 className="font-semibold text-gray-800 mb-2">{addOn.nombre}</h4>
+                          <h4 className="font-semibold text-gray-800 mb-2">
+                            {addOn.nombre}
+                            {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
+                          </h4>
                           {addOn.descripcion && (
                             <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
                           )}
@@ -520,16 +530,19 @@ export default function TortasPage() {
                               >
                                 <div className="flex items-center gap-3">
                                   <input
-                                    type="checkbox"
+                                    type={addOn.tipo === 'radio' ? 'radio' : 'checkbox'}
+                                    name={addOn.tipo === 'radio' ? addOn.nombre : undefined}
                                     checked={addOnsSeleccionados[addOn.nombre]?.includes(opcion.etiqueta) || false}
-                                    onChange={() => toggleAddOn(addOn.nombre, opcion.etiqueta)}
-                                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                    onChange={() => toggleAddOn(addOn.nombre, opcion.etiqueta, addOn.tipo)}
+                                    className="w-5 h-5 text-purple-600 focus:ring-purple-500"
                                   />
                                   <span className="text-gray-800">{opcion.etiqueta}</span>
                                 </div>
-                                <span className="text-green-600 font-semibold">
-                                  +${formatearPrecio(opcion.precio)}
-                                </span>
+                                {opcion.precio > 0 && (
+                                  <span className="text-green-600 font-semibold">
+                                    +${formatearPrecio(opcion.precio)}
+                                  </span>
+                                )}
                               </label>
                             ))}
                           </div>
