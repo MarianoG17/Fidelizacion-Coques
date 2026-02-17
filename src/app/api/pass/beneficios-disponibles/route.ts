@@ -116,8 +116,9 @@ export async function GET(req: NextRequest) {
         )
 
         // Separar beneficios disponibles y usados
+        // Los beneficios de uso único ya utilizados NO se muestran (se pueden ver en historial)
         const disponibles = beneficiosConUso.filter((b) => b.disponible)
-        const usados = beneficiosConUso.filter((b) => !b.disponible)
+        const usados = beneficiosConUso.filter((b) => !b.disponible && !b.yaUsado)
 
         return NextResponse.json({
             data: {
