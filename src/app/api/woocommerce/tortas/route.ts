@@ -266,8 +266,11 @@ export async function GET(req: NextRequest) {
     const controller2 = new AbortController()
     const timeout2 = setTimeout(() => controller2.abort(), 15000)
 
+    // ⚡ OPTIMIZACIÓN: Reducir de 50 a 15 productos
+    // La mayoría de usuarios no necesitan ver todos los productos a la vez
+    // Esto reduce el tiempo de carga significativamente
     const productsResponse = await fetch(
-      `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=50&status=publish`,
+      `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=15&status=publish`,
       {
         headers,
         signal: controller2.signal,
@@ -308,8 +311,10 @@ export async function GET(req: NextRequest) {
             const controller3 = new AbortController()
             const timeout3 = setTimeout(() => controller3.abort(), 10000)
 
+            // ⚡ OPTIMIZACIÓN: Reducir variaciones de 50 a 10
+            // Pocos productos tienen más de 10 variantes
             const variationsResponse = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=50`,
+              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=10`,
               {
                 headers,
                 signal: controller3.signal,

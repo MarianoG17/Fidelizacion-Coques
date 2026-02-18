@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
@@ -152,13 +152,14 @@ export default function TortasPage() {
   }
 
   // Función para formatear precio con separador de miles
-  function formatearPrecio(precio: string | number): string {
+  // ⚡ OPTIMIZACIÓN: Memoizar función de formateo
+  const formatearPrecio = useCallback((precio: string | number): string => {
     const precioNum = typeof precio === 'string' ? parseFloat(precio) : precio
     return precioNum.toLocaleString('es-AR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
-  }
+  }, [])
 
   function cerrarDetalles() {
     setProductoSeleccionado(null)
@@ -202,7 +203,8 @@ export default function TortasPage() {
     })
   }
 
-  function calcularPrecioTotal(): number {
+  // ⚡ OPTIMIZACIÓN: Memoizar cálculo de precio total
+  const calcularPrecioTotal = useCallback((): number => {
     let precioBase = 0
 
     if (productoSeleccionado) {
@@ -227,9 +229,10 @@ export default function TortasPage() {
     }
 
     return precioBase
-  }
+  }, [productoSeleccionado, varianteSeleccionada, addOnsSeleccionados])
 
-  function agregarAlCarrito() {
+  // ⚡ OPTIMIZACIÓN: Memoizar función de agregar al carrito
+  const agregarAlCarrito = useCallback(() => {
     if (!productoSeleccionado) return
 
     // Si es producto variable, necesita variante seleccionada
@@ -280,7 +283,10 @@ export default function TortasPage() {
 
     // Ocultar mensaje después de 2 segundos
     setTimeout(() => setAgregado(false), 2000)
-  }
+  }, [productoSeleccionado, varianteSeleccionada, addOnsSeleccionados, camposTextoValores, agregarItem])
+
+  // ⚡ OPTIMIZACIÓN: Memoizar productos filtrados (si agregas filtros en el futuro)
+  const productosVisibles = useMemo(() => productos, [productos])
 
   return (
     <div className="min-h-screen bg-white">
@@ -384,9 +390,9 @@ export default function TortasPage() {
           </div>
         )}
 
-        {!loading && productos.length > 0 && (
+        {!loading && productosVisibles.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {productos.map((producto) => (
+            {productosVisibles.map((producto) => (
               <div
                 key={producto.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
