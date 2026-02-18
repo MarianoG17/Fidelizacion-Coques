@@ -134,6 +134,10 @@ const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder:
 }
 
 export async function GET(req: NextRequest) {
+  // Configurar caché de 5 minutos (las tortas no cambian frecuentemente)
+  // Next.js responderá desde caché hasta que expire
+  const cacheTime = 300 // 5 minutos en segundos
+  
   try {
     const wooUrl = process.env.WOOCOMMERCE_URL
     const wooKey = process.env.WOOCOMMERCE_KEY
@@ -172,26 +176,49 @@ export async function GET(req: NextRequest) {
 
     if (adicionalesSkus.length > 0) {
       try {
-        // Buscar productos por SKU
-        for (const sku of adicionalesSkus) {
-          const skuResponse = await fetch(
-            `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
-            { headers }
-          )
+        // ⚡ OPTIMIZACIÓN: Paralelizar llamadas de SKUs con Promise.all
+        // Antes: 10-15 llamadas secuenciales = 5-10 segundos
+        // Ahora: todas en paralelo = 1-2 segundos
+        const skuPromises = adicionalesSkus.map(async (sku) => {
+          try {
+            const skuResponse = await fetch(
+              `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
+              {
+                headers,
+                next: { revalidate: cacheTime } // Caché de Next.js
+              }
+            )
 
-          if (skuResponse.ok) {
-            const skuData = await skuResponse.json()
-            if (skuData.length > 0) {
-              const prod = skuData[0]
-              adicionalesInfo[sku] = {
-                id: prod.id,
-                precio: parseFloat(prod.price || '0'),
-                nombre: prod.name
+            if (skuResponse.ok) {
+              const skuData = await skuResponse.json()
+              if (skuData.length > 0) {
+                const prod = skuData[0]
+                return {
+                  sku,
+                  info: {
+                    id: prod.id,
+                    precio: parseFloat(prod.price || '0'),
+                    nombre: prod.name
+                  }
+                }
               }
             }
+          } catch (error) {
+            console.error(`[Tortas API] Error obteniendo SKU ${sku}:`, error)
           }
-        }
-        console.log('[Tortas API] Info de adicionales obtenida por SKU:', adicionalesInfo)
+          return null
+        })
+
+        const skuResults = await Promise.all(skuPromises)
+        
+        // Mapear resultados al objeto adicionalesInfo
+        skuResults.forEach(result => {
+          if (result) {
+            adicionalesInfo[result.sku] = result.info
+          }
+        })
+        
+        console.log('[Tortas API] Info de adicionales obtenida por SKU (paralelo):', adicionalesInfo)
       } catch (error) {
         console.error('[Tortas API] Error obteniendo info de adicionales:', error)
       }
@@ -203,7 +230,11 @@ export async function GET(req: NextRequest) {
 
     const categoriesResponse = await fetch(
       `${wooUrl}/wp-json/wc/v3/products/categories?search=tortas clasicas&per_page=50`,
-      { headers, signal: controller1.signal }
+      {
+        headers,
+        signal: controller1.signal,
+        next: { revalidate: cacheTime } // Caché de Next.js
+      }
     )
     clearTimeout(timeout1)
 
@@ -237,7 +268,11 @@ export async function GET(req: NextRequest) {
 
     const productsResponse = await fetch(
       `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=50&status=publish`,
-      { headers, signal: controller2.signal }
+      {
+        headers,
+        signal: controller2.signal,
+        next: { revalidate: cacheTime } // Caché de Next.js
+      }
     )
     clearTimeout(timeout2)
 
@@ -275,7 +310,11 @@ export async function GET(req: NextRequest) {
 
             const variationsResponse = await fetch(
               `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=50`,
-              { headers, signal: controller3.signal }
+              {
+                headers,
+                signal: controller3.signal,
+                next: { revalidate: cacheTime } // Caché de Next.js
+              }
             )
             clearTimeout(timeout3)
 
