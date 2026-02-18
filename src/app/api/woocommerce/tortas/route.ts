@@ -293,17 +293,58 @@ export async function GET(req: NextRequest) {
 
     const products = await productsResponse.json()
 
-    // ⚡ PASO 3 OPTIMIZADO: NO cargar variaciones aquí (lazy loading)
-    // Solo procesar información básica de productos
-    // Esto hace la carga inicial 10X más rápida (solo 3-4 llamadas HTTP)
+    // ⚡ PASO 3: Cargar variaciones de productos variables en batch
+    // Identificar productos variables y cargar sus variaciones
+    const productosVariables = products.filter((p: any) => p.type === 'variable')
+    
+    // Mapa de variaciones por producto ID
+    const variacionesPorProducto: { [productId: number]: any[] } = {}
+    
+    if (productosVariables.length > 0) {
+      console.log(`[Tortas API] Cargando variaciones de ${productosVariables.length} productos variables...`)
+      
+      // Cargar variaciones en paralelo con límite de concurrencia
+      const batchSize = 5 // 5 productos a la vez
+      for (let i = 0; i < productosVariables.length; i += batchSize) {
+        const batch = productosVariables.slice(i, i + batchSize)
+        
+        const variacionesPromises = batch.map(async (product: any) => {
+          try {
+            const varResponse = await fetch(
+              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=100`,
+              {
+                headers,
+                next: { revalidate: cacheTime }
+              }
+            )
+            
+            if (varResponse.ok) {
+              const variaciones = await varResponse.json()
+              return { productId: product.id, variaciones }
+            }
+          } catch (error) {
+            console.error(`[Tortas API] Error cargando variaciones de producto ${product.id}:`, error)
+          }
+          return { productId: product.id, variaciones: [] }
+        })
+        
+        const resultados = await Promise.all(variacionesPromises)
+        resultados.forEach(({ productId, variaciones }) => {
+          variacionesPorProducto[productId] = variaciones
+        })
+      }
+      
+      console.log(`[Tortas API] Variaciones cargadas para ${Object.keys(variacionesPorProducto).length} productos`)
+    }
+
+    // Procesar productos con sus variaciones
     const productsWithVariations = products.map((product: any) => {
         // Extraer add-ons del meta_data
         const addOns = product.meta_data?.filter((meta: any) =>
           meta.key === '_product_addons'
         )?.[0]?.value || []
 
-        // Para productos variables: NO cargar variaciones ahora
-        // El frontend las pedirá bajo demanda cuando usuario haga clic
+        // Procesar variaciones
         let variations: any[] = []
 
         // Agregar variante sintética para mini producto si existe
@@ -312,7 +353,7 @@ export async function GET(req: NextRequest) {
           const infoMini = adicionalesInfo[skuMini]
           if (infoMini) {
             // Agregar como primera variante (al inicio del array)
-            variations.unshift({
+            variations.push({
               id: infoMini.id,
               sku: skuMini,
               precio: infoMini.precio.toString(),
@@ -331,6 +372,39 @@ export async function GET(req: NextRequest) {
           } else {
             console.warn(`[MINI] No se encontró info para SKU mini ${skuMini} del producto ${product.name}`)
           }
+        }
+        
+        // Si es producto variable, agregar sus variaciones de WooCommerce
+        if (product.type === 'variable' && variacionesPorProducto[product.id]) {
+          const variacionesWoo = variacionesPorProducto[product.id]
+          
+          variacionesWoo.forEach((variacion: any) => {
+            // Extraer atributos (ej: pa_tamano -> Tamaño)
+            const atributos = variacion.attributes?.map((attr: any) => ({
+              nombre: attr.name?.replace('pa_', '').replace(/-/g, ' ') || '',
+              valor: attr.option || ''
+            })) || []
+            
+            // Crear nombre de variante desde atributos
+            const nombreVariante = atributos.map((a: any) => a.valor).join(' - ') || variacion.sku
+            
+            // Extraer rendimiento de la descripción de la variante
+            const rendimientoVariante = extraerRendimiento(variacion.description || '')
+            
+            variations.push({
+              id: variacion.id,
+              sku: variacion.sku,
+              precio: variacion.price || '0',
+              precioRegular: variacion.regular_price || variacion.price || '0',
+              precioOferta: variacion.sale_price || '',
+              enStock: variacion.stock_status === 'instock',
+              stock: variacion.stock_quantity,
+              atributos,
+              nombreVariante,
+              imagen: variacion.image?.src || product.images?.[0]?.src || null,
+              rendimiento: rendimientoVariante,
+            })
+          })
         }
 
         // Extraer rendimiento del producto
@@ -409,6 +483,18 @@ export async function GET(req: NextRequest) {
         // Obtener campos de texto personalizados
         const camposTexto = CAMPOS_TEXTO_POR_PRODUCTO[product.id] || []
 
+        // Calcular precio mínimo y máximo basado en variaciones reales
+        let precioMin = product.price ? parseFloat(product.price) : null
+        let precioMax = product.price ? parseFloat(product.price) : null
+        
+        if (variations.length > 0) {
+          const precios = variations.map(v => parseFloat(v.precio)).filter(p => !isNaN(p))
+          if (precios.length > 0) {
+            precioMin = Math.min(...precios)
+            precioMax = Math.max(...precios)
+          }
+        }
+
         return {
           id: product.id,
           nombre: product.name,
@@ -425,11 +511,11 @@ export async function GET(req: NextRequest) {
           stock: product.stock_quantity,
           enStock: product.stock_status === 'instock',
           rendimiento: rendimientoProducto,
-          // Para productos variables: array VACÍO (lazy loading)
+          // Variaciones cargadas desde WooCommerce
           variantes: variations,
-          // Rango de precios desde WooCommerce (pre-calculado)
-          precioMin: product.price ? parseFloat(product.price) : null,
-          precioMax: product.price ? parseFloat(product.price) : null,
+          // Rango de precios calculado desde variaciones
+          precioMin,
+          precioMax,
           categorias: product.categories?.map((c: any) => c.name) || [],
           // Add-ons opcionales
           addOns: addOnsFormateados,
