@@ -13,12 +13,42 @@ interface Cliente {
   _count: { eventos: number }
 }
 
+interface Actividad {
+  id: string
+  timestamp: string
+  tipoEvento: string
+  metodoValidacion: string
+  notas: string | null
+  contabilizada: boolean
+  local: { nombre: string; tipo: string }
+  beneficio: { nombre: string; descripcionCaja: string } | null
+  mesa: { nombre: string } | null
+}
+
+interface ActividadesData {
+  cliente: {
+    nombre: string | null
+    phone: string
+    email: string | null
+  }
+  eventos: Actividad[]
+  estadisticas: {
+    totalEventos: number
+    visitasContabilizadas: number
+    visitasBonus: number
+    beneficiosAplicados: number
+  }
+}
+
 export function Clientes({ adminKey }: { adminKey: string }) {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [cargando, setCargando] = useState(true)
   const [filtro, setFiltro] = useState('')
   const [nivelFiltro, setNivelFiltro] = useState('TODOS')
   const [eliminando, setEliminando] = useState<string | null>(null)
+  const [actividadesAbiertas, setActividadesAbiertas] = useState<string | null>(null)
+  const [actividadesData, setActividadesData] = useState<ActividadesData | null>(null)
+  const [cargandoActividades, setCargandoActividades] = useState(false)
 
   useEffect(() => {
     fetchClientes()
@@ -104,6 +134,63 @@ export function Clientes({ adminKey }: { adminKey: string }) {
       alert('Error de conexión al eliminar permanentemente')
     } finally {
       setEliminando(null)
+    }
+  }
+
+  async function verActividades(clienteId: string) {
+    setActividadesAbiertas(clienteId)
+    setCargandoActividades(true)
+    setActividadesData(null)
+
+    try {
+      const res = await fetch(`/api/admin/clientes/${clienteId}/actividades`, {
+        headers: { 'x-admin-key': adminKey },
+      })
+
+      if (res.ok) {
+        const json = await res.json()
+        setActividadesData(json.data)
+      } else {
+        alert('Error al cargar actividades')
+        setActividadesAbiertas(null)
+      }
+    } catch (error) {
+      console.error('Error al cargar actividades:', error)
+      alert('Error de conexión al cargar actividades')
+      setActividadesAbiertas(null)
+    } finally {
+      setCargandoActividades(false)
+    }
+  }
+
+  function cerrarActividades() {
+    setActividadesAbiertas(null)
+    setActividadesData(null)
+  }
+
+  function formatearFecha(timestamp: string): string {
+    const fecha = new Date(timestamp)
+    return fecha.toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  function getTipoEventoBadge(tipo: string): { bg: string; text: string } {
+    switch (tipo) {
+      case 'VISITA':
+        return { bg: 'bg-blue-900', text: 'text-blue-200' }
+      case 'BENEFICIO_APLICADO':
+        return { bg: 'bg-green-900', text: 'text-green-200' }
+      case 'ACTIVACION':
+        return { bg: 'bg-purple-900', text: 'text-purple-200' }
+      case 'ESTADO_EXTERNO':
+        return { bg: 'bg-yellow-900', text: 'text-yellow-200' }
+      default:
+        return { bg: 'bg-slate-700', text: 'text-slate-300' }
     }
   }
 
@@ -263,6 +350,13 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   <td className="p-4">
                     <div className="flex gap-2">
                       <button
+                        onClick={() => verActividades(cliente.id)}
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                        title="Ver historial de actividades"
+                      >
+                        📋
+                      </button>
+                      <button
                         onClick={() => eliminarCliente(cliente.id, cliente.nombre || 'Sin nombre')}
                         disabled={eliminando === cliente.id}
                         className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -292,6 +386,146 @@ export function Clientes({ adminKey }: { adminKey: string }) {
           </div>
         )}
       </div>
+
+      {/* Modal de Actividades */}
+      {actividadesAbiertas && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header del Modal */}
+            <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-bold text-white">
+                  Actividades del Cliente
+                </h3>
+                {actividadesData && (
+                  <p className="text-slate-400 text-sm mt-1">
+                    {actividadesData.cliente.nombre || actividadesData.cliente.phone}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={cerrarActividades}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Contenido del Modal */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {cargandoActividades ? (
+                <div className="flex justify-center py-12">
+                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : actividadesData ? (
+                <>
+                  {/* Estadísticas */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-slate-700 rounded-xl p-4">
+                      <p className="text-slate-400 text-sm">Total Eventos</p>
+                      <p className="text-2xl font-bold text-white">
+                        {actividadesData.estadisticas.totalEventos}
+                      </p>
+                    </div>
+                    <div className="bg-slate-700 rounded-xl p-4">
+                      <p className="text-slate-400 text-sm">Visitas</p>
+                      <p className="text-2xl font-bold text-blue-400">
+                        {actividadesData.estadisticas.visitasContabilizadas}
+                      </p>
+                    </div>
+                    <div className="bg-slate-700 rounded-xl p-4">
+                      <p className="text-slate-400 text-sm">Visitas Bonus</p>
+                      <p className="text-2xl font-bold text-purple-400">
+                        {actividadesData.estadisticas.visitasBonus}
+                      </p>
+                    </div>
+                    <div className="bg-slate-700 rounded-xl p-4">
+                      <p className="text-slate-400 text-sm">Beneficios</p>
+                      <p className="text-2xl font-bold text-green-400">
+                        {actividadesData.estadisticas.beneficiosAplicados}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Lista de Actividades */}
+                  <div className="space-y-3">
+                    {actividadesData.eventos.map((evento) => {
+                      const badge = getTipoEventoBadge(evento.tipoEvento)
+                      return (
+                        <div
+                          key={evento.id}
+                          className="bg-slate-700 rounded-xl p-4 hover:bg-slate-650 transition"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+                              {evento.tipoEvento}
+                            </span>
+                            <span className="text-slate-400 text-sm">
+                              {formatearFecha(evento.timestamp)}
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-1 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400">Local:</span>
+                              <span className="text-white">{evento.local.nombre} ({evento.local.tipo})</span>
+                            </div>
+                            
+                            {evento.mesa && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-400">Mesa:</span>
+                                <span className="text-white">{evento.mesa.nombre}</span>
+                              </div>
+                            )}
+                            
+                            {evento.beneficio && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-400">Beneficio:</span>
+                                <span className="text-white">{evento.beneficio.nombre}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400">Método:</span>
+                              <span className="text-white">{evento.metodoValidacion}</span>
+                            </div>
+                            
+                            {evento.notas && (
+                              <div className="mt-2 p-2 bg-slate-600 rounded">
+                                <span className="text-slate-300 text-xs italic">{evento.notas}</span>
+                              </div>
+                            )}
+                            
+                            {!evento.contabilizada && (
+                              <div className="mt-2">
+                                <span className="px-2 py-1 bg-orange-900 text-orange-200 rounded text-xs">
+                                  No contabilizada
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {actividadesData.eventos.length === 0 && (
+                    <div className="text-center py-12 text-slate-400">
+                      No hay actividades registradas para este cliente
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  Error al cargar actividades
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
