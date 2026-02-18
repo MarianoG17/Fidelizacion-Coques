@@ -226,7 +226,7 @@ export async function GET(req: NextRequest) {
 
     // Paso 1: Obtener el ID de la categoría "tortas clasicas"
     const controller1 = new AbortController()
-    const timeout1 = setTimeout(() => controller1.abort(), 10000)
+    const timeout1 = setTimeout(() => controller1.abort(), 20000) // Aumentado a 20s
 
     const categoriesResponse = await fetch(
       `${wooUrl}/wp-json/wc/v3/products/categories?search=tortas clasicas&per_page=50`,
@@ -264,7 +264,7 @@ export async function GET(req: NextRequest) {
 
     // Paso 2: Obtener productos de esa categoría
     const controller2 = new AbortController()
-    const timeout2 = setTimeout(() => controller2.abort(), 15000)
+    const timeout2 = setTimeout(() => controller2.abort(), 30000) // Aumentado a 30s
 
     // ⚡ OPTIMIZACIÓN: Reducir de 50 a 25 productos
     // Suficiente para las ~22 tortas actuales + margen
@@ -309,7 +309,7 @@ export async function GET(req: NextRequest) {
         if (product.type === 'variable') {
           try {
             const controller3 = new AbortController()
-            const timeout3 = setTimeout(() => controller3.abort(), 10000)
+            const timeout3 = setTimeout(() => controller3.abort(), 20000) // Aumentado a 20s
 
             // ⚡ OPTIMIZACIÓN: Reducir variaciones de 50 a 10
             // Pocos productos tienen más de 10 variantes

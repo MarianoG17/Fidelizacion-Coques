@@ -151,7 +151,7 @@ export default function PassPage() {
     return () => clearInterval(interval)
   }, [fetchPass, fetchBeneficios, fetchNiveles])
 
-  // ⚡ OPTIMIZACIÓN AGRESIVA: Prefetch inmediato de tortas
+  // ⚡ OPTIMIZACIÓN: Prefetch de tortas con delay
   useEffect(() => {
     const prefetchTortas = async () => {
       try {
@@ -171,9 +171,13 @@ export default function PassPage() {
       }
     }
 
-    // Prefetch inmediato - sin esperar
-    // Esto hace que las tortas estén listas cuando el usuario navegue
-    prefetchTortas()
+    // Esperar 1 segundo antes de hacer prefetch
+    // Esto da tiempo a que la página principal cargue primero
+    const timer = setTimeout(() => {
+      prefetchTortas()
+    }, 1000)
+
+    return () => clearTimeout(timer)
   }, [])
 
   // Countdown visual
