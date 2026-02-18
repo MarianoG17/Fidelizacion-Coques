@@ -11,6 +11,8 @@ interface Pedido {
     estado: string
     estadoTexto: string
     fechaCreacion: string
+    fechaEntrega: string | null
+    horaEntrega: string | null
     total: string
     moneda: string
     metodoPago: string
@@ -295,16 +297,25 @@ export default function HistorialPage() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="text-sm text-gray-500">
-                                                        {fecha.toLocaleDateString('es-AR', {
-                                                            weekday: 'long',
-                                                            day: 'numeric',
-                                                            month: 'long',
-                                                        })} • {fecha.toLocaleTimeString('es-AR', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                        })}
-                                                    </p>
+                                                    {/* Mostrar fecha de entrega si existe, sino fecha de creación */}
+                                                    {pedido.fechaEntrega && pedido.horaEntrega ? (
+                                                        <p className="text-sm text-gray-500">
+                                                            <span className="font-medium">Entrega:</span> {pedido.fechaEntrega} • {pedido.horaEntrega}
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500">
+                                                            {fecha.toLocaleDateString('es-AR', {
+                                                                weekday: 'long',
+                                                                day: 'numeric',
+                                                                month: 'long',
+                                                                timeZone: 'America/Argentina/Buenos_Aires'
+                                                            })} • {fecha.toLocaleTimeString('es-AR', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                                timeZone: 'America/Argentina/Buenos_Aires'
+                                                            })}
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${getEstadoColor(pedido.estado)}`}>
                                                     {pedido.estadoTexto}

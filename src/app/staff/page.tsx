@@ -15,7 +15,7 @@ export default function StaffPage() {
         {/* Header */}
         <div className="mb-12">
           <h2 className="text-white/80 text-lg mb-2">Panel de Gestión</h2>
-          <h1 className="text-white text-4xl md:text-5xl font-bold mb-3">Fidelización Zona - Staff</h1>
+          <h1 className="text-white text-4xl md:text-5xl font-bold mb-3">Coques Bakery - Staff</h1>
           <p className="text-white/70 capitalize">{fecha}</p>
         </div>
 

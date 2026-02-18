@@ -108,31 +108,39 @@ export async function GET(req: NextRequest) {
     console.log(`[Mis Pedidos] Filtered orders: ${pedidosFiltrados.length}`)
 
     // Formatear respuesta
-    const pedidos = pedidosFiltrados.map((order: any) => ({
-      id: order.id,
-      numero: order.number,
-      estado: order.status,
-      estadoTexto: getEstadoTexto(order.status),
-      fechaCreacion: order.date_created,
-      fechaActualizacion: order.date_modified,
-      total: order.total,
-      moneda: order.currency,
-      metodoPago: order.payment_method_title,
-      items: order.line_items?.map((item: any) => {
-        // Calcular precio con IVA incluido
-        const precioConIva = parseFloat(item.price) + (parseFloat(item.total_tax) / item.quantity)
-        const totalConIva = parseFloat(item.total) + parseFloat(item.total_tax)
-        
-        return {
-          nombre: item.name,
-          cantidad: item.quantity,
-          precio: precioConIva.toFixed(2),
-          total: totalConIva.toFixed(2),
-          imagen: item.image?.src || null,
-        }
-      }) || [],
-      urlAdmin: `${wooUrl}/wp-admin/post.php?post=${order.id}&action=edit`,
-    }))
+    const pedidos = pedidosFiltrados.map((order: any) => {
+      // Extraer fecha y hora de entrega de los metadatos
+      const fechaEntregaMeta = order.meta_data?.find((m: any) => m.key === '¿Para que fecha querés el pedido?')
+      const horaEntregaMeta = order.meta_data?.find((m: any) => m.key === '¿En que horario?')
+      
+      return {
+        id: order.id,
+        numero: order.number,
+        estado: order.status,
+        estadoTexto: getEstadoTexto(order.status),
+        fechaCreacion: order.date_created,
+        fechaActualizacion: order.date_modified,
+        fechaEntrega: fechaEntregaMeta?.value || null,
+        horaEntrega: horaEntregaMeta?.value || null,
+        total: order.total,
+        moneda: order.currency,
+        metodoPago: order.payment_method_title,
+        items: order.line_items?.map((item: any) => {
+          // Calcular precio con IVA incluido
+          const precioConIva = parseFloat(item.price) + (parseFloat(item.total_tax) / item.quantity)
+          const totalConIva = parseFloat(item.total) + parseFloat(item.total_tax)
+          
+          return {
+            nombre: item.name,
+            cantidad: item.quantity,
+            precio: precioConIva.toFixed(2),
+            total: totalConIva.toFixed(2),
+            imagen: item.image?.src || null,
+          }
+        }) || [],
+        urlAdmin: `${wooUrl}/wp-admin/post.php?post=${order.id}&action=edit`,
+      }
+    })
 
     return NextResponse.json({
       success: true,

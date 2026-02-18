@@ -34,7 +34,7 @@ export default function HomePage() {
         {/* Header */}
         <div className="mb-12">
           <h2 className="text-white/80 text-lg mb-2">Bienvenido/a</h2>
-          <h1 className="text-white text-4xl md:text-5xl font-bold mb-3">Fidelización Zona</h1>
+          <h1 className="text-white text-4xl md:text-5xl font-bold mb-3">Coques Bakery</h1>
           <p className="text-white/70 capitalize">{fecha}</p>
         </div>
 
