@@ -6,13 +6,13 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Fidelización Zona',
-  description: 'Tu programa de beneficios en Coques y el Lavadero',
+  title: 'Coques Bakery',
+  description: 'Tu programa de beneficios en Coques Bakery',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Fidelización Zona',
+    title: 'Coques Bakery',
   },
   icons: {
     apple: '/icon-192x192.png',
