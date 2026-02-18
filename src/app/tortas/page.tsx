@@ -336,11 +336,30 @@ export default function TortasPage() {
           </button>
         )}
 
-        {/* Loading */}
+        {/* Loading - Skeleton Screens */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">Cargando tortas...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden">
+                {/* Skeleton imagen */}
+                <div className="h-64 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 animate-pulse"></div>
+                
+                {/* Skeleton contenido */}
+                <div className="p-4 space-y-3">
+                  {/* Título */}
+                  <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                  {/* Descripción */}
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-100 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-100 rounded w-3/4 animate-pulse"></div>
+                  </div>
+                  {/* Precio */}
+                  <div className="h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                  {/* Botón */}
+                  <div className="h-10 bg-gray-300 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -379,6 +398,7 @@ export default function TortasPage() {
                     <img
                       src={producto.imagen}
                       alt={producto.nombre}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -473,6 +493,7 @@ export default function TortasPage() {
                     <img
                       src={varianteSeleccionada?.imagen || productoSeleccionado.imagen}
                       alt={productoSeleccionado.nombre}
+                      loading="lazy"
                       className="w-full h-80 object-cover rounded-xl"
                     />
                   </div>

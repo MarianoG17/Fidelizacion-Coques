@@ -151,6 +151,29 @@ export default function PassPage() {
     return () => clearInterval(interval)
   }, [fetchPass, fetchBeneficios, fetchNiveles])
 
+  // ⚡ OPTIMIZACIÓN: Prefetch de tortas en background
+  useEffect(() => {
+    const prefetchTortas = async () => {
+      try {
+        await fetch('/api/woocommerce/tortas', {
+          method: 'GET',
+          credentials: 'include'
+        })
+        console.log('[Prefetch] Tortas precargadas en caché')
+      } catch (error) {
+        // Silencioso - no afecta experiencia del usuario
+        console.log('[Prefetch] Error:', error)
+      }
+    }
+
+    // Esperar 2 segundos después de que cargue Pass para no competir por recursos
+    const timer = setTimeout(() => {
+      prefetchTortas()
+    }, 2000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
   // Countdown visual
   useEffect(() => {
     if (!pass) return
