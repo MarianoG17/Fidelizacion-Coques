@@ -151,34 +151,9 @@ export default function PassPage() {
     return () => clearInterval(interval)
   }, [fetchPass, fetchBeneficios, fetchNiveles])
 
-  // ⚡ OPTIMIZACIÓN: Prefetch de tortas con delay
-  useEffect(() => {
-    const prefetchTortas = async () => {
-      try {
-        console.log('[Prefetch] Iniciando precarga de tortas...')
-        const startTime = Date.now()
-        
-        await fetch('/api/woocommerce/tortas', {
-          method: 'GET',
-          credentials: 'include',
-          priority: 'high' as RequestPriority
-        })
-        
-        const duration = Date.now() - startTime
-        console.log(`[Prefetch] ✓ Tortas precargadas en ${duration}ms`)
-      } catch (error) {
-        console.log('[Prefetch] ✗ Error:', error)
-      }
-    }
-
-    // Esperar 1 segundo antes de hacer prefetch
-    // Esto da tiempo a que la página principal cargue primero
-    const timer = setTimeout(() => {
-      prefetchTortas()
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
+  // ⚡ PREFETCH ELIMINADO: Con cache de 30min y batch queries,
+  // la primera carga es suficientemente rápida
+  // El prefetch solo agrega complejidad innecesaria
 
   // Countdown visual
   useEffect(() => {

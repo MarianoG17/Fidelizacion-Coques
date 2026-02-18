@@ -134,9 +134,9 @@ const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder:
 }
 
 export async function GET(req: NextRequest) {
-  // Configurar caché de 5 minutos (las tortas no cambian frecuentemente)
-  // Next.js responderá desde caché hasta que expire
-  const cacheTime = 300 // 5 minutos en segundos
+  // ⚡ OPTIMIZACIÓN EXTREMA: Cache de 30 minutos (las tortas no cambian frecuentemente)
+  // Esto reduce llamadas al mínimo
+  const cacheTime = 1800 // 30 minutos en segundos
   
   try {
     const wooUrl = process.env.WOOCOMMERCE_URL
@@ -176,49 +176,55 @@ export async function GET(req: NextRequest) {
 
     if (adicionalesSkus.length > 0) {
       try {
-        // ⚡ OPTIMIZACIÓN: Paralelizar llamadas de SKUs con Promise.all
-        // Antes: 10-15 llamadas secuenciales = 5-10 segundos
-        // Ahora: todas en paralelo = 1-2 segundos
-        const skuPromises = adicionalesSkus.map(async (sku) => {
+        // ⚡ OPTIMIZACIÓN CRÍTICA: Buscar todos los SKUs en LOTES DE 10
+        // En lugar de 17 llamadas individuales, hacer 2 llamadas batch
+        // WooCommerce permite buscar múltiples SKUs separados por coma
+        const batchSize = 10
+        const batches = []
+        
+        for (let i = 0; i < adicionalesSkus.length; i += batchSize) {
+          batches.push(adicionalesSkus.slice(i, i + batchSize))
+        }
+        
+        const batchPromises = batches.map(async (skuBatch) => {
           try {
-            const skuResponse = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(sku)}&per_page=1`,
+            // Buscar múltiples SKUs en una sola llamada
+            const skusParam = skuBatch.join(',')
+            const batchResponse = await fetch(
+              `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(skusParam)}&per_page=100`,
               {
                 headers,
-                next: { revalidate: cacheTime } // Caché de Next.js
+                next: { revalidate: cacheTime }
               }
             )
 
-            if (skuResponse.ok) {
-              const skuData = await skuResponse.json()
-              if (skuData.length > 0) {
-                const prod = skuData[0]
-                return {
-                  sku,
-                  info: {
-                    id: prod.id,
-                    precio: parseFloat(prod.price || '0'),
-                    nombre: prod.name
-                  }
+            if (batchResponse.ok) {
+              const products = await batchResponse.json()
+              return products.map((prod: any) => ({
+                sku: prod.sku,
+                info: {
+                  id: prod.id,
+                  precio: parseFloat(prod.price || '0'),
+                  nombre: prod.name
                 }
-              }
+              }))
             }
           } catch (error) {
-            console.error(`[Tortas API] Error obteniendo SKU ${sku}:`, error)
+            console.error(`[Tortas API] Error obteniendo batch de SKUs:`, error)
           }
-          return null
+          return []
         })
 
-        const skuResults = await Promise.all(skuPromises)
+        const batchResults = await Promise.all(batchPromises)
         
-        // Mapear resultados al objeto adicionalesInfo
-        skuResults.forEach(result => {
-          if (result) {
+        // Mapear todos los resultados
+        batchResults.flat().forEach(result => {
+          if (result && result.sku) {
             adicionalesInfo[result.sku] = result.info
           }
         })
         
-        console.log('[Tortas API] Info de adicionales obtenida por SKU (paralelo):', adicionalesInfo)
+        console.log(`[Tortas API] Info de ${Object.keys(adicionalesInfo).length} adicionales obtenida en ${batches.length} llamadas batch`)
       } catch (error) {
         console.error('[Tortas API] Error obteniendo info de adicionales:', error)
       }
@@ -266,11 +272,10 @@ export async function GET(req: NextRequest) {
     const controller2 = new AbortController()
     const timeout2 = setTimeout(() => controller2.abort(), 30000) // Aumentado a 30s
 
-    // ⚡ OPTIMIZACIÓN: Reducir de 50 a 25 productos
-    // Suficiente para las ~22 tortas actuales + margen
-    // Esto reduce el tiempo de carga en 50%
+    // ⚡ OPTIMIZACIÓN: Cargar TODOS los productos pero sin límite artificial
+    // Con cache de 30min, esto solo se ejecuta una vez cada media hora
     const productsResponse = await fetch(
-      `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=25&status=publish`,
+      `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=100&status=publish`,
       {
         headers,
         signal: controller2.signal,
@@ -311,10 +316,10 @@ export async function GET(req: NextRequest) {
             const controller3 = new AbortController()
             const timeout3 = setTimeout(() => controller3.abort(), 20000) // Aumentado a 20s
 
-            // ⚡ OPTIMIZACIÓN: Reducir variaciones de 50 a 10
-            // Pocos productos tienen más de 10 variantes
+            // ⚡ OPTIMIZACIÓN EXTREMA: Reducir variaciones de 50 a 5
+            // Solo necesitamos los tamaños principales (Mini, Mediana, Grande, XL)
             const variationsResponse = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=10`,
+              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=5`,
               {
                 headers,
                 signal: controller3.signal,
