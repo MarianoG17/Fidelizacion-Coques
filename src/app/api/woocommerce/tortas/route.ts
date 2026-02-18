@@ -272,10 +272,12 @@ export async function GET(req: NextRequest) {
     const controller2 = new AbortController()
     const timeout2 = setTimeout(() => controller2.abort(), 30000) // Aumentado a 30s
 
-    // ⚡ OPTIMIZACIÓN: Cargar TODOS los productos pero sin límite artificial
-    // Con cache de 30min, esto solo se ejecuta una vez cada media hora
+    // ⚡ OPTIMIZACIÓN RADICAL: Solo 12 productos
+    // Cada producto = 1 llamada a variaciones
+    // 12 productos = 12 llamadas paralelas (manejable)
+    // Menos productos = carga MUY rápida
     const productsResponse = await fetch(
-      `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=100&status=publish`,
+      `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=12&status=publish&orderby=menu_order&order=asc`,
       {
         headers,
         signal: controller2.signal,
@@ -314,12 +316,11 @@ export async function GET(req: NextRequest) {
         if (product.type === 'variable') {
           try {
             const controller3 = new AbortController()
-            const timeout3 = setTimeout(() => controller3.abort(), 20000) // Aumentado a 20s
+            const timeout3 = setTimeout(() => controller3.abort(), 30000) // 30s para dar margen
 
-            // ⚡ OPTIMIZACIÓN EXTREMA: Reducir variaciones de 50 a 5
-            // Solo necesitamos los tamaños principales (Mini, Mediana, Grande, XL)
+            // ⚡ OPTIMIZACIÓN: 4 variaciones por producto
             const variationsResponse = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=5`,
+              `${wooUrl}/wp-json/wc/v3/products/${product.id}/variations?per_page=4&orderby=menu_order&order=asc`,
               {
                 headers,
                 signal: controller3.signal,
