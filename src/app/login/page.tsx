@@ -53,6 +53,19 @@ export default function LoginPage() {
       // Guardar token en localStorage
       if (data.data?.token) {
         localStorage.setItem('fidelizacion_token', data.data.token)
+        
+        // ⚡ PREFETCH ULTRA-TEMPRANO: Iniciar carga de tortas INMEDIATAMENTE
+        // Mientras el usuario navega a /pass, las tortas ya están cargándose
+        fetch('/api/woocommerce/tortas', {
+          method: 'GET',
+          credentials: 'include',
+          priority: 'high' as RequestPriority
+        }).then(() => {
+          console.log('[Login] ✓ Tortas precargadas después del login')
+        }).catch(err => {
+          console.log('[Login] ✗ Error precargando tortas:', err)
+        })
+        
         router.push('/pass')
       } else {
         throw new Error('No se recibió token de autenticación')
