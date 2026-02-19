@@ -89,10 +89,22 @@ export async function GET(req: NextRequest) {
 
     // Calcular resumen de beneficios canjeados
     const beneficiosResumen: Record<string, number> = {}
+    const beneficiosMostrador: Record<string, number> = {}
+    const beneficiosSalon: Record<string, number> = {}
+
     visitas.forEach((v) => {
       if (v.beneficio) {
         const titulo = v.beneficio.nombre
         beneficiosResumen[titulo] = (beneficiosResumen[titulo] || 0) + 1
+
+        // Distinguir entre mostrador y salón
+        if (v.mesaId) {
+          // Con mesa = Salón
+          beneficiosSalon[titulo] = (beneficiosSalon[titulo] || 0) + 1
+        } else {
+          // Sin mesa = Mostrador
+          beneficiosMostrador[titulo] = (beneficiosMostrador[titulo] || 0) + 1
+        }
       }
     })
 
@@ -101,6 +113,8 @@ export async function GET(req: NextRequest) {
       ([beneficio, cantidad]) => ({
         beneficio,
         cantidad,
+        mostrador: beneficiosMostrador[beneficio] || 0,
+        salon: beneficiosSalon[beneficio] || 0,
       })
     )
 

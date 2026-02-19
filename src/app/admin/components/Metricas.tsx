@@ -32,7 +32,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     // Filtros de exportación y visualización
     const [fechaDesde, setFechaDesde] = useState('')
     const [fechaHasta, setFechaHasta] = useState('')
-    const [resumenBeneficios, setResumenBeneficios] = useState<Array<{ beneficio: string; cantidad: number }>>([])
+    const [resumenBeneficios, setResumenBeneficios] = useState<Array<{ beneficio: string; cantidad: number; mostrador: number; salon: number }>>([])
     const [cargandoResumen, setCargandoResumen] = useState(false)
 
     useEffect(() => {
@@ -275,13 +275,25 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                             <thead>
                                 <tr className="border-b border-slate-700">
                                     <th className="text-left py-3 px-4 text-slate-400 font-medium">Beneficio</th>
-                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Cantidad Canjeada</th>
+                                    <th className="text-center py-3 px-3 text-slate-400 font-medium">🪑 Mostrador</th>
+                                    <th className="text-center py-3 px-3 text-slate-400 font-medium">🍽️ Salón</th>
+                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {resumenBeneficios.map((item, idx) => (
                                     <tr key={idx} className="border-b border-slate-700/50 hover:bg-slate-700/30">
                                         <td className="py-3 px-4 text-white">{item.beneficio}</td>
+                                        <td className="py-3 px-3 text-center">
+                                            <span className="inline-flex items-center justify-center bg-amber-500/20 text-amber-300 font-semibold px-3 py-1 rounded-full">
+                                                {item.mostrador}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-3 text-center">
+                                            <span className="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 font-semibold px-3 py-1 rounded-full">
+                                                {item.salon}
+                                            </span>
+                                        </td>
                                         <td className="py-3 px-4 text-right">
                                             <span className="inline-flex items-center justify-center bg-green-500/20 text-green-300 font-semibold px-3 py-1 rounded-full">
                                                 {item.cantidad}
@@ -293,6 +305,16 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                             <tfoot>
                                 <tr className="border-t-2 border-slate-600">
                                     <td className="py-3 px-4 text-white font-semibold">Total</td>
+                                    <td className="py-3 px-3 text-center">
+                                        <span className="inline-flex items-center justify-center bg-amber-500/20 text-amber-300 font-bold px-3 py-1 rounded-full">
+                                            {resumenBeneficios.reduce((sum, item) => sum + item.mostrador, 0)}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-3 text-center">
+                                        <span className="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 font-bold px-3 py-1 rounded-full">
+                                            {resumenBeneficios.reduce((sum, item) => sum + item.salon, 0)}
+                                        </span>
+                                    </td>
                                     <td className="py-3 px-4 text-right">
                                         <span className="inline-flex items-center justify-center bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full">
                                             {resumenBeneficios.reduce((sum, item) => sum + item.cantidad, 0)}
