@@ -37,7 +37,7 @@ export default function VistaSalon({ estadoSalon, onCerrarSesion, onAplicarBenef
       {/* Plano del salón con posiciones reales */}
       <div
         className="relative bg-slate-800 rounded-2xl overflow-hidden shadow-xl"
-        style={{ paddingBottom: '140%' }}
+        style={{ paddingBottom: '150%' }}
       >
         <div className="absolute inset-0 p-3">
           {estadoSalon.mesas.map((item: any) => (
