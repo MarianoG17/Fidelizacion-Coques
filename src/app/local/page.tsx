@@ -414,7 +414,7 @@ export default function LocalPage() {
         </div>
 
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
-        <p className="text-slate-400 text-sm mb-4">Coques - Empleados</p>
+        <p className="text-slate-400 text-sm mb-4">Equipo atención al cliente</p>
 
         {/* Botones para alternar entre Scanner y Vista Salón */}
         <div className="w-full max-w-sm mb-4">
