@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
     const horaFin = `${horaSiguiente}:00`
     const rangoHorario = `${horaInicio} - ${horaFin}`
 
-    // Crear fecha/hora completa de entrega en formato ISO y otros formatos
+    // Crear fecha/hora completa de entrega en formato ISO y timestamps Unix
     const fechaHoraEntrega = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hora), parseInt(minutos))
     const fechaHoraISO = fechaHoraEntrega.toISOString()
     const fechaHoraLocal = fechaHoraEntrega.toLocaleString('es-AR', {
@@ -246,6 +246,11 @@ export async function POST(req: NextRequest) {
       minute: '2-digit',
       hour12: false
     })
+    
+    // Timestamps Unix para Ayresit (en segundos, no milisegundos)
+    const fechaSoloInicio = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
+    const timestampFecha = Math.floor(fechaSoloInicio.getTime() / 1000)  // Fecha a las 00:00
+    const timestampFechaHora = Math.floor(fechaHoraEntrega.getTime() / 1000)  // Fecha + hora específica
 
     // Construir notas del cliente con fecha de entrega
     let customerNote = `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
@@ -293,7 +298,7 @@ export async function POST(req: NextRequest) {
           value: cliente.id,
         },
         // *** CAMPOS DE FECHA Y HORA PARA AYRES IT ***
-        // Campos exactos que usa el pedido 2284 que funciona
+        // Campos que usa el pedido 2284 que funciona (incluyendo timestamps Unix)
         {
           key: '¿Para que fecha querés el pedido?',
           value: fechaEspanol, // Formato: "16 Febrero, 2026" (mes con mayúscula)
@@ -301,6 +306,19 @@ export async function POST(req: NextRequest) {
         {
           key: '¿En que horario?',
           value: rangoHorario, // Formato: "17:00 - 18:00"
+        },
+        // Timestamps Unix (críticos para que Ayresit lea la fecha correcta)
+        {
+          key: '_orddd_lite_timestamp',
+          value: timestampFecha.toString(), // Timestamp de fecha (00:00 del día)
+        },
+        {
+          key: '_orddd_lite_timeslot_timestamp',
+          value: timestampFechaHora.toString(), // Timestamp de fecha + hora específica
+        },
+        {
+          key: '_orddd_time_slot',
+          value: rangoHorario, // "16:00 - 17:00"
         },
       ],
     }
