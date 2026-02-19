@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import MesaModal from './MesaModal'
 
 interface Props {
@@ -11,6 +11,20 @@ interface Props {
 
 export default function VistaSalon({ estadoSalon, onCerrarSesion, onAplicarBeneficio }: Props) {
   const [mesaSeleccionada, setMesaSeleccionada] = useState<any>(null)
+
+  // Calcular la altura mínima necesaria basada en la mesa más baja
+  const alturaMinima = useMemo(() => {
+    if (!estadoSalon?.mesas) return 150
+    
+    // Encontrar la mesa con la posición Y + alto más grande
+    const mesaMasBaja = estadoSalon.mesas.reduce((max: number, item: any) => {
+      const bottomPos = item.mesa.posY + item.mesa.alto
+      return bottomPos > max ? bottomPos : max
+    }, 0)
+    
+    // Agregar 10% de padding extra para asegurar que todo se vea
+    return mesaMasBaja + 10
+  }, [estadoSalon])
 
   if (!estadoSalon) {
     return <div className="text-center py-8 text-slate-400">Cargando estado del salón...</div>
@@ -36,10 +50,12 @@ export default function VistaSalon({ estadoSalon, onCerrarSesion, onAplicarBenef
 
       {/* Plano del salón con posiciones reales */}
       <div
-        className="relative bg-slate-800 rounded-2xl overflow-hidden shadow-xl"
-        style={{ paddingBottom: '150%' }}
+        className="relative bg-slate-800 rounded-2xl overflow-visible shadow-xl"
+        style={{
+          paddingBottom: `${alturaMinima}%`,
+        }}
       >
-        <div className="absolute inset-0 p-3">
+        <div className="absolute inset-0 p-3 overflow-visible">
           {estadoSalon.mesas.map((item: any) => (
             <button
               key={item.mesa.id}
