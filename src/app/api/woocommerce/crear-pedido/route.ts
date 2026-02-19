@@ -222,8 +222,8 @@ export async function POST(req: NextRequest) {
       year: 'numeric'
     })
 
-    // Formato español para Ayres IT: "16 febrero, 2026" (mes en minúscula!)
-    const mesesES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+    // Formato español para Ayres IT: "16 Febrero, 2026" (mes con MAYÚSCULA inicial!)
+    const mesesES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
     const [year, month, day] = fechaEntrega.split('-')
     const fechaEspanol = `${parseInt(day)} ${mesesES[parseInt(month) - 1]}, ${year}`
 
@@ -293,14 +293,13 @@ export async function POST(req: NextRequest) {
           value: cliente.id,
         },
         // *** CAMPOS DE FECHA Y HORA PARA AYRES IT ***
-        // PRUEBA 3: orddd_lite_delivery_date + orddd_lite_time_slot
-        // Ambos del mismo plugin (Order Delivery Date Lite)
+        // Campos exactos que usa el pedido 2284 que funciona
         {
-          key: 'orddd_lite_delivery_date',
-          value: fechaEspanol, // Formato: "16 febrero, 2026"
+          key: '¿Para que fecha querés el pedido?',
+          value: fechaEspanol, // Formato: "16 Febrero, 2026" (mes con mayúscula)
         },
         {
-          key: 'orddd_lite_time_slot',
+          key: '¿En que horario?',
           value: rangoHorario, // Formato: "17:00 - 18:00"
         },
       ],
