@@ -65,6 +65,7 @@ export interface ValidacionResult {
   cliente?: {
     id: string
     nombre: string
+    phone: string
     nivel: string | null
     beneficiosActivos: BeneficioActivo[]
     autos: AutoData[]  // todos los autos del cliente
