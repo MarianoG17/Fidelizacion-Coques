@@ -50,10 +50,48 @@ export async function GET(req: NextRequest) {
 
         // Para cada sesión activa, obtener beneficios disponibles del cliente
         const beneficiosPorCliente = new Map<string, any[]>()
+        // También obtener beneficios aplicados durante esta sesión
+        const beneficiosAplicadosPorSesion = new Map<string, any[]>()
+
+        // Calcular inicio del día de hoy (00:00:00)
+        const ahora = new Date()
+        const inicioDiaHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0)
 
         for (const sesion of sesionesActivas) {
             const beneficios = await getBeneficiosActivos(sesion.clienteId)
             beneficiosPorCliente.set(sesion.clienteId, beneficios)
+
+            // Obtener eventos de beneficios aplicados HOY (desde las 00:00)
+            // Esto incluye beneficios aplicados en mostrador antes de sentarse en la mesa
+            const eventosAplicados = await prisma.eventoScan.findMany({
+                where: {
+                    clienteId: sesion.clienteId,
+                    localId: local.id,
+                    tipoEvento: 'BENEFICIO_APLICADO',
+                    timestamp: { gte: inicioDiaHoy },
+                },
+                include: {
+                    beneficio: {
+                        select: {
+                            id: true,
+                            nombre: true,
+                            descripcionCaja: true,
+                        },
+                    },
+                },
+                orderBy: { timestamp: 'desc' },
+            })
+
+            const beneficiosAplicados = eventosAplicados
+                .filter((e) => e.beneficio)
+                .map((e) => ({
+                    id: e.beneficio!.id,
+                    nombre: e.beneficio!.nombre,
+                    descripcionCaja: e.beneficio!.descripcionCaja,
+                    aplicadoEn: e.timestamp,
+                }))
+
+            beneficiosAplicadosPorSesion.set(sesion.id, beneficiosAplicados)
         }
 
         // Armar el estado del salón
@@ -64,6 +102,7 @@ export async function GET(req: NextRequest) {
                 // Mesa ocupada - puede tener múltiples clientes
                 const sesionesConBeneficios = sesiones.map((sesion: typeof sesionesActivas[0]) => {
                     const beneficios = beneficiosPorCliente.get(sesion.clienteId) || []
+                    const beneficiosAplicados = beneficiosAplicadosPorSesion.get(sesion.id) || []
                     const duracionMinutos = Math.floor(
                         (new Date().getTime() - sesion.inicioSesion.getTime()) / 60000
                     )
@@ -85,6 +124,7 @@ export async function GET(req: NextRequest) {
                             descripcionCaja: b.descripcionCaja,
                             condiciones: b.condiciones,
                         })),
+                        beneficiosAplicados: beneficiosAplicados,
                     }
                 })
 

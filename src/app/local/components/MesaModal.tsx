@@ -67,7 +67,38 @@ export default function MesaModal({ mesa, onClose, onCerrarSesion, onAplicarBene
               </div>
 
               {/* Beneficios del cliente */}
-              <div className="p-4">
+              <div className="p-4 space-y-4">
+                {/* BENEFICIOS APLICADOS (lo más importante) */}
+                {sesion.beneficiosAplicados && sesion.beneficiosAplicados.length > 0 && (
+                  <div>
+                    <h4 className="font-bold text-sm mb-2 text-orange-800 flex items-center gap-2">
+                      <span className="text-lg">✅</span>
+                      Beneficios Aplicados (cargar en Ayresit)
+                    </h4>
+                    <div className="space-y-2">
+                      {sesion.beneficiosAplicados.map((b: any) => (
+                        <div
+                          key={b.id + b.aplicadoEn}
+                          className="bg-orange-50 border-2 border-orange-400 rounded-lg p-3 shadow-sm"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1">
+                              <p className="font-bold text-orange-900 text-sm">{b.nombre}</p>
+                              <p className="text-xs text-orange-800 mt-1 font-mono bg-white rounded p-2 border border-orange-200">
+                                💳 Cargar en Ayresit: <span className="font-bold">{b.descripcionCaja}</span>
+                              </p>
+                              <p className="text-xs text-orange-700 mt-1">
+                                ⏰ Aplicado: {new Date(b.aplicadoEn).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* BENEFICIOS DISPONIBLES */}
                 {sesion.beneficiosDisponibles.length > 0 ? (
                   <div>
                     <h4 className="font-bold text-sm mb-2 text-gray-700">Beneficios Disponibles</h4>
@@ -98,9 +129,11 @@ export default function MesaModal({ mesa, onClose, onCerrarSesion, onAplicarBene
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-gray-100 rounded-lg p-3 text-center text-gray-500 text-sm">
-                    Sin beneficios disponibles
-                  </div>
+                  !sesion.beneficiosAplicados || sesion.beneficiosAplicados.length === 0 ? (
+                    <div className="bg-gray-100 rounded-lg p-3 text-center text-gray-500 text-sm">
+                      Sin beneficios disponibles
+                    </div>
+                  ) : null
                 )}
               </div>
             </div>
