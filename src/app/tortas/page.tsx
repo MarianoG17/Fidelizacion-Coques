@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
 
@@ -177,22 +178,22 @@ export default function TortasPage() {
   async function abrirDetalles(producto: Producto) {
     setProductoSeleccionado(producto)
     setVarianteSeleccionada(null)
-    
+
     // Si por alguna razón las variaciones no están pre-cargadas, cargarlas ahora (fallback)
     const tieneSoloMini = producto.variantes.length === 1 && producto.variantes[0].nombreVariante === 'Mini'
     const noTieneVariantes = producto.variantes.length === 0
-    
+
     if (producto.tipo === 'variable' && (tieneSoloMini || noTieneVariantes)) {
       setCargandoVariaciones(true)
       try {
         const response = await fetch(`/api/woocommerce/variaciones/${producto.id}`)
         const data = await response.json()
-        
+
         if (data.success && data.variaciones.length > 0) {
           // Combinar variaciones mini existentes con las de WooCommerce
           const variacionesCompletas = [...producto.variantes, ...data.variaciones]
           producto.variantes = variacionesCompletas
-          
+
           // Actualizar producto en el estado
           setProductos(prevProductos =>
             prevProductos.map(p => p.id === producto.id ? { ...p, variantes: variacionesCompletas } : p)
@@ -204,7 +205,7 @@ export default function TortasPage() {
         setCargandoVariaciones(false)
       }
     }
-    
+
     // Seleccionar primera variante si hay disponibles
     if (producto.variantes.length > 0) {
       // Ordenar variantes por precio (de menor a mayor)
@@ -377,10 +378,13 @@ export default function TortasPage() {
       <div className="relative w-full h-64 md:h-80 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
         {/* Imagen de fondo */}
         <div className="absolute inset-0 opacity-30">
-          <img
+          <Image
             src="/Banner Coques Bakery Rogel.jpg"
             alt="Coques Bakery"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority
+            quality={75}
           />
         </div>
 
@@ -389,10 +393,14 @@ export default function TortasPage() {
 
         {/* Contenido del hero */}
         <div className="relative h-full flex flex-col items-center justify-center px-4">
-          <img
+          <Image
             src="/Coques-Logo-Color-V1.0 (5).png"
             alt="Coques Bakery Logo"
+            width={112}
+            height={112}
             className="h-20 md:h-28 w-auto mb-4 drop-shadow-2xl"
+            priority
+            quality={85}
           />
           <p className="text-white text-lg md:text-xl font-light tracking-wide text-center drop-shadow-lg">
             Tortas artesanales de alta calidad
