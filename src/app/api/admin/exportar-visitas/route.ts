@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     // Construir filtros de fecha
     const whereClause: any = {
-      tipoEvento: 'VISITA',
+      tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
     }
 
     if (fechaDesde) {
