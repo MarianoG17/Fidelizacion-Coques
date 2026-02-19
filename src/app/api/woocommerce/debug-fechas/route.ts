@@ -32,15 +32,24 @@ export async function GET(req: NextRequest) {
 
         const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
         const headers = {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json',
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'FidelizacionApp/1.0',
         }
-
-        // Obtener detalles del pedido
+    
+        // Obtener detalles del pedido con timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000)
+    
         const response = await fetch(
-            `${wooUrl}/wp-json/wc/v3/orders/${orderId}`,
-            { headers }
+          `${wooUrl}/wp-json/wc/v3/orders/${orderId}`,
+          {
+            headers,
+            signal: controller.signal,
+          }
         )
+    
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
             const errorText = await response.text()
