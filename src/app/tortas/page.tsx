@@ -72,6 +72,7 @@ export default function TortasPage() {
   const [agregado, setAgregado] = useState(false)
   const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: Array<{sku: string, etiqueta: string}> }>({})
   const [camposTextoValores, setCamposTextoValores] = useState<{ [nombreCampo: string]: string }>({})
+  const [cargandoVariaciones, setCargandoVariaciones] = useState(false)
 
   useEffect(() => {
     cargarTortas()
@@ -119,8 +120,38 @@ export default function TortasPage() {
     }
   }
 
-  function abrirDetalles(producto: Producto) {
+  async function abrirDetalles(producto: Producto) {
     setProductoSeleccionado(producto)
+    setVarianteSeleccionada(null)
+    
+    // Si es producto variable y solo tiene variantes "mini" (o ninguna), cargar variaciones de WooCommerce
+    const tieneSoloMini = producto.variantes.length === 1 && producto.variantes[0].nombreVariante === 'Mini'
+    const noTieneVariantes = producto.variantes.length === 0
+    
+    if (producto.tipo === 'variable' && (tieneSoloMini || noTieneVariantes)) {
+      setCargandoVariaciones(true)
+      try {
+        const response = await fetch(`/api/woocommerce/variaciones/${producto.id}`)
+        const data = await response.json()
+        
+        if (data.success && data.variaciones.length > 0) {
+          // Combinar variaciones mini existentes con las de WooCommerce
+          const variacionesCompletas = [...producto.variantes, ...data.variaciones]
+          producto.variantes = variacionesCompletas
+          
+          // Actualizar producto en el estado
+          setProductos(prevProductos =>
+            prevProductos.map(p => p.id === producto.id ? { ...p, variantes: variacionesCompletas } : p)
+          )
+        }
+      } catch (error) {
+        console.error('Error cargando variaciones:', error)
+      } finally {
+        setCargandoVariaciones(false)
+      }
+    }
+    
+    // Seleccionar primera variante si hay disponibles
     if (producto.variantes.length > 0) {
       // Ordenar variantes por precio (de menor a mayor)
       const variantesOrdenadas = [...producto.variantes].sort((a, b) =>
@@ -128,8 +159,6 @@ export default function TortasPage() {
       )
       producto.variantes = variantesOrdenadas
       setVarianteSeleccionada(variantesOrdenadas[0])
-    } else {
-      setVarianteSeleccionada(null)
     }
     
     // Inicializar add-ons requeridos con su primera opción
@@ -515,7 +544,12 @@ export default function TortasPage() {
                 )}
 
                 {/* Variantes */}
-                {productoSeleccionado.variantes.length > 0 ? (
+                {cargandoVariaciones ? (
+                  <div className="mb-6 p-8 bg-gray-50 rounded-xl text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-3"></div>
+                    <p className="text-gray-600">Cargando tamaños disponibles...</p>
+                  </div>
+                ) : productoSeleccionado.variantes.length > 0 ? (
                   <div className="mb-6">
                     <h3 className="font-bold text-lg mb-3">Tamaños disponibles</h3>
                     <div className="space-y-3">
