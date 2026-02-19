@@ -496,7 +496,7 @@ export default function LocalPage() {
                 </div>
                 <div
                   className="relative bg-slate-800 rounded-2xl mb-4 overflow-hidden"
-                  style={{ paddingBottom: '130%' }}
+                  style={{ paddingBottom: '140%' }}
                 >
                   <div className="absolute inset-0 p-3">
                     {mesas.map((mesa: MesaLayout) => {
