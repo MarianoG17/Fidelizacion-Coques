@@ -292,20 +292,8 @@ export async function POST(req: NextRequest) {
           key: 'cliente_app_id',
           value: cliente.id,
         },
-        // *** CAMPOS DE FECHA Y HORA PARA AYRES IT / WOOCOMMERCE ***
-        // Probamos múltiples variantes de nombres de campos
-        
-        // Campos con nombres en español (legacy)
-        {
-          key: '¿Para que fecha querés el pedido?',
-          value: fechaEspanol, // Formato: "16 febrero, 2026"
-        },
-        {
-          key: '¿En que horario?',
-          value: rangoHorario, // Formato: "17:00 - 18:00"
-        },
-        
-        // Campos estándar de plugins de delivery de WooCommerce
+        // *** CAMPOS DE FECHA Y HORA PARA AYRES IT ***
+        // Solo los campos que el admin especificó
         {
           key: 'e_deliverydate',
           value: fechaEspanol, // Formato: "16 febrero, 2026"
