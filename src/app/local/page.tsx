@@ -36,6 +36,17 @@ export default function LocalPage() {
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [mesasOcupadas, setMesasOcupadas] = useState<Set<string>>(new Set())
 
+  // Historial de últimos clientes en mostrador (mantener info completa)
+  const [clientesMostrador, setClientesMostrador] = useState<Array<{
+    id: string
+    nombre: string
+    phone: string
+    nivel: string
+    beneficiosDisponibles: Array<{id: string, nombre: string, descripcionCaja: string}>
+    beneficiosAplicados: Array<{id: string, nombre: string, timestamp: Date}>
+    timestamp: Date
+  }>>([])
+
   // Cargar mesas desde la base de datos
   useEffect(() => {
     console.log('[Local] Iniciando carga de mesas...')
@@ -255,6 +266,68 @@ export default function LocalPage() {
 
       const data = await res.json()
       console.log('Evento registrado:', data)
+      
+      // Si es mostrador, actualizar la lista de clientes activos
+      if (ubicacion === 'mostrador' && validacion?.cliente) {
+        const c = validacion.cliente
+        
+        // Buscar si el cliente ya está en la lista
+        const clienteExistenteIndex = clientesMostrador.findIndex(cl => cl.id === c.id)
+        
+        if (clienteExistenteIndex >= 0) {
+          // Actualizar cliente existente
+          setClientesMostrador(prev => {
+            const updated = [...prev]
+            const cliente = updated[clienteExistenteIndex]
+            
+            // Si se aplicó un beneficio, agregarlo a aplicados y quitarlo de disponibles
+            if (beneficioSeleccionado) {
+              const beneficio = cliente.beneficiosDisponibles.find(b => b.id === beneficioSeleccionado)
+              if (beneficio) {
+                cliente.beneficiosAplicados.push({
+                  id: beneficio.id,
+                  nombre: beneficio.nombre,
+                  timestamp: new Date()
+                })
+                cliente.beneficiosDisponibles = cliente.beneficiosDisponibles.filter(b => b.id !== beneficioSeleccionado)
+              }
+            }
+            
+            return updated
+          })
+        } else {
+          // Agregar nuevo cliente
+          const beneficiosAplicados = beneficioSeleccionado
+            ? [{
+                id: beneficioSeleccionado,
+                nombre: c.beneficiosActivos.find(b => b.id === beneficioSeleccionado)?.nombre || '',
+                timestamp: new Date()
+              }]
+            : []
+          
+          const beneficiosDisponibles = beneficioSeleccionado
+            ? c.beneficiosActivos.filter(b => b.id !== beneficioSeleccionado)
+            : c.beneficiosActivos
+
+          setClientesMostrador(prev => [
+            {
+              id: c.id,
+              nombre: c.nombre || c.phone,
+              phone: c.phone,
+              nivel: c.nivel || 'Sin nivel',
+              beneficiosDisponibles: beneficiosDisponibles.map(b => ({
+                id: b.id,
+                nombre: b.nombre,
+                descripcionCaja: b.descripcionCaja
+              })),
+              beneficiosAplicados,
+              timestamp: new Date()
+            },
+            ...prev.slice(0, 2) // Mantener solo 3
+          ])
+        }
+      }
+      
       setEventoRegistrado(true)
     } catch (error) {
       console.error('Error en fetch:', error)
@@ -440,6 +513,69 @@ export default function LocalPage() {
           </div>
         </div>
 
+        {/* Clientes activos en mostrador */}
+        {!vistaSalon && clientesMostrador.length > 0 && (
+          <div className="w-full max-w-2xl mb-4">
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+              <h3 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
+                <span>🪑</span>
+                Clientes en mostrador (últimos 3)
+              </h3>
+              <div className="space-y-3">
+                {clientesMostrador.map((cliente) => (
+                  <div
+                    key={cliente.id}
+                    className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                  >
+                    {/* Header del cliente */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-bold">{cliente.nombre}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                          {cliente.nivel}
+                        </span>
+                      </div>
+                      <span className="text-slate-400 text-xs">
+                        {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Beneficios aplicados */}
+                    {cliente.beneficiosAplicados.length > 0 && (
+                      <div className="mb-2">
+                        <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
+                        {cliente.beneficiosAplicados.map((b) => (
+                          <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
+                            <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Beneficios disponibles */}
+                    {cliente.beneficiosDisponibles.length > 0 ? (
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
+                        {cliente.beneficiosDisponibles.map((b) => (
+                          <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
+                            <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
+                            <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : cliente.beneficiosAplicados.length === 0 ? (
+                      <p className="text-slate-500 text-xs">Sin beneficios</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {vistaSalon ? (
           // ─── Vista de Salón ───
           <div className="w-full max-w-6xl">
@@ -508,10 +644,10 @@ export default function LocalPage() {
                           key={mesa.id}
                           onClick={() => setMesaSeleccionada(mesa)}
                           className={`absolute rounded-lg text-xs font-bold transition-all shadow ${estaSeleccionada
-                              ? 'bg-blue-600 text-white scale-110 z-10'
-                              : estaOcupada
-                                ? 'bg-red-500 text-white hover:bg-red-600'
-                                : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105'
+                            ? 'bg-blue-600 text-white scale-110 z-10'
+                            : estaOcupada
+                              ? 'bg-red-500 text-white hover:bg-red-600'
+                              : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105'
                             }`}
                           style={{
                             left: `${mesa.posX}%`,
