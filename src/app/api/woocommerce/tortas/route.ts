@@ -425,6 +425,12 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Optimizar imágenes del catálogo usando tamaños más pequeños
+      const imagenPrincipal = product.images?.[0]
+      const imagenCatalogo = imagenPrincipal?.sizes?.shop_catalog ||
+                            imagenPrincipal?.sizes?.medium ||
+                            imagenPrincipal?.src || null
+
       return {
         id: product.id,
         nombre: product.name,
@@ -432,8 +438,8 @@ export async function GET(req: NextRequest) {
         tipo: product.type, // 'simple' o 'variable'
         descripcion: product.short_description?.replace(/<[^>]*>/g, '') || '',
         descripcionLarga: product.description?.replace(/<[^>]*>/g, '') || '',
-        imagen: product.images?.[0]?.src || null,
-        imagenes: product.images?.map((img: any) => img.src) || [],
+        imagen: imagenCatalogo, // Imagen optimizada para catálogo
+        imagenes: product.images?.map((img: any) => img.src) || [], // Imágenes completas para modal
         // Para productos simples
         precio: product.price,
         precioRegular: product.regular_price,
