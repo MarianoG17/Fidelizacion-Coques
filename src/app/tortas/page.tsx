@@ -70,13 +70,67 @@ export default function TortasPage() {
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null)
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<Variante | null>(null)
   const [agregado, setAgregado] = useState(false)
-  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: Array<{sku: string, etiqueta: string}> }>({})
+  const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: Array<{ sku: string, etiqueta: string }> }>({})
   const [camposTextoValores, setCamposTextoValores] = useState<{ [nombreCampo: string]: string }>({})
   const [cargandoVariaciones, setCargandoVariaciones] = useState(false)
 
   useEffect(() => {
     cargarTortas()
   }, [])
+
+  // ⚡ PREFETCHING: Cargar variaciones en segundo plano después de la carga inicial
+  useEffect(() => {
+    if (!loading && productos.length > 0) {
+      // Esperar 500ms para que la UI se renderice primero
+      const timer = setTimeout(() => {
+        prefetchVariaciones()
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, productos])
+
+  async function prefetchVariaciones() {
+    // Identificar productos variables que necesitan variaciones
+    const productosVariables = productos.filter(p =>
+      p.tipo === 'variable' &&
+      (p.variantes.length === 0 || (p.variantes.length === 1 && p.variantes[0].nombreVariante === 'Mini'))
+    )
+
+    console.log(`[Prefetch] Cargando variaciones de ${productosVariables.length} productos en segundo plano...`)
+
+    // Cargar variaciones en paralelo (todas a la vez en background)
+    const promesas = productosVariables.map(async (producto) => {
+      try {
+        const response = await fetch(`/api/woocommerce/variaciones/${producto.id}`)
+        const data = await response.json()
+
+        if (data.success && data.variaciones.length > 0) {
+          return {
+            id: producto.id,
+            variaciones: [...producto.variantes, ...data.variaciones]
+          }
+        }
+      } catch (error) {
+        console.error(`[Prefetch] Error cargando variaciones de producto ${producto.id}:`, error)
+      }
+      return null
+    })
+
+    const resultados = await Promise.all(promesas)
+
+    // Actualizar productos con variaciones pre-cargadas
+    setProductos(prevProductos =>
+      prevProductos.map(p => {
+        const resultado = resultados.find(r => r && r.id === p.id)
+        if (resultado) {
+          return { ...p, variantes: resultado.variaciones }
+        }
+        return p
+      })
+    )
+
+    console.log('[Prefetch] Variaciones pre-cargadas en segundo plano ✓')
+  }
 
   // Manejar el botón atrás del navegador cuando el modal está abierto
   useEffect(() => {
@@ -124,7 +178,7 @@ export default function TortasPage() {
     setProductoSeleccionado(producto)
     setVarianteSeleccionada(null)
     
-    // Si es producto variable y solo tiene variantes "mini" (o ninguna), cargar variaciones de WooCommerce
+    // Si por alguna razón las variaciones no están pre-cargadas, cargarlas ahora (fallback)
     const tieneSoloMini = producto.variantes.length === 1 && producto.variantes[0].nombreVariante === 'Mini'
     const noTieneVariantes = producto.variantes.length === 0
     
@@ -160,9 +214,9 @@ export default function TortasPage() {
       producto.variantes = variantesOrdenadas
       setVarianteSeleccionada(variantesOrdenadas[0])
     }
-    
+
     // Inicializar add-ons requeridos con su primera opción
-    const addOnsIniciales: { [key: string]: Array<{sku: string, etiqueta: string}> } = {}
+    const addOnsIniciales: { [key: string]: Array<{ sku: string, etiqueta: string }> } = {}
     if (producto.addOns && producto.addOns.length > 0) {
       producto.addOns.forEach(addOn => {
         if (addOn.requerido && addOn.opciones.length > 0) {
@@ -175,7 +229,7 @@ export default function TortasPage() {
       })
     }
     setAddOnsSeleccionados(addOnsIniciales)
-    
+
     // Resetear campos de texto
     setCamposTextoValores({})
   }
@@ -329,10 +383,10 @@ export default function TortasPage() {
             className="w-full h-full object-cover"
           />
         </div>
-        
+
         {/* Overlay oscuro */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60"></div>
-        
+
         {/* Contenido del hero */}
         <div className="relative h-full flex flex-col items-center justify-center px-4">
           <img
@@ -378,7 +432,7 @@ export default function TortasPage() {
               <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden">
                 {/* Skeleton imagen */}
                 <div className="h-64 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 animate-pulse"></div>
-                
+
                 {/* Skeleton contenido */}
                 <div className="p-4 space-y-3">
                   {/* Título */}
@@ -434,6 +488,7 @@ export default function TortasPage() {
                       src={producto.imagen}
                       alt={producto.nombre}
                       loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
