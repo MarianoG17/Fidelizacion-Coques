@@ -13,12 +13,12 @@ const ADDON_NOMBRE_A_SKU: { [key: string]: string } = {
   'Relleno Nutella': '300', // Sin "de"
   'Relleno Dulce de Leche': '257', // Tarta Frutilla
   'ADICIONALES: Chocolates, Oreos Bañadas y Bombones de DDL.': '260', // Chocotorta
-  
+
   // Bizcochuelos
   'Bizcochuelo de Vainilla': '399',
   'Bizcochuelo de Chocolate': '398',
   'Bizcochuelo Marmolado': '461',
-  
+
   // Cubiertas
   'Cubierta Ganache': '464',
   'Cubierta Merengue': '465',
@@ -28,9 +28,9 @@ interface ItemPedido {
   productoId: number
   varianteId?: number
   cantidad: number
-  addOns?: {[nombre: string]: string[]}
-  addOnsSkus?: {sku: string; nombre: string}[]
-  camposTexto?: {[nombreCampo: string]: string}
+  addOns?: { [nombre: string]: string[] }
+  addOnsSkus?: { sku: string; nombre: string }[]
+  camposTexto?: { [nombreCampo: string]: string }
 }
 
 interface DatosPedido {
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     // Construir line_items para WooCommerce
     const lineItems: any[] = []
-    
+
     // Recopilar todos los SKUs de add-ons para buscar sus IDs en WooCommerce
     const addOnSkus: string[] = []
     for (const item of items) {
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
         for (const [nombre, opciones] of Object.entries(item.addOns)) {
           opciones.forEach((opcion: any) => {
             let sku: string | undefined
-            
+
             // Nuevo formato: objeto con {sku, etiqueta}
             if (typeof opcion === 'object' && opcion.sku) {
               sku = opcion.sku
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
               sku = ADDON_NOMBRE_A_SKU[opcion]
               console.log(`[Crear Pedido] Usando mapeo legacy para: "${opcion}" -> SKU ${sku}`)
             }
-            
+
             if (sku && !addOnSkus.includes(sku)) {
               addOnSkus.push(sku)
             }
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
           opciones.forEach((opcion: any) => {
             let sku: string | undefined
             let etiqueta: string
-            
+
             // Nuevo formato: objeto con {sku, etiqueta}
             if (typeof opcion === 'object' && opcion.sku) {
               sku = opcion.sku
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
               console.warn(`[Crear Pedido] ✗ Formato de add-on no reconocido:`, opcion)
               return
             }
-            
+
             if (sku && skuToProductId[sku]) {
               lineItems.push({
                 product_id: skuToProductId[sku],
@@ -221,19 +221,19 @@ export async function POST(req: NextRequest) {
       month: 'long',
       year: 'numeric'
     })
-    
+
     // Formato español para Ayres IT: "16 febrero, 2026" (mes en minúscula!)
     const mesesES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
     const [year, month, day] = fechaEntrega.split('-')
     const fechaEspanol = `${parseInt(day)} ${mesesES[parseInt(month) - 1]}, ${year}`
-    
+
     // Crear rango de horario: "17:00 - 18:00"
     const [hora, minutos] = horaEntrega.split(':')
     const horaInicio = `${hora}:${minutos}`
     const horaSiguiente = (parseInt(hora) + 1).toString().padStart(2, '0')
     const horaFin = `${horaSiguiente}:00`
     const rangoHorario = `${horaInicio} - ${horaFin}`
-    
+
     // Crear fecha/hora completa de entrega en formato ISO y otros formatos
     const fechaHoraEntrega = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hora), parseInt(minutos))
     const fechaHoraISO = fechaHoraEntrega.toISOString()
@@ -246,10 +246,10 @@ export async function POST(req: NextRequest) {
       minute: '2-digit',
       hour12: false
     })
-    
+
     // Construir notas del cliente con fecha de entrega
     let customerNote = `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
-    
+
     // Agregar campos de texto personalizados (ej: Color de decoración)
     const camposTextoDetalle: string[] = []
     items.forEach((item, index) => {
@@ -261,11 +261,11 @@ export async function POST(req: NextRequest) {
         })
       }
     })
-    
+
     if (camposTextoDetalle.length > 0) {
       customerNote += `\n\n🎨 Personalizaciones:\n${camposTextoDetalle.join('\n')}`
     }
-    
+
     if (notas) {
       customerNote += `\n\n📝 Notas adicionales: ${notas}`
     }
@@ -293,9 +293,10 @@ export async function POST(req: NextRequest) {
           value: cliente.id,
         },
         // *** CAMPOS DE FECHA Y HORA PARA AYRES IT ***
-        // PRUEBA 2: _e_deliverydate (con guión bajo) + orddd_lite_time_slot
+        // PRUEBA 3: orddd_lite_delivery_date + orddd_lite_time_slot
+        // Ambos del mismo plugin (Order Delivery Date Lite)
         {
-          key: '_e_deliverydate',
+          key: 'orddd_lite_delivery_date',
           value: fechaEspanol, // Formato: "16 febrero, 2026"
         },
         {
