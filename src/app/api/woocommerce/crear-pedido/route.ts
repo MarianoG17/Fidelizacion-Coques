@@ -293,10 +293,9 @@ export async function POST(req: NextRequest) {
           value: cliente.id,
         },
         // *** CAMPOS DE FECHA Y HORA PARA AYRES IT ***
-        // PRUEBA 1: e_deliverydate + orddd_lite_time_slot
-        // Si no funciona, probar: _e_deliverydate o orddd_lite_delivery_date
+        // PRUEBA 2: _e_deliverydate (con guión bajo) + orddd_lite_time_slot
         {
-          key: 'e_deliverydate',
+          key: '_e_deliverydate',
           value: fechaEspanol, // Formato: "16 febrero, 2026"
         },
         {
