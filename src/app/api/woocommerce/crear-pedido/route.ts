@@ -292,14 +292,34 @@ export async function POST(req: NextRequest) {
           key: 'cliente_app_id',
           value: cliente.id,
         },
-        // *** SOLO LOS 2 CAMPOS QUE USA AYRES IT ***
-        // Eliminamos todos los campos técnicos adicionales que confunden al sistema
+        // *** CAMPOS DE FECHA Y HORA PARA AYRES IT / WOOCOMMERCE ***
+        // Probamos múltiples variantes de nombres de campos
+        
+        // Campos con nombres en español (legacy)
         {
           key: '¿Para que fecha querés el pedido?',
-          value: fechaEspanol, // Formato: "16 Febrero, 2026"
+          value: fechaEspanol, // Formato: "16 febrero, 2026"
         },
         {
           key: '¿En que horario?',
+          value: rangoHorario, // Formato: "17:00 - 18:00"
+        },
+        
+        // Campos estándar de plugins de delivery de WooCommerce
+        {
+          key: 'e_deliverydate',
+          value: fechaEspanol, // Formato: "16 febrero, 2026"
+        },
+        {
+          key: '_e_deliverydate',
+          value: fechaEspanol, // Formato: "16 febrero, 2026"
+        },
+        {
+          key: 'orddd_lite_delivery_date',
+          value: fechaEspanol, // Formato: "16 febrero, 2026"
+        },
+        {
+          key: 'orddd_lite_time_slot',
           value: rangoHorario, // Formato: "17:00 - 18:00"
         },
       ],
