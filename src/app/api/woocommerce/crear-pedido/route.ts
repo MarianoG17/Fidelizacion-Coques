@@ -374,25 +374,23 @@ export async function POST(req: NextRequest) {
       ],
     }
 
-    // Agregar metadata del descuento (sin coupon_lines para evitar errores)
+    // Agregar cupón de descuento si aplica
     if (descuentoMontoTotal > 0 && cliente.nivel) {
-      orderData.meta_data.push(
+      orderData.coupon_lines = [
         {
-          key: 'descuento_nivel_fidelizacion',
-          value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}%`
-        },
-        {
-          key: 'descuento_monto',
-          value: descuentoMontoTotal.toFixed(2)
-        },
-        {
-          key: 'subtotal_sin_descuento',
-          value: subtotalPedido.toFixed(2)
+          code: `NIVEL_${cliente.nivel.nombre.toUpperCase()}`,
+          discount: descuentoMontoTotal.toFixed(2),
+          discount_tax: "0"
         }
-      )
+      ]
 
-      console.log(`[Crear Pedido] ✓ Descuento aplicado: ${cliente.nivel.nombre} (${descuentoPorcentaje}%) = $${descuentoMontoTotal.toFixed(2)}`)
-      console.log(`[Crear Pedido] ✓ Metadata agregada - Ayres IT verá: Subtotal: $${subtotalPedido.toFixed(2)}, Descuento: $${descuentoMontoTotal.toFixed(2)}`)
+      // Agregar metadata del descuento para referencia
+      orderData.meta_data.push({
+        key: 'descuento_nivel_fidelizacion',
+        value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}%`
+      })
+
+      console.log(`[Crear Pedido] ✓ Cupón aplicado: NIVEL_${cliente.nivel.nombre.toUpperCase()} - Descuento: $${descuentoMontoTotal.toFixed(2)}`)
     }
 
     console.log('[WooCommerce Crear Pedido] Datos:', JSON.stringify(orderData, null, 2))
