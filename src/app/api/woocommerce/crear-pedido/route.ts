@@ -374,14 +374,14 @@ export async function POST(req: NextRequest) {
       ],
     }
 
-    // Aplicar descuento usando fee_lines (monto negativo) en lugar de cupones
-    // WooCommerce rechaza cupones con importe 0 incluso si especificamos el descuento dinámicamente
+    // Agregar cupón de descuento si aplica
+    // El cupón debe tener un importe alto en WooCommerce (ej: 999999) para que acepte el descuento dinámico
     if (descuentoMontoTotal > 0 && cliente.nivel) {
-      orderData.fee_lines = [
+      orderData.coupon_lines = [
         {
-          name: `🎁 Descuento ${cliente.nivel.nombre} (${descuentoPorcentaje}%)`,
-          total: `-${descuentoMontoTotal.toFixed(2)}`,
-          tax_class: ""
+          code: `NIVEL_${cliente.nivel.nombre.toUpperCase()}`,
+          discount: descuentoMontoTotal.toFixed(2),
+          discount_tax: "0"
         }
       ]
 
@@ -391,7 +391,7 @@ export async function POST(req: NextRequest) {
         value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}%`
       })
 
-      console.log(`[Crear Pedido] ✓ Descuento aplicado: ${cliente.nivel.nombre} ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)}`)
+      console.log(`[Crear Pedido] ✓ Cupón aplicado: NIVEL_${cliente.nivel.nombre.toUpperCase()} - Descuento: $${descuentoMontoTotal.toFixed(2)}`)
     }
 
     console.log('[WooCommerce Crear Pedido] Datos:', JSON.stringify(orderData, null, 2))
