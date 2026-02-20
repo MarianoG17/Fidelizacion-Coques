@@ -13,6 +13,7 @@ interface Beneficio {
     icono: string
     descripcion: string
     maxPorDia: number
+    usoUnico?: boolean
     activo: boolean
     niveles: Array<{ id: string; nombre: string; orden: number }>
     usosTotal: number

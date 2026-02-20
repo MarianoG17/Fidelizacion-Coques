@@ -95,6 +95,7 @@ export async function PATCH(
             icono,
             descripcion,
             maxPorDia,
+            usoUnico,
             activo,
             requiereEstadoExterno,
             estadoExternoTrigger,
@@ -129,6 +130,7 @@ export async function PATCH(
             icono: icono !== undefined ? icono : (condicionesActuales?.icono || '🎁'),
             descripcion: descripcion !== undefined ? descripcion : (condicionesActuales?.descripcion || ''),
             maxPorDia: maxPorDia !== undefined ? maxPorDia : (condicionesActuales?.maxPorDia || 0),
+            usoUnico: usoUnico !== undefined ? usoUnico : (condicionesActuales?.usoUnico || false),
         }
 
         if (tipo === 'DESCUENTO' || condicionesActuales?.tipo === 'DESCUENTO') {

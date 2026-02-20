@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
                 icono: condiciones?.icono || '🎁',
                 descripcion: condiciones?.descripcion || '',
                 maxPorDia: condiciones?.maxPorDia || 0,
+                usoUnico: condiciones?.usoUnico || false,
                 activo: beneficio.activo,
                 requiereEstadoExterno: beneficio.requiereEstadoExterno,
                 estadoExternoTrigger: beneficio.estadoExternoTrigger,
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
             icono,
             descripcion,
             maxPorDia,
+            usoUnico,
             activo,
             requiereEstadoExterno,
             estadoExternoTrigger,
@@ -111,6 +113,7 @@ export async function POST(req: NextRequest) {
             icono: icono || '🎁',
             descripcion: descripcion || '',
             maxPorDia: maxPorDia || 0,
+            usoUnico: usoUnico || false,
         }
 
         if (tipo === 'DESCUENTO') {

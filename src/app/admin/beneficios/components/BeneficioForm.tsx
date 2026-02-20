@@ -35,6 +35,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [icono, setIcono] = useState('🎁')
   const [descripcion, setDescripcion] = useState('')
   const [maxPorDia, setMaxPorDia] = useState<number>(1)
+  const [usoUnico, setUsoUnico] = useState(false)
   const [activo, setActivo] = useState(true)
   const [nivelesSeleccionados, setNivelesSeleccionados] = useState<string[]>([])
   const [niveles, setNiveles] = useState<Nivel[]>([])
@@ -51,6 +52,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       setIcono(beneficio.icono)
       setDescripcion(beneficio.descripcion)
       setMaxPorDia(beneficio.maxPorDia)
+      setUsoUnico((beneficio as any).usoUnico || false)
       setActivo(beneficio.activo)
       setNivelesSeleccionados(beneficio.niveles.map((n) => n.id))
     }
@@ -115,6 +117,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         icono,
         descripcion,
         maxPorDia,
+        usoUnico,
         activo,
         niveles: nivelesSeleccionados,
       }
@@ -288,23 +291,43 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
             />
           </div>
 
-          {/* Límite diario */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Límite de Usos por Día
-            </label>
-            <input
-              type="number"
-              value={maxPorDia}
-              onChange={(e) => setMaxPorDia(Number(e.target.value))}
-              min="0"
-              placeholder="1"
-              className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              0 = sin límite (ej: acceso VIP)
-            </p>
+          {/* Límite diario y Uso único */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Límite de Usos por Día
+              </label>
+              <input
+                type="number"
+                value={maxPorDia}
+                onChange={(e) => setMaxPorDia(Number(e.target.value))}
+                min="0"
+                placeholder="1"
+                className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                0 = sin límite (ej: acceso VIP)
+              </p>
+            </div>
+
+            <div className="flex items-center">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="usoUnico"
+                  checked={usoUnico}
+                  onChange={(e) => setUsoUnico(e.target.checked)}
+                  className="w-5 h-5 rounded bg-slate-700 border-slate-600 accent-purple-600"
+                />
+                <label htmlFor="usoUnico" className="text-slate-300 font-medium">
+                  Uso único
+                </label>
+              </div>
+            </div>
           </div>
+          <p className="text-xs text-slate-500 -mt-4">
+            Si está marcado, el beneficio solo se puede usar una vez en total (ej: descuento de bienvenida)
+          </p>
 
           {/* Niveles */}
           <div>
