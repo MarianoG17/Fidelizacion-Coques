@@ -82,7 +82,7 @@ export default function TortasPage() {
   }, [])
 
   async function fetchNivelCliente() {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('fidelizacion_token')
     if (!token) return
 
     try {
