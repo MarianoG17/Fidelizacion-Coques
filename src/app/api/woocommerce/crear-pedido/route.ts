@@ -328,7 +328,14 @@ export async function POST(req: NextRequest) {
             // Convertir precio con IVA a precio sin IVA
             const precioSinIVA = precioConIVA / IVA_FACTOR
             const subtotalSinIVA = precioSinIVA * cantidad
-            const totalSinIVA = subtotalSinIVA * factorDescuento
+            let totalSinIVA = subtotalSinIVA * factorDescuento
+            
+            // Redondear total con IVA hacia abajo a la centena más cercana
+            let totalConIVA = totalSinIVA * IVA_FACTOR
+            const totalRedondeado = Math.floor(totalConIVA / 100) * 100
+            
+            // Recalcular totalSinIVA basándose en el total redondeado
+            totalSinIVA = totalRedondeado / IVA_FACTOR
             
             // Aplicar descuento en el line_item (precios SIN IVA)
             lineItems[i].subtotal = subtotalSinIVA.toFixed(2)
@@ -336,9 +343,8 @@ export async function POST(req: NextRequest) {
             
             // Para el log, mostrar valores CON IVA (más fácil de entender)
             const subtotalConIVA = subtotalSinIVA * IVA_FACTOR
-            const totalConIVA = totalSinIVA * IVA_FACTOR
             subtotalPedido += subtotalConIVA
-            descuentoMontoTotal += (subtotalConIVA - totalConIVA)
+            descuentoMontoTotal += (subtotalConIVA - totalRedondeado)
           }
         } catch (error) {
           console.error('[Crear Pedido] Error aplicando descuento a item:', error)
