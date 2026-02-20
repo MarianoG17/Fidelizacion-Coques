@@ -40,6 +40,37 @@ export default function CarritoPage() {
   // Solo notas opcionales
   const [notas, setNotas] = useState('')
 
+  // Estado para nivel y descuento del cliente
+  const [nivelCliente, setNivelCliente] = useState<{nivel: string, descuento: number} | null>(null)
+
+  // Cargar nivel del cliente
+  useEffect(() => {
+    async function fetchNivelCliente() {
+      const token = localStorage.getItem('fidelizacion_token')
+      if (!token) return
+      
+      try {
+        const res = await fetch('/api/pass', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data.nivel) {
+            setNivelCliente({
+              nivel: data.data.nivel.nombre,
+              descuento: data.data.nivel.descuentoPedidosTortas || 0
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error al obtener nivel del cliente:', error)
+      }
+    }
+    
+    fetchNivelCliente()
+  }, [])
+
   // Generar fechas disponibles (mínimo 24h, solo lun-sáb)
   useEffect(() => {
     const fechas: string[] = []
@@ -231,6 +262,11 @@ export default function CarritoPage() {
     const porcionesItem = extraerPorciones(item.rendimiento)
     return total + (porcionesItem * item.cantidad)
   }, 0)
+
+  // Calcular descuento
+  const descuentoPorcentaje = nivelCliente?.descuento || 0
+  const montoDescuento = precioTotal * (descuentoPorcentaje / 100)
+  const totalConDescuento = precioTotal - montoDescuento
 
   if (!cargado) {
     return (
@@ -446,7 +482,7 @@ export default function CarritoPage() {
 
               <div className="space-y-2 mb-4 pb-4 border-b border-gray-300">
                 <div className="flex justify-between text-gray-700">
-                  <span>Productos ({cantidadTotal})</span>
+                  <span>Subtotal ({cantidadTotal})</span>
                   <span className="font-semibold">${formatearPrecio(precioTotal)}</span>
                 </div>
                 {/* Mostrar rendimiento total si hay items con rendimiento */}
@@ -459,12 +495,22 @@ export default function CarritoPage() {
                     <span className="font-bold">{rendimientoTotal} porciones</span>
                   </div>
                 )}
+                {/* Mostrar descuento si aplica */}
+                {nivelCliente && nivelCliente.descuento > 0 && (
+                  <div className="flex justify-between text-purple-700 bg-purple-50 p-2 rounded">
+                    <span className="flex items-center gap-1">
+                      <span>🎁</span>
+                      <span className="font-medium">Descuento Nivel {nivelCliente.nivel} ({nivelCliente.descuento}%)</span>
+                    </span>
+                    <span className="font-bold">-${formatearPrecio(montoDescuento)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mb-6 pb-6 border-b border-gray-300">
                 <div className="flex justify-between text-lg font-bold text-gray-800">
                   <span>Total</span>
-                  <span className="text-green-600">${formatearPrecio(precioTotal)}</span>
+                  <span className="text-green-600">${formatearPrecio(totalConDescuento)}</span>
                 </div>
               </div>
 
