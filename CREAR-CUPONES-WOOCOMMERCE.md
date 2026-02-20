@@ -8,49 +8,63 @@ Debes crear estos cupones en WooCommerce para que el sistema funcione correctame
 - **Código del cupón**: `NIVEL_BRONCE`
 - **Tipo de descuento**: Descuento fijo del carrito
 - **Importe del cupón**: 0 (se aplicará dinámicamente desde la app)
-- **Permitir uso libre**: ✅ Sí
-- **Fecha de caducidad**: Sin fecha (permanente)
+- **Fecha de caducidad**: (dejar vacío - sin fecha)
+- **Límite de uso por cupón**: (dejar vacío - sin límite)
+- **Límite de uso por usuario**: (dejar vacío - sin límite)
 
 ### 2. NIVEL_PLATA
 - **Código del cupón**: `NIVEL_PLATA`
 - **Tipo de descuento**: Descuento fijo del carrito
 - **Importe del cupón**: 0 (se aplicará dinámicamente)
-- **Permitir uso libre**: ✅ Sí
-- **Fecha de caducidad**: Sin fecha
+- **Fecha de caducidad**: (dejar vacío)
+- **Límite de uso por cupón**: (dejar vacío)
+- **Límite de uso por usuario**: (dejar vacío)
 
 ### 3. NIVEL_ORO
 - **Código del cupón**: `NIVEL_ORO`
 - **Tipo de descuento**: Descuento fijo del carrito
 - **Importe del cupón**: 0 (se aplicará dinámicamente)
-- **Permitir uso libre**: ✅ Sí
-- **Fecha de caducidad**: Sin fecha
+- **Fecha de caducidad**: (dejar vacío)
+- **Límite de uso por cupón**: (dejar vacío)
+- **Límite de uso por usuario**: (dejar vacío)
 
 ### 4. NIVEL_PLATINO (Opcional)
 - **Código del cupón**: `NIVEL_PLATINO`
 - **Tipo de descuento**: Descuento fijo del carrito
 - **Importe del cupón**: 0 (se aplicará dinámicamente)
-- **Permitir uso libre**: ✅ Sí
-- **Fecha de caducidad**: Sin fecha
+- **Fecha de caducidad**: (dejar vacío)
+- **Límite de uso por cupón**: (dejar vacío)
+- **Límite de uso por usuario**: (dejar vacío)
 
 ## 📝 Pasos para Crear los Cupones
 
-1. Ir a **WooCommerce > Cupones**
+1. Ir a **Marketing > Cupones** (o **WooCommerce > Cupones** en versiones antiguas)
 2. Click en **Añadir cupón**
-3. Completar los campos:
-   - **Código del cupón**: Exactamente como está arriba (con mayúsculas)
-   - **Tipo de descuento**: Descuento fijo del carrito
-   - **Importe del cupón**: 0
-4. En la pestaña **Restricciones de uso**:
-   - ✅ Marcar "Permitir uso libre" (para que se pueda usar sin límites)
-5. **Publicar** el cupón
-6. Repetir para cada nivel
+3. **PESTAÑA GENERAL**: Completar los campos:
+   - **Código del cupón**: Exactamente como está arriba (con mayúsculas, ejemplo: `NIVEL_BRONCE`)
+   - **Tipo de descuento**: Seleccionar "Descuento fijo del carrito"
+   - **Importe del cupón**: Poner **0** (cero)
+   - **Permitir uso gratuito**: Si aparece esta opción, activarla ✅
+   - **Fecha de caducidad**: NO poner ninguna fecha (dejar vacío)
+
+4. **PESTAÑA LÍMITES DE USO**: Configurar límites
+   - **Límite de uso por cupón**: Dejar vacío (sin límite)
+   - **Límite de uso por usuario**: Dejar vacío (sin límite)
+   - **Límite de artículos X (número de artículos)**: Dejar vacío
+
+5. **PESTAÑA RESTRICCIONES DE USO**:
+   - Dejar todo vacío (no poner restricciones)
+
+6. Click en **Publicar** el cupón
+7. Repetir para cada nivel (BRONCE, PLATA, ORO, PLATINO)
 
 ## ⚠️ IMPORTANTE
 
 - Los códigos deben ser **EXACTAMENTE** como están escritos (con guiones bajos y mayúsculas)
 - El importe debe ser **0** porque la app calculará y aplicará el monto dinámicamente
 - **NO poner fecha de caducidad** - estos cupones son permanentes
-- **Permitir uso libre** debe estar activado
+- **NO poner límites de uso** - dejar los campos de límites vacíos
+- **NO poner restricciones** - dejar las restricciones vacías
 
 ## 🔍 Verificación
 
