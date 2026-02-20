@@ -17,7 +17,7 @@ export async function PATCH(
     try {
         const { id } = params
         const body = await req.json()
-        const { visitas, usosCruzados } = body
+        const { visitas, usosCruzados, descuentoPedidosTortas } = body
 
         // Validaciones
         if (
@@ -32,16 +32,29 @@ export async function PATCH(
             )
         }
 
+        if (descuentoPedidosTortas !== undefined && (typeof descuentoPedidosTortas !== 'number' || descuentoPedidosTortas < 0 || descuentoPedidosTortas > 100)) {
+            return NextResponse.json(
+                { error: 'descuentoPedidosTortas debe ser un número entre 0 y 100' },
+                { status: 400 }
+            )
+        }
+
         // Actualizar criterios del nivel
+        const updateData: any = {
+            criterios: {
+                visitas,
+                diasVentana: 30, // Fijo por ahora
+                usosCruzados,
+            },
+        }
+
+        if (descuentoPedidosTortas !== undefined) {
+            updateData.descuentoPedidosTortas = descuentoPedidosTortas
+        }
+
         const nivel = await prisma.nivel.update({
             where: { id },
-            data: {
-                criterios: {
-                    visitas,
-                    diasVentana: 30, // Fijo por ahora
-                    usosCruzados,
-                },
-            },
+            data: updateData,
         })
 
         return NextResponse.json({

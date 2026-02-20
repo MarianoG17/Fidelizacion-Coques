@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Obtener datos completos del cliente desde la BD
+    // Obtener datos completos del cliente desde la BD (incluyendo nivel)
     const cliente = await prisma.cliente.findUnique({
       where: { id: clientePayload.clienteId },
       select: {
@@ -63,6 +63,12 @@ export async function POST(req: NextRequest) {
         nombre: true,
         email: true,
         phone: true,
+        nivel: {
+          select: {
+            nombre: true,
+            descuentoPedidosTortas: true,
+          }
+        }
       }
     })
 
@@ -246,7 +252,7 @@ export async function POST(req: NextRequest) {
       minute: '2-digit',
       hour12: false
     })
-    
+
     // Timestamps Unix para Ayresit (en segundos, no milisegundos)
     const fechaSoloInicio = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0)
     const timestampFecha = Math.floor(fechaSoloInicio.getTime() / 1000)  // Fecha a las 00:00
@@ -275,7 +281,52 @@ export async function POST(req: NextRequest) {
       customerNote += `\n\n📝 Notas adicionales: ${notas}`
     }
 
-    const orderData = {
+    // Calcular descuento por nivel
+    const descuentoPorcentaje = cliente.nivel?.descuentoPedidosTortas || 0
+    let descuentoMontoTotal = 0
+    let subtotalPedido = 0
+
+    // Calcular subtotal del pedido (solo para calcular el descuento)
+    if (descuentoPorcentaje > 0) {
+      // Necesitamos obtener los precios de los productos para calcular el subtotal
+      for (const item of items) {
+        try {
+          let precioItem = 0
+
+          if (item.varianteId) {
+            // Obtener precio de la variante
+            const varianteRes = await fetch(
+              `${wooUrl}/wp-json/wc/v3/products/${item.productoId}/variations/${item.varianteId}`,
+              { headers }
+            )
+            if (varianteRes.ok) {
+              const variante = await varianteRes.json()
+              precioItem = parseFloat(variante.price) || 0
+            }
+          } else {
+            // Obtener precio del producto simple
+            const productoRes = await fetch(
+              `${wooUrl}/wp-json/wc/v3/products/${item.productoId}`,
+              { headers }
+            )
+            if (productoRes.ok) {
+              const producto = await productoRes.json()
+              precioItem = parseFloat(producto.price) || 0
+            }
+          }
+
+          subtotalPedido += precioItem * item.cantidad
+        } catch (error) {
+          console.error('[Crear Pedido] Error calculando precio:', error)
+        }
+      }
+
+      // Calcular el monto del descuento
+      descuentoMontoTotal = subtotalPedido * (descuentoPorcentaje / 100)
+      console.log(`[Crear Pedido] Aplicando descuento: ${descuentoPorcentaje}% = $${descuentoMontoTotal.toFixed(2)} (Subtotal: $${subtotalPedido.toFixed(2)})`)
+    }
+
+    const orderData: any = {
       payment_method: 'cod', // Cash on delivery (pago en efectivo/transferencia)
       payment_method_title: 'Pago al retirar o por transferencia',
       set_paid: false, // No marcar como pagado aún
@@ -321,6 +372,25 @@ export async function POST(req: NextRequest) {
           value: rangoHorario, // "16:00 - 17:00"
         },
       ],
+    }
+
+    // Agregar cupón de descuento si aplica
+    if (descuentoMontoTotal > 0 && cliente.nivel) {
+      orderData.coupon_lines = [
+        {
+          code: `NIVEL_${cliente.nivel.nombre.toUpperCase()}`,
+          discount: descuentoMontoTotal.toFixed(2),
+          discount_tax: "0"
+        }
+      ]
+
+      // Agregar metadata del descuento
+      orderData.meta_data.push({
+        key: 'descuento_nivel',
+        value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}%`
+      })
+
+      console.log(`[Crear Pedido] ✓ Cupón agregado: NIVEL_${cliente.nivel.nombre.toUpperCase()} - Descuento: $${descuentoMontoTotal.toFixed(2)}`)
     }
 
     console.log('[WooCommerce Crear Pedido] Datos:', JSON.stringify(orderData, null, 2))

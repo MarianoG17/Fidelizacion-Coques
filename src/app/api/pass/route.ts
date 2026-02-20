@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     // Generar OTP y QR
     const token = generarToken(cliente.otpSecret)
     const otpauthUrl = generarOtpauthUrl(cliente.otpSecret, cliente.nombre || cliente.phone)
-    
+
     // Generar QR con el token directamente (para scanner del local)
     const qrDataUrl = await QRCode.toDataURL(token, {
       width: 280,
@@ -56,7 +56,12 @@ export async function GET(req: NextRequest) {
         codigoReferido: cliente.codigoReferido || undefined,
         referidosActivados: cliente.referidosActivados || 0,
         nivel: cliente.nivel
-          ? { nombre: cliente.nivel.nombre, orden: cliente.nivel.orden, descripcionBeneficios: cliente.nivel.descripcionBeneficios }
+          ? {
+            nombre: cliente.nivel.nombre,
+            orden: cliente.nivel.orden,
+            descripcionBeneficios: cliente.nivel.descripcionBeneficios,
+            descuentoPedidosTortas: cliente.nivel.descuentoPedidosTortas || 0
+          }
           : null,
         beneficiosActivos: beneficios.map((b: any) => ({
           id: b!.id,
@@ -73,9 +78,9 @@ export async function GET(req: NextRequest) {
           alias: auto.alias,
           estadoActual: auto.estadoActual
             ? {
-                estado: auto.estadoActual.estado,
-                updatedAt: auto.estadoActual.updatedAt.toISOString(),
-              }
+              estado: auto.estadoActual.estado,
+              updatedAt: auto.estadoActual.updatedAt.toISOString(),
+            }
             : null,
         })),
         otp: {

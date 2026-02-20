@@ -24,7 +24,7 @@ if (!OLD_DATABASE_URL || !NEW_DATABASE_URL) {
 }
 
 // Cliente Prisma para base antigua
-const prismaOld = new PrismaClient({
+const prismaOld = new PrismaClientOld({
   datasources: {
     db: {
       url: OLD_DATABASE_URL,
@@ -33,7 +33,7 @@ const prismaOld = new PrismaClient({
 }) as any;
 
 // Cliente Prisma para base nueva
-const prismaNew = new PrismaClient({
+const prismaNew = new PrismaClientNew({
   datasources: {
     db: {
       url: NEW_DATABASE_URL,

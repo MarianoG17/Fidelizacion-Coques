@@ -74,10 +74,35 @@ export default function TortasPage() {
   const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: Array<{ sku: string, etiqueta: string }> }>({})
   const [camposTextoValores, setCamposTextoValores] = useState<{ [nombreCampo: string]: string }>({})
   const [cargandoVariaciones, setCargandoVariaciones] = useState(false)
+  const [nivelCliente, setNivelCliente] = useState<{ nivel: string, descuento: number } | null>(null)
 
   useEffect(() => {
     cargarTortas()
+    fetchNivelCliente()
   }, [])
+
+  async function fetchNivelCliente() {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    try {
+      const res = await fetch('/api/pass', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data.nivel) {
+          setNivelCliente({
+            nivel: data.data.nivel.nombre,
+            descuento: data.data.nivel.descuentoPedidosTortas || 0
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error al obtener nivel del cliente:', error)
+    }
+  }
 
   // ⚡ PREFETCHING: Cargar variaciones en segundo plano después de la carga inicial
   useEffect(() => {
@@ -287,15 +312,15 @@ export default function TortasPage() {
     })
   }
 
-  // ⚡ OPTIMIZACIÓN: Memoizar cálculo de precio total
-  const calcularPrecioTotal = useCallback((): number => {
-    let precioBase = 0
+  // ⚡ OPTIMIZACIÓN: Memoizar cálculo de precio total con descuento
+  const calcularPrecioTotal = useCallback((): { precioOriginal: number, precioConDescuento: number, descuento: number } => {
+    let precioOriginal = 0
 
     if (productoSeleccionado) {
       if (varianteSeleccionada) {
-        precioBase = parseFloat(varianteSeleccionada.precio)
+        precioOriginal = parseFloat(varianteSeleccionada.precio)
       } else {
-        precioBase = parseFloat(productoSeleccionado.precio)
+        precioOriginal = parseFloat(productoSeleccionado.precio)
       }
 
       // Sumar precios de add-ons seleccionados
@@ -305,15 +330,24 @@ export default function TortasPage() {
           seleccionados.forEach(seleccion => {
             const opcion = addOn.opciones.find(o => o.sku === seleccion.sku)
             if (opcion) {
-              precioBase += opcion.precio
+              precioOriginal += opcion.precio
             }
           })
         })
       }
     }
 
-    return precioBase
-  }, [productoSeleccionado, varianteSeleccionada, addOnsSeleccionados])
+    // Aplicar descuento por nivel
+    const porcentajeDescuento = nivelCliente?.descuento || 0
+    const montoDescuento = precioOriginal * (porcentajeDescuento / 100)
+    const precioConDescuento = precioOriginal - montoDescuento
+
+    return {
+      precioOriginal,
+      precioConDescuento,
+      descuento: montoDescuento
+    }
+  }, [productoSeleccionado, varianteSeleccionada, addOnsSeleccionados, nivelCliente])
 
   // ⚡ OPTIMIZACIÓN: Memoizar función de agregar al carrito
   const agregarAlCarrito = useCallback(() => {
@@ -763,17 +797,44 @@ export default function TortasPage() {
                   </div>
                 )}
 
-                {/* Precio total */}
-                {(productoSeleccionado.addOns && productoSeleccionado.addOns.length > 0 && Object.keys(addOnsSeleccionados).length > 0) && (
-                  <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-gray-800">Precio Total:</span>
-                      <span className="text-2xl font-bold text-purple-600">
-                        ${formatearPrecio(calcularPrecioTotal())}
-                      </span>
+                {/* Descuento por nivel */}
+                {nivelCliente && nivelCliente.descuento > 0 && (
+                  <div className="mb-6 bg-purple-900/20 border border-purple-500 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-semibold text-purple-700">
+                          🎁 Beneficio Nivel {nivelCliente.nivel}
+                        </p>
+                        <p className="text-xs text-purple-600">
+                          {nivelCliente.descuento}% de descuento en tu pedido
+                        </p>
+                      </div>
+                      <p className="text-xl font-bold text-purple-700">
+                        -{formatearPrecio(calcularPrecioTotal().descuento)}
+                      </p>
                     </div>
                   </div>
                 )}
+
+                {/* Precio total */}
+                <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                  <div className="space-y-2">
+                    {nivelCliente && nivelCliente.descuento > 0 && (
+                      <div className="flex justify-between items-center text-gray-500">
+                        <span className="text-sm">Subtotal:</span>
+                        <span className="text-lg line-through">
+                          ${formatearPrecio(calcularPrecioTotal().precioOriginal)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-800 text-lg">Total a pagar:</span>
+                      <span className="text-3xl font-bold text-green-600">
+                        ${formatearPrecio(calcularPrecioTotal().precioConDescuento)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Mensaje de éxito */}
                 {agregado && (

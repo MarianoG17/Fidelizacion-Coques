@@ -8,6 +8,7 @@ interface Nivel {
   nombre: string
   orden: number
   descripcionBeneficios: string
+  descuentoPedidosTortas: number
   criterios: {
     visitas: number
     diasVentana: number
@@ -23,7 +24,7 @@ export default function AdminNivelesPage() {
   const [niveles, setNiveles] = useState<Nivel[]>([])
   const [cargando, setCargando] = useState(true)
   const [editando, setEditando] = useState<string | null>(null)
-  const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0 })
+  const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0 })
 
   const adminKey = typeof window !== 'undefined' ? localStorage.getItem('admin_key') : null
 
@@ -84,6 +85,7 @@ export default function AdminNivelesPage() {
     setFormData({
       visitas: nivel.criterios.visitas,
       usosCruzados: nivel.criterios.usosCruzados,
+      descuentoPedidosTortas: nivel.descuentoPedidosTortas,
     })
   }
 
@@ -126,6 +128,7 @@ export default function AdminNivelesPage() {
                   <th className="text-left p-4 text-slate-300 font-semibold">Orden</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Visitas Req.</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Usos Cruzados</th>
+                  <th className="text-left p-4 text-slate-300 font-semibold">Descuento Tortas</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Clientes</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Acciones</th>
                 </tr>
@@ -187,6 +190,27 @@ export default function AdminNivelesPage() {
                       )}
                     </td>
                     <td className="p-4">
+                      {editando === nivel.id ? (
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={formData.descuentoPedidosTortas}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              descuentoPedidosTortas: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="w-20 bg-slate-700 rounded px-2 py-1 text-white"
+                        />
+                      ) : (
+                        <span className="px-3 py-1 bg-purple-600 rounded-full text-sm font-semibold">
+                          {nivel.descuentoPedidosTortas}%
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4">
                       <span className="text-slate-300">{nivel._count.clientes}</span>
                     </td>
                     <td className="p-4">
@@ -232,6 +256,9 @@ export default function AdminNivelesPage() {
             <li>
               • <strong>Usos Cruzados:</strong> Cantidad de locales distintos que debe visitar
               (ej: si visita Café y Lavadero = 2 usos cruzados)
+            </li>
+            <li>
+              • <strong>Descuento Tortas:</strong> Porcentaje de descuento aplicado en pedidos de tortas (0-100%)
             </li>
             <li>
               • <strong>Clientes:</strong> Cantidad de clientes que actualmente tienen este nivel
