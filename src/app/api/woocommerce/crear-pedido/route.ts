@@ -281,49 +281,63 @@ export async function POST(req: NextRequest) {
       customerNote += `\n\n📝 Notas adicionales: ${notas}`
     }
 
-    // Calcular descuento por nivel
+    // Calcular descuento por nivel y aplicarlo directamente en los line_items
     const descuentoPorcentaje = cliente.nivel?.descuentoPedidosTortas || 0
+    const factorDescuento = descuentoPorcentaje > 0 ? (100 - descuentoPorcentaje) / 100 : 1
     let descuentoMontoTotal = 0
     let subtotalPedido = 0
 
-    // Calcular subtotal del pedido (solo para calcular el descuento)
+    // Si hay descuento, necesitamos obtener precios y aplicar descuento a cada line_item
     if (descuentoPorcentaje > 0) {
-      // Necesitamos obtener los precios de los productos para calcular el subtotal
-      for (const item of items) {
-        try {
-          let precioItem = 0
+      for (let i = 0; i < lineItems.length; i++) {
+        const lineItem = lineItems[i]
+        const itemOriginal = items.find(it => it.productoId === lineItem.product_id)
+        
+        if (!itemOriginal) continue // Skip add-ons, solo aplicamos descuento a productos principales
 
-          if (item.varianteId) {
+        try {
+          let precioOriginal = 0
+
+          if (lineItem.variation_id) {
             // Obtener precio de la variante
             const varianteRes = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products/${item.productoId}/variations/${item.varianteId}`,
+              `${wooUrl}/wp-json/wc/v3/products/${lineItem.product_id}/variations/${lineItem.variation_id}`,
               { headers }
             )
             if (varianteRes.ok) {
               const variante = await varianteRes.json()
-              precioItem = parseFloat(variante.price) || 0
+              precioOriginal = parseFloat(variante.price) || 0
             }
           } else {
             // Obtener precio del producto simple
             const productoRes = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products/${item.productoId}`,
+              `${wooUrl}/wp-json/wc/v3/products/${lineItem.product_id}`,
               { headers }
             )
             if (productoRes.ok) {
               const producto = await productoRes.json()
-              precioItem = parseFloat(producto.price) || 0
+              precioOriginal = parseFloat(producto.price) || 0
             }
           }
 
-          subtotalPedido += precioItem * item.cantidad
+          if (precioOriginal > 0) {
+            const cantidad = lineItem.quantity
+            const subtotal = precioOriginal * cantidad
+            const total = subtotal * factorDescuento
+            
+            // Aplicar descuento en el line_item
+            lineItems[i].subtotal = subtotal.toFixed(2)
+            lineItems[i].total = total.toFixed(2)
+            
+            subtotalPedido += subtotal
+            descuentoMontoTotal += (subtotal - total)
+          }
         } catch (error) {
-          console.error('[Crear Pedido] Error calculando precio:', error)
+          console.error('[Crear Pedido] Error aplicando descuento a item:', error)
         }
       }
 
-      // Calcular el monto del descuento
-      descuentoMontoTotal = subtotalPedido * (descuentoPorcentaje / 100)
-      console.log(`[Crear Pedido] Aplicando descuento: ${descuentoPorcentaje}% = $${descuentoMontoTotal.toFixed(2)} (Subtotal: $${subtotalPedido.toFixed(2)})`)
+      console.log(`[Crear Pedido] Descuento aplicado: ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)} (Subtotal: $${subtotalPedido.toFixed(2)}, Total: $${(subtotalPedido - descuentoMontoTotal).toFixed(2)})`)
     }
 
     const orderData: any = {
@@ -374,24 +388,12 @@ export async function POST(req: NextRequest) {
       ],
     }
 
-    // Agregar cupón de descuento si aplica
-    // El cupón debe tener un importe alto en WooCommerce (ej: 999999) para que acepte el descuento dinámico
+    // Agregar metadata del descuento para referencia (sin usar cupones)
     if (descuentoMontoTotal > 0 && cliente.nivel) {
-      orderData.coupon_lines = [
-        {
-          code: `NIVEL_${cliente.nivel.nombre.toUpperCase()}`,
-          discount: descuentoMontoTotal.toFixed(2),
-          discount_tax: "0"
-        }
-      ]
-
-      // Agregar metadata del descuento para referencia
       orderData.meta_data.push({
         key: 'descuento_nivel_fidelizacion',
-        value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}%`
+        value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)}`
       })
-
-      console.log(`[Crear Pedido] ✓ Cupón aplicado: NIVEL_${cliente.nivel.nombre.toUpperCase()} - Descuento: $${descuentoMontoTotal.toFixed(2)}`)
     }
 
     console.log('[WooCommerce Crear Pedido] Datos:', JSON.stringify(orderData, null, 2))
