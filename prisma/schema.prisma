@@ -163,6 +163,7 @@ model Nivel {
   criterios  Json
   // criterios: { visitas: 6, diasVentana: 30, usosCruzados: 0, visitasTotal: 0 }
   descripcionBeneficios String?  // Descripción de los beneficios del nivel
+  descuentoPedidosTortas  Int   @default(0)  // Porcentaje de descuento en pedidos de tortas (0-100)
   clientes         Cliente[]
   beneficios       NivelBeneficio[]
   eventosEspeciales EventoEspecial[]
