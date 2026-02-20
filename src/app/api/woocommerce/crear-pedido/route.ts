@@ -282,6 +282,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Calcular descuento por nivel y aplicarlo directamente en los line_items
+    // Los precios en WooCommerce incluyen IVA, pero los campos subtotal/total deben ser SIN IVA
+    const IVA_FACTOR = 1.21 // IVA 21% en Argentina
     const descuentoPorcentaje = cliente.nivel?.descuentoPedidosTortas || 0
     const factorDescuento = descuentoPorcentaje > 0 ? (100 - descuentoPorcentaje) / 100 : 1
     let descuentoMontoTotal = 0
@@ -296,7 +298,7 @@ export async function POST(req: NextRequest) {
         if (!itemOriginal) continue // Skip add-ons, solo aplicamos descuento a productos principales
 
         try {
-          let precioOriginal = 0
+          let precioConIVA = 0
 
           if (lineItem.variation_id) {
             // Obtener precio de la variante
@@ -306,7 +308,7 @@ export async function POST(req: NextRequest) {
             )
             if (varianteRes.ok) {
               const variante = await varianteRes.json()
-              precioOriginal = parseFloat(variante.price) || 0
+              precioConIVA = parseFloat(variante.price) || 0
             }
           } else {
             // Obtener precio del producto simple
@@ -316,28 +318,34 @@ export async function POST(req: NextRequest) {
             )
             if (productoRes.ok) {
               const producto = await productoRes.json()
-              precioOriginal = parseFloat(producto.price) || 0
+              precioConIVA = parseFloat(producto.price) || 0
             }
           }
 
-          if (precioOriginal > 0) {
+          if (precioConIVA > 0) {
             const cantidad = lineItem.quantity
-            const subtotal = precioOriginal * cantidad
-            const total = subtotal * factorDescuento
             
-            // Aplicar descuento en el line_item
-            lineItems[i].subtotal = subtotal.toFixed(2)
-            lineItems[i].total = total.toFixed(2)
+            // Convertir precio con IVA a precio sin IVA
+            const precioSinIVA = precioConIVA / IVA_FACTOR
+            const subtotalSinIVA = precioSinIVA * cantidad
+            const totalSinIVA = subtotalSinIVA * factorDescuento
             
-            subtotalPedido += subtotal
-            descuentoMontoTotal += (subtotal - total)
+            // Aplicar descuento en el line_item (precios SIN IVA)
+            lineItems[i].subtotal = subtotalSinIVA.toFixed(2)
+            lineItems[i].total = totalSinIVA.toFixed(2)
+            
+            // Para el log, mostrar valores CON IVA (más fácil de entender)
+            const subtotalConIVA = subtotalSinIVA * IVA_FACTOR
+            const totalConIVA = totalSinIVA * IVA_FACTOR
+            subtotalPedido += subtotalConIVA
+            descuentoMontoTotal += (subtotalConIVA - totalConIVA)
           }
         } catch (error) {
           console.error('[Crear Pedido] Error aplicando descuento a item:', error)
         }
       }
 
-      console.log(`[Crear Pedido] Descuento aplicado: ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)} (Subtotal: $${subtotalPedido.toFixed(2)}, Total: $${(subtotalPedido - descuentoMontoTotal).toFixed(2)})`)
+      console.log(`[Crear Pedido] Descuento aplicado: ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)} (Subtotal con IVA: $${subtotalPedido.toFixed(2)}, Total con IVA: $${(subtotalPedido - descuentoMontoTotal).toFixed(2)})`)
     }
 
     const orderData: any = {

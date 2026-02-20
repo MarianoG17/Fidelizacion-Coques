@@ -1,4 +1,4 @@
-// Script para debug del pedido 2297 - verificar descuento
+ no usa// Script para debug del pedido 2297 - verificar descuento
 // Uso: WOOCOMMERCE_URL=xxx WOOCOMMERCE_KEY=xxx WOOCOMMERCE_SECRET=xxx node scripts/debug-pedido-2297.js
 
 const wooUrl = process.env.WOOCOMMERCE_URL
