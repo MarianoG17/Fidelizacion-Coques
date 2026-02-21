@@ -88,7 +88,10 @@ const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = 
   853: { nombre: 'Merenguitos', precio: 0 },
   854: { nombre: 'Chips de chocolate', precio: 0 },
   855: { nombre: 'Nueces', precio: 0 },
-  860: { nombre: 'Bizcochuelo Colores', precio: 0 }
+  860: { nombre: 'Bizcochuelo Colores', precio: 0 },
+  // Opciones de cubierta (sin SKU, solo comentarios)
+  9001: { nombre: 'Buttercream', precio: 0 },
+  9002: { nombre: 'Ganache de chocolate', precio: 0 }
 }
 
 /**
@@ -341,7 +344,7 @@ export async function GET(req: NextRequest) {
 
             // Agregar configuración dinámica de campos personalizados para SKU 20
             CAMPOS_TEXTO_POR_PRODUCTO[tortaTematica.id] = [
-              { nombre: 'Color de la cubierta', placeholder: 'Ej: Rosa pastel, Azul bebé, Multicolor... (buttercream o ganache)', requerido: true },
+              { nombre: 'Color de la cubierta', placeholder: 'Si buttercream: Rosa, Azul, etc. Si ganache: Chocolate negro', requerido: true },
               { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
               { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
               { nombre: 'URL Imagen Referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true },
@@ -350,6 +353,15 @@ export async function GET(req: NextRequest) {
 
             // Agregar configuración dinámica de add-ons para SKU 20
             ADICIONALES_AGRUPADOS[tortaTematica.id] = [
+              {
+                nombre: 'Tipo de cubierta',
+                tipo: 'radio',
+                requerido: true,
+                opciones: [
+                  { id: 9001, soloComentario: true },  // Buttercream (sin SKU, solo comentario)
+                  { id: 9002, soloComentario: true }   // Ganache de chocolate (sin SKU, solo comentario)
+                ]
+              },
               {
                 nombre: 'Relleno Capa 1',
                 tipo: 'radio',
