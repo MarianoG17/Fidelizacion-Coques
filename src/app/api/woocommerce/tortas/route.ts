@@ -84,14 +84,34 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
  * Cuando se les asigne SKU, mover a configuración normal
  */
 const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = {
+  // Rellenos base (originales sin SKU)
   852: { nombre: 'Rocklets', precio: 0 },
   853: { nombre: 'Merenguitos', precio: 0 },
   854: { nombre: 'Chips de chocolate', precio: 0 },
   855: { nombre: 'Nueces', precio: 0 },
   860: { nombre: 'Bizcochuelo Colores', precio: 0 },
-  // Opciones de cubierta (sin SKU, solo comentarios)
+  // Tipo de cubierta
   9001: { nombre: 'Buttercream', precio: 0 },
-  9002: { nombre: 'Ganache de chocolate', precio: 0 }
+  9002: { nombre: 'Ganache de chocolate', precio: 0 },
+  // Rellenos principales
+  9101: { nombre: 'Dulce de leche', precio: 0 },
+  9102: { nombre: 'Chocolate', precio: 0 },
+  9103: { nombre: 'Nutella', precio: 0 },
+  9104: { nombre: 'Crema con oreos trituradas', precio: 0 },
+  // Bizcochuelos
+  9201: { nombre: 'Bizcochuelo Vainilla', precio: 0 },
+  9202: { nombre: 'Bizcochuelo Chocolate', precio: 0 },
+  // Cookies
+  9301: { nombre: 'Cookies Temáticas', precio: 0 },
+  // Macarons
+  9401: { nombre: 'Macaron Chocolate', precio: 0 },
+  9402: { nombre: 'Macaron Frutos Rojos', precio: 0 },
+  9403: { nombre: 'Macaron Dulce de Leche', precio: 0 },
+  9404: { nombre: 'Macaron Limón', precio: 0 },
+  9405: { nombre: 'Macaron Vainilla', precio: 0 },
+  9406: { nombre: 'Macaron Frutilla', precio: 0 },
+  // Flores
+  9501: { nombre: 'Flores Astromelias', precio: 0 }
 }
 
 /**
@@ -367,14 +387,14 @@ export async function GET(req: NextRequest) {
                 tipo: 'radio',
                 requerido: true,
                 opciones: [
-                  { sku: '467' }, // Dulce de leche (sin incremento)
-                  { sku: '466' }, // Chocolate
-                  { sku: '300' }, // Nutella
-                  { sku: '376' }, // Crema con oreos trituradas
-                  { id: 852, soloComentario: true },    // Rocklets (solo comentarios hasta tener SKU)
-                  { id: 853, soloComentario: true },    // Merenguitos (solo comentarios)
-                  { id: 854, soloComentario: true },    // Chips de chocolate (solo comentarios)
-                  { id: 855, soloComentario: true }     // Nueces (solo comentarios)
+                  { id: 9101, soloComentario: true },  // Dulce de leche
+                  { id: 9102, soloComentario: true },  // Chocolate
+                  { id: 9103, soloComentario: true },  // Nutella
+                  { id: 9104, soloComentario: true },  // Crema con oreos trituradas
+                  { id: 852, soloComentario: true },   // Rocklets
+                  { id: 853, soloComentario: true },   // Merenguitos
+                  { id: 854, soloComentario: true },   // Chips de chocolate
+                  { id: 855, soloComentario: true }    // Nueces
                 ]
               },
               {
@@ -382,14 +402,14 @@ export async function GET(req: NextRequest) {
                 tipo: 'radio',
                 requerido: true,
                 opciones: [
-                  { sku: '467' }, // Dulce de leche
-                  { sku: '466' }, // Chocolate
-                  { sku: '300' }, // Nutella
-                  { sku: '376' }, // Crema con oreos trituradas
-                  { id: 852, soloComentario: true },    // Rocklets
-                  { id: 853, soloComentario: true },    // Merenguitos
-                  { id: 854, soloComentario: true },    // Chips de chocolate
-                  { id: 855, soloComentario: true }     // Nueces
+                  { id: 9101, soloComentario: true },  // Dulce de leche
+                  { id: 9102, soloComentario: true },  // Chocolate
+                  { id: 9103, soloComentario: true },  // Nutella
+                  { id: 9104, soloComentario: true },  // Crema con oreos trituradas
+                  { id: 852, soloComentario: true },   // Rocklets
+                  { id: 853, soloComentario: true },   // Merenguitos
+                  { id: 854, soloComentario: true },   // Chips de chocolate
+                  { id: 855, soloComentario: true }    // Nueces
                 ]
               },
               {
@@ -397,14 +417,14 @@ export async function GET(req: NextRequest) {
                 tipo: 'radio',
                 requerido: true,
                 opciones: [
-                  { sku: '467' }, // Dulce de leche
-                  { sku: '466' }, // Chocolate
-                  { sku: '300' }, // Nutella
-                  { sku: '376' }, // Crema con oreos trituradas
-                  { id: 852, soloComentario: true },    // Rocklets
-                  { id: 853, soloComentario: true },    // Merenguitos
-                  { id: 854, soloComentario: true },    // Chips de chocolate
-                  { id: 855, soloComentario: true }     // Nueces
+                  { id: 9101, soloComentario: true },  // Dulce de leche
+                  { id: 9102, soloComentario: true },  // Chocolate
+                  { id: 9103, soloComentario: true },  // Nutella
+                  { id: 9104, soloComentario: true },  // Crema con oreos trituradas
+                  { id: 852, soloComentario: true },   // Rocklets
+                  { id: 853, soloComentario: true },   // Merenguitos
+                  { id: 854, soloComentario: true },   // Chips de chocolate
+                  { id: 855, soloComentario: true }    // Nueces
                 ]
               },
               {
@@ -412,9 +432,9 @@ export async function GET(req: NextRequest) {
                 tipo: 'radio',
                 requerido: true,
                 opciones: [
-                  { sku: '399' }, // Vainilla
-                  { sku: '398' }, // Chocolate
-                  { id: 860, soloComentario: true }     // Colores (solo comentarios hasta tener SKU)
+                  { id: 9201, soloComentario: true },  // Vainilla
+                  { id: 9202, soloComentario: true },  // Chocolate
+                  { id: 860, soloComentario: true }    // Colores
                 ]
               },
               {
@@ -422,7 +442,7 @@ export async function GET(req: NextRequest) {
                 tipo: 'checkbox',
                 requerido: false,
                 opciones: [
-                  { sku: '31' }  // Cookies Temáticas (6 unidades)
+                  { id: 9301, soloComentario: true }   // Cookies Temáticas
                 ]
               },
               {
@@ -430,12 +450,12 @@ export async function GET(req: NextRequest) {
                 tipo: 'checkbox',
                 requerido: false,
                 opciones: [
-                  { sku: '469' }, // Macaron Chocolate
-                  { sku: '254' }, // Macaron Frutos Rojos
-                  { sku: '256' }, // Macaron Dulce de Leche
-                  { sku: '255' }, // Macaron Limón
-                  { sku: '253' }, // Macaron Vainilla
-                  { sku: '84' }   // Macaron Frutilla
+                  { id: 9401, soloComentario: true },  // Macaron Chocolate
+                  { id: 9402, soloComentario: true },  // Macaron Frutos Rojos
+                  { id: 9403, soloComentario: true },  // Macaron Dulce de Leche
+                  { id: 9404, soloComentario: true },  // Macaron Limón
+                  { id: 9405, soloComentario: true },  // Macaron Vainilla
+                  { id: 9406, soloComentario: true }   // Macaron Frutilla
                 ]
               },
               {
@@ -443,7 +463,7 @@ export async function GET(req: NextRequest) {
                 tipo: 'checkbox',
                 requerido: false,
                 opciones: [
-                  { sku: '862' }  // Flores Astromelias (verificar SKU)
+                  { id: 9501, soloComentario: true }   // Flores Astromelias
                 ]
               }
             ]
