@@ -131,6 +131,14 @@ const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder:
   764: [ // Torta Doble Oreo con Golosinas
     { nombre: 'Color de decoración', placeholder: 'Ej: Rosa, Celeste, Multicolor...', requerido: false }
   ],
+  // NOTA: El ID de WooCommerce para SKU 20 debe ser verificado y actualizado aquí
+  // Una vez verificado, descomentar y actualizar el ID real:
+  // XXX: [ // Torta Temática Buttercream (SKU 20) - REEMPLAZAR XXX con ID real de WooCommerce
+  //   { nombre: 'Color de Decoración', placeholder: 'Ej: Rosa pastel, Azul bebé, Multicolor...', requerido: true },
+  //   { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
+  //   { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
+  //   { nombre: 'URL foto referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true }
+  // ],
 }
 
 export async function GET(req: NextRequest) {
@@ -428,8 +436,8 @@ export async function GET(req: NextRequest) {
       // Optimizar imágenes del catálogo usando tamaños más pequeños
       const imagenPrincipal = product.images?.[0]
       const imagenCatalogo = imagenPrincipal?.sizes?.shop_catalog ||
-                            imagenPrincipal?.sizes?.medium ||
-                            imagenPrincipal?.src || null
+        imagenPrincipal?.sizes?.medium ||
+        imagenPrincipal?.src || null
 
       return {
         id: product.id,
