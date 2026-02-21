@@ -87,7 +87,7 @@ const ADICIONALES_AGRUPADOS: {
     nombre: string;
     tipo: 'radio' | 'checkbox';
     requerido: boolean;
-    opciones: { sku: string }[]
+    opciones: { sku?: string; id?: number }[]
   }[]
 } = {
   325: [ // Torta Ganache de Chocolate
@@ -326,25 +326,55 @@ export async function GET(req: NextRequest) {
               { nombre: 'Color de Decoración', placeholder: 'Ej: Rosa pastel, Azul bebé, Multicolor...', requerido: true },
               { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
               { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
-              { nombre: 'URL foto referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true }
+              { nombre: 'URL Imagen Referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true },
+              { nombre: 'Referencia de la imagen', placeholder: 'Ej: Colores de decoración, Texto del diseño, Estilo general...', requerido: true }
             ]
 
             // Agregar configuración dinámica de add-ons para SKU 20
             ADICIONALES_AGRUPADOS[tortaTematica.id] = [
               {
-                nombre: 'Relleno',
+                nombre: 'Relleno Capa 1',
                 tipo: 'radio',
                 requerido: true,
                 opciones: [
-                  { sku: '467' }, // Relleno de Dulce de Leche
-                  { sku: '466' }, // Relleno de Chocolate
-                  { sku: '300' }, // Relleno de Nutella
-                  { sku: '376' }, // Relleno Frutos Rojos
-                  { sku: '375' }, // Relleno Maracuyá
-                  { sku: '263' }, // Relleno Frutilla
-                  { sku: '367' }, // Relleno Limón
-                  { sku: '257' }, // Relleno Dulce de Leche (variante)
-                  { sku: '314' }  // Relleno Crema Pastelera
+                  { sku: '467' }, // Dulce de leche (sin incremento)
+                  { sku: '466' }, // Chocolate
+                  { sku: '300' }, // Nutella
+                  { sku: '376' }, // Crema con oreos trituradas
+                  { id: 852 },    // Rocklets (sin SKU aún, no visible en Ayres IT)
+                  { id: 853 },    // Merenguitos (sin SKU aún, no visible en Ayres IT)
+                  { id: 854 },    // Chips de chocolate (sin SKU aún, no visible en Ayres IT)
+                  { id: 855 }     // Nueces (sin SKU aún, no visible en Ayres IT)
+                ]
+              },
+              {
+                nombre: 'Relleno Capa 2',
+                tipo: 'radio',
+                requerido: true,
+                opciones: [
+                  { sku: '467' }, // Dulce de leche
+                  { sku: '466' }, // Chocolate
+                  { sku: '300' }, // Nutella
+                  { sku: '376' }, // Crema con oreos trituradas
+                  { id: 852 },    // Rocklets
+                  { id: 853 },    // Merenguitos
+                  { id: 854 },    // Chips de chocolate
+                  { id: 855 }     // Nueces
+                ]
+              },
+              {
+                nombre: 'Relleno Capa 3',
+                tipo: 'radio',
+                requerido: true,
+                opciones: [
+                  { sku: '467' }, // Dulce de leche
+                  { sku: '466' }, // Chocolate
+                  { sku: '300' }, // Nutella
+                  { sku: '376' }, // Crema con oreos trituradas
+                  { id: 852 },    // Rocklets
+                  { id: 853 },    // Merenguitos
+                  { id: 854 },    // Chips de chocolate
+                  { id: 855 }     // Nueces
                 ]
               },
               {
@@ -354,7 +384,7 @@ export async function GET(req: NextRequest) {
                 opciones: [
                   { sku: '399' }, // Vainilla
                   { sku: '398' }, // Chocolate
-                  { sku: '461' }  // Marmolado
+                  { id: 860 }     // Colores (sin SKU aún, no visible en Ayres IT)
                 ]
               },
               {
@@ -479,14 +509,27 @@ export async function GET(req: NextRequest) {
         adicionalesAgrupados.forEach(grupo => {
           const opcionesFormateadas = grupo.opciones
             .map(opt => {
-              const info = adicionalesInfo[opt.sku]
-              if (info) {
+              // Soportar tanto SKU como ID de WooCommerce
+              if (opt.sku) {
+                const info = adicionalesInfo[opt.sku]
+                if (info) {
+                  return {
+                    etiqueta: info.nombre,
+                    precio: info.precio,
+                    precioTipo: 'flat_fee' as const,
+                    wooId: info.id,
+                    sku: opt.sku
+                  }
+                }
+              } else if (opt.id) {
+                // Buscar por ID en adicionalesInfo (necesitamos el ID en el mapeo)
+                // Por ahora, permitimos ID sin info (se obtendrá en crear-pedido)
                 return {
-                  etiqueta: info.nombre,
-                  precio: info.precio,
+                  etiqueta: `Producto ID ${opt.id}`, // Se actualizará desde WooCommerce
+                  precio: 0,
                   precioTipo: 'flat_fee' as const,
-                  wooId: info.id,
-                  sku: opt.sku
+                  wooId: opt.id,
+                  sku: undefined
                 }
               }
               return null
