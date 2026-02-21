@@ -902,8 +902,12 @@ function TortasPageContent() {
 
                         // Lógica para mostrar "Cantidad de Cookies" solo si se eligió "Cookies Temáticas"
                         if (campo.nombre.includes('Cantidad de Cookies')) {
-                          const cookiesSeleccionadas = addOnsSeleccionados['Cookies Temáticas (especificar cantidad en notas)']
-                          if (!cookiesSeleccionadas || cookiesSeleccionadas.length === 0) {
+                          // Buscar cualquier add-on que contenga "Cookies" en su nombre
+                          const cookiesSeleccionadas = Object.keys(addOnsSeleccionados).find(key =>
+                            key.toLowerCase().includes('cookies')
+                          )
+                          if (!cookiesSeleccionadas || !addOnsSeleccionados[cookiesSeleccionadas] ||
+                              addOnsSeleccionados[cookiesSeleccionadas].length === 0) {
                             return null // No mostrar si no se eligieron cookies
                           }
                         }
