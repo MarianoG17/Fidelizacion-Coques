@@ -1,4 +1,4 @@
-tre e viab// src/hooks/useCarrito.ts
+// src/hooks/useCarrito.ts
 'use client'
 
 import { useState, useEffect } from 'react'

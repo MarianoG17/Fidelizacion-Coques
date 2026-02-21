@@ -112,12 +112,12 @@ const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = 
   // Cookies
   9301: { nombre: 'Cookies Temáticas', precio: 0 },
   // Macarons
-  9401: { nombre: 'Macarrón de Dulce de Leche', precio: 0 },
-  9402: { nombre: 'Macarrón Pistacho', precio: 0 },
-  9403: { nombre: 'Macarrón Limón', precio: 0 },
-  9404: { nombre: 'Macarrón Frambuesa', precio: 0 },
-  9405: { nombre: 'Macarrón Chocolate Blanco', precio: 0 },
-  9406: { nombre: 'Macarrón Chocolate Negro', precio: 0 },
+  9401: { nombre: 'Macarrón de Dulce de Leche', precio: 2800 },
+  9402: { nombre: 'Macarrón Pistacho', precio: 2800 },
+  9403: { nombre: 'Macarrón Limón', precio: 2800 },
+  9404: { nombre: 'Macarrón Frambuesa', precio: 2800 },
+  9405: { nombre: 'Macarrón Chocolate Blanco', precio: 2800 },
+  9406: { nombre: 'Macarrón Chocolate Negro', precio: 2800 },
   // Flores
   9501: { nombre: 'Flores Astromelias', precio: 0 }
 }
