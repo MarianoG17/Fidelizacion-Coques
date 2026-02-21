@@ -181,6 +181,8 @@ export async function GET(req: NextRequest) {
 
     // Mapeo de SKU -> {id, precio, nombre} para productos adicionales
     const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
+    // Mapeo de ID -> {id, precio, nombre} para productos sin SKU
+    const adicionalesInfoPorId: { [id: number]: { id: number; precio: number; nombre: string } } = {}
 
     if (adicionalesSkus.length > 0) {
       try {
@@ -235,6 +237,52 @@ export async function GET(req: NextRequest) {
         console.log(`[Tortas API] Info de ${Object.keys(adicionalesInfo).length} adicionales obtenida en ${batches.length} llamadas batch`)
       } catch (error) {
         console.error('[Tortas API] Error obteniendo info de adicionales:', error)
+      }
+    }
+
+    // 🆕 Buscar productos por ID (los que no tienen SKU)
+    const productosIds = Object.values(ADICIONALES_AGRUPADOS)
+      .flat()
+      .flatMap(grupo => grupo.opciones)
+      .filter(opt => opt.id)
+      .map(opt => opt.id as number)
+
+    const idsUnicos = [...new Set(productosIds)]
+
+    if (idsUnicos.length > 0) {
+      try {
+        console.log(`[Tortas API] Buscando ${idsUnicos.length} productos por ID:`, idsUnicos)
+
+        const idPromises = idsUnicos.map(async (id) => {
+          try {
+            const prodResponse = await fetch(
+              `${wooUrl}/wp-json/wc/v3/products/${id}`,
+              {
+                headers,
+                next: { revalidate: cacheTime }
+              }
+            )
+
+            if (prodResponse.ok) {
+              const prod = await prodResponse.json()
+              adicionalesInfoPorId[id] = {
+                id: prod.id,
+                precio: parseFloat(prod.price) || 0,
+                nombre: prod.name
+              }
+              console.log(`[Tortas API] ✓ Producto ID ${id}: ${prod.name} ($${prod.price})`)
+            } else {
+              console.warn(`[Tortas API] ✗ No se encontró producto ID ${id}`)
+            }
+          } catch (error) {
+            console.error(`[Tortas API] Error obteniendo producto ID ${id}:`, error)
+          }
+        })
+
+        await Promise.all(idPromises)
+        console.log(`[Tortas API] Info de ${Object.keys(adicionalesInfoPorId).length} productos por ID obtenida`)
+      } catch (error) {
+        console.error('[Tortas API] Error obteniendo productos por ID:', error)
       }
     }
 
@@ -522,10 +570,21 @@ export async function GET(req: NextRequest) {
                   }
                 }
               } else if (opt.id) {
-                // Buscar por ID en adicionalesInfo (necesitamos el ID en el mapeo)
-                // Por ahora, permitimos ID sin info (se obtendrá en crear-pedido)
+                // Buscar por ID en el mapeo de productos por ID
+                const info = adicionalesInfoPorId[opt.id]
+                if (info) {
+                  return {
+                    etiqueta: info.nombre,
+                    precio: info.precio,
+                    precioTipo: 'flat_fee' as const,
+                    wooId: info.id,
+                    sku: undefined
+                  }
+                }
+                // Si no se encontró, dejar placeholder
+                console.warn(`[Tortas API] ✗ No se encontró info para producto ID ${opt.id}`)
                 return {
-                  etiqueta: `Producto ID ${opt.id}`, // Se actualizará desde WooCommerce
+                  etiqueta: `Producto ID ${opt.id}`,
                   precio: 0,
                   precioTipo: 'flat_fee' as const,
                   wooId: opt.id,
