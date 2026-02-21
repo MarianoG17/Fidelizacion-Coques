@@ -84,33 +84,40 @@ const ADICIONALES_POR_PRODUCTO: { [key: number]: { sku: string; nombre: string }
  * Cuando se les asigne SKU, mover a configuración normal
  */
 const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = {
-  // Rellenos base (originales sin SKU)
+  // Extras para rellenos
   852: { nombre: 'Rocklets', precio: 0 },
   853: { nombre: 'Merenguitos', precio: 0 },
   854: { nombre: 'Chips de chocolate', precio: 0 },
   855: { nombre: 'Nueces', precio: 0 },
-  860: { nombre: 'Bizcochuelo Colores', precio: 0 },
+  860: { nombre: 'Bizcochuelo Colores', precio: 2400 },
   // Tipo de cubierta
   9001: { nombre: 'Buttercream', precio: 0 },
   9002: { nombre: 'Ganache de chocolate', precio: 0 },
   9003: { nombre: 'Color de cubierta (especificar)', precio: 0 },
-  // Rellenos principales
+  // Rellenos base
   9101: { nombre: 'Dulce de leche', precio: 0 },
-  9102: { nombre: 'Chocolate', precio: 0 },
-  9103: { nombre: 'Nutella', precio: 0 },
-  9104: { nombre: 'Crema con oreos trituradas', precio: 0 },
+  9102: { nombre: 'Chocolate', precio: 3600 },
+  9103: { nombre: 'Nutella', precio: 6200 },
+  9104: { nombre: 'Oreos trituradas', precio: 2400 },
   // Bizcochuelos
   9201: { nombre: 'Bizcochuelo Vainilla', precio: 0 },
   9202: { nombre: 'Bizcochuelo Chocolate', precio: 0 },
+  // Colores de bizcochuelo
+  9211: { nombre: 'Verde', precio: 0 },
+  9212: { nombre: 'Amarillo', precio: 0 },
+  9213: { nombre: 'Naranja', precio: 0 },
+  9214: { nombre: 'Rojo', precio: 0 },
+  9215: { nombre: 'Celeste', precio: 0 },
+  9216: { nombre: 'Violeta', precio: 0 },
   // Cookies
   9301: { nombre: 'Cookies Temáticas', precio: 0 },
   // Macarons
-  9401: { nombre: 'Macaron Chocolate', precio: 0 },
-  9402: { nombre: 'Macaron Frutos Rojos', precio: 0 },
-  9403: { nombre: 'Macaron Dulce de Leche', precio: 0 },
-  9404: { nombre: 'Macaron Limón', precio: 0 },
-  9405: { nombre: 'Macaron Vainilla', precio: 0 },
-  9406: { nombre: 'Macaron Frutilla', precio: 0 },
+  9401: { nombre: 'Macarrón de Dulce de Leche', precio: 0 },
+  9402: { nombre: 'Macarrón Pistacho', precio: 0 },
+  9403: { nombre: 'Macarrón Limón', precio: 0 },
+  9404: { nombre: 'Macarrón Frambuesa', precio: 0 },
+  9405: { nombre: 'Macarrón Chocolate Blanco', precio: 0 },
+  9406: { nombre: 'Macarrón Chocolate Negro', precio: 0 },
   // Flores
   9501: { nombre: 'Flores Astromelias', precio: 0 }
 }
@@ -388,14 +395,23 @@ export async function GET(req: NextRequest) {
                 ]
               },
               {
-                nombre: 'Relleno Capa 1',
+                nombre: 'Relleno Base Capa 1',
                 tipo: 'radio',
                 requerido: true,
+                descripcion: 'Elegí el relleno principal para la primera capa',
                 opciones: [
                   { id: 9101, soloComentario: true },  // Dulce de leche
                   { id: 9102, soloComentario: true },  // Chocolate
-                  { id: 9103, soloComentario: true },  // Nutella
-                  { id: 9104, soloComentario: true },  // Crema con oreos trituradas
+                  { id: 9103, soloComentario: true }   // Nutella
+                ]
+              },
+              {
+                nombre: 'Extra Capa 1 (opcional)',
+                tipo: 'checkbox',
+                requerido: false,
+                descripcion: 'Agregá un extra al relleno (algunos tienen costo adicional)',
+                opciones: [
+                  { id: 9104, soloComentario: true },  // Oreos trituradas
                   { id: 852, soloComentario: true },   // Rocklets
                   { id: 853, soloComentario: true },   // Merenguitos
                   { id: 854, soloComentario: true },   // Chips de chocolate
@@ -403,14 +419,23 @@ export async function GET(req: NextRequest) {
                 ]
               },
               {
-                nombre: 'Relleno Capa 2',
+                nombre: 'Relleno Base Capa 2',
                 tipo: 'radio',
                 requerido: true,
+                descripcion: 'Elegí el relleno principal para la segunda capa',
                 opciones: [
                   { id: 9101, soloComentario: true },  // Dulce de leche
                   { id: 9102, soloComentario: true },  // Chocolate
-                  { id: 9103, soloComentario: true },  // Nutella
-                  { id: 9104, soloComentario: true },  // Crema con oreos trituradas
+                  { id: 9103, soloComentario: true }   // Nutella
+                ]
+              },
+              {
+                nombre: 'Extra Capa 2 (opcional)',
+                tipo: 'checkbox',
+                requerido: false,
+                descripcion: 'Agregá un extra al relleno (algunos tienen costo adicional)',
+                opciones: [
+                  { id: 9104, soloComentario: true },  // Oreos trituradas
                   { id: 852, soloComentario: true },   // Rocklets
                   { id: 853, soloComentario: true },   // Merenguitos
                   { id: 854, soloComentario: true },   // Chips de chocolate
@@ -418,14 +443,23 @@ export async function GET(req: NextRequest) {
                 ]
               },
               {
-                nombre: 'Relleno Capa 3',
+                nombre: 'Relleno Base Capa 3',
                 tipo: 'radio',
                 requerido: true,
+                descripcion: 'Elegí el relleno principal para la tercera capa',
                 opciones: [
                   { id: 9101, soloComentario: true },  // Dulce de leche
                   { id: 9102, soloComentario: true },  // Chocolate
-                  { id: 9103, soloComentario: true },  // Nutella
-                  { id: 9104, soloComentario: true },  // Crema con oreos trituradas
+                  { id: 9103, soloComentario: true }   // Nutella
+                ]
+              },
+              {
+                nombre: 'Extra Capa 3 (opcional)',
+                tipo: 'checkbox',
+                requerido: false,
+                descripcion: 'Agregá un extra al relleno (algunos tienen costo adicional)',
+                opciones: [
+                  { id: 9104, soloComentario: true },  // Oreos trituradas
                   { id: 852, soloComentario: true },   // Rocklets
                   { id: 853, soloComentario: true },   // Merenguitos
                   { id: 854, soloComentario: true },   // Chips de chocolate
@@ -440,6 +474,20 @@ export async function GET(req: NextRequest) {
                   { id: 9201, soloComentario: true },  // Vainilla
                   { id: 9202, soloComentario: true },  // Chocolate
                   { id: 860, soloComentario: true }    // Colores
+                ]
+              },
+              {
+                nombre: 'Colores del Bizcochuelo (solo si elegiste Bizcochuelo Colores - máximo 4)',
+                tipo: 'checkbox',
+                requerido: false,
+                descripcion: 'Elegí hasta 4 colores para el bizcochuelo',
+                opciones: [
+                  { id: 9211, soloComentario: true },  // Verde
+                  { id: 9212, soloComentario: true },  // Amarillo
+                  { id: 9213, soloComentario: true },  // Naranja
+                  { id: 9214, soloComentario: true },  // Rojo
+                  { id: 9215, soloComentario: true },  // Celeste
+                  { id: 9216, soloComentario: true }   // Violeta
                 ]
               },
               {
