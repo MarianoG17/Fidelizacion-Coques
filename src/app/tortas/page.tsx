@@ -326,6 +326,13 @@ function TortasPageContent() {
           }
         } else {
           // No está seleccionado, agregarlo
+          // Límite especial para colores del bizcochuelo (máximo 4)
+          if (addOnNombre.includes('Colores del Bizcochuelo')) {
+            if (nuevosAddOns[addOnNombre].length >= 4) {
+              alert('Podés seleccionar hasta 4 colores máximo')
+              return prev // No agregar, retornar estado anterior
+            }
+          }
           nuevosAddOns[addOnNombre].push(opcionObj)
         }
       }
@@ -853,7 +860,7 @@ function TortasPageContent() {
                               const cubierta = addOnsSeleccionados['Tipo de cubierta']?.[0]
                               const esButtercream = cubierta?.etiqueta?.includes('Buttercream')
                               const campoColor = productoSeleccionado.camposTexto?.find(c => c.nombre.includes('Color de la cubierta'))
-                              
+
                               if (esButtercream && campoColor) {
                                 return (
                                   <div className="border border-gray-200 rounded-xl p-4">
