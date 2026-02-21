@@ -92,8 +92,8 @@ const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = 
   860: { nombre: 'Bizcochuelo Colores', precio: 2400 },
   // Tipo de cubierta
   9001: { nombre: 'Buttercream', precio: 0 },
-  9002: { nombre: 'Ganache Negro', precio: 0 },
-  9003: { nombre: 'Ganache Blanco', precio: 0 },
+  9002: { nombre: 'Ganache de chocolate negro', precio: 0 },
+  9003: { nombre: 'Ganache de chocolate blanco', precio: 0 },
   // Rellenos base
   9101: { nombre: 'Dulce de leche', precio: 0 },
   9102: { nombre: 'Chocolate', precio: 3600 },
@@ -373,11 +373,14 @@ export async function GET(req: NextRequest) {
 
             // Agregar configuración dinámica de campos personalizados para SKU 20
             CAMPOS_TEXTO_POR_PRODUCTO[tortaTematica.id] = [
+              { nombre: 'Color de la cubierta', placeholder: 'Solo si elegís Buttercream: Ej: Rosa pastel, Azul bebé, Multicolor...', requerido: true },
               { nombre: 'Nombre del cumpleañero', placeholder: 'Ej: María', requerido: false },
               { nombre: 'Años que cumple', placeholder: 'Ej: 5', requerido: false },
-              { nombre: 'Color de la cubierta', placeholder: 'Solo si elegís Buttercream: Ej: Rosa pastel, Azul bebé, Multicolor...', requerido: true },
               { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
               { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
+              { nombre: 'Tamaño de letra', placeholder: 'Ej: Grande, Mediana, Pequeña', requerido: false },
+              { nombre: 'Color de letra', placeholder: 'Ej: Dorado, Negro, Rosa, Multicolor...', requerido: false },
+              { nombre: 'Estilo de letra', placeholder: 'Ej: Cursiva, Imprenta, Manuscrita...', requerido: false },
               { nombre: 'URL Imagen Referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true },
               { nombre: 'Referencia de la imagen', placeholder: 'Ej: Colores de decoración, Texto del diseño, Estilo general...', requerido: true },
               { nombre: 'Cantidad de Cookies Temáticas', placeholder: 'Solo si elegiste Cookies Temáticas', requerido: false }
