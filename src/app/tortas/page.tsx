@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import BackButton from '@/components/shared/BackButton'
@@ -61,7 +61,7 @@ interface Producto {
   camposTexto?: CampoTexto[]
 }
 
-export default function TortasPage() {
+function TortasPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { agregarItem, cantidadTotal } = useCarrito()
@@ -920,5 +920,13 @@ export default function TortasPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function TortasPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Cargando...</div>}>
+      <TortasPageContent />
+    </Suspense>
   )
 }
