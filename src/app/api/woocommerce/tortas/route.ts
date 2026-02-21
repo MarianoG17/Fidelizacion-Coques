@@ -299,7 +299,94 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const products = await productsResponse.json()
+    let products = await productsResponse.json()
+
+    // 🎨 PASO 2.5: Agregar Torta Temática Buttercream (SKU 20) si no está en la categoría
+    try {
+      const sku20Response = await fetch(
+        `${wooUrl}/wp-json/wc/v3/products?sku=20&per_page=1&status=publish`,
+        {
+          headers,
+          next: { revalidate: cacheTime }
+        }
+      )
+
+      if (sku20Response.ok) {
+        const sku20Products = await sku20Response.json()
+        if (sku20Products.length > 0) {
+          const tortaTematica = sku20Products[0]
+          // Verificar si ya está en la lista (por si está en la categoría)
+          const yaExiste = products.some((p: any) => p.id === tortaTematica.id)
+          if (!yaExiste) {
+            products.push(tortaTematica)
+            console.log('[Tortas API] Agregado SKU 20 (Torta Temática Buttercream) manualmente')
+
+            // Agregar configuración dinámica de campos personalizados para SKU 20
+            CAMPOS_TEXTO_POR_PRODUCTO[tortaTematica.id] = [
+              { nombre: 'Color de Decoración', placeholder: 'Ej: Rosa pastel, Azul bebé, Multicolor...', requerido: true },
+              { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
+              { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
+              { nombre: 'URL foto referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true }
+            ]
+
+            // Agregar configuración dinámica de add-ons para SKU 20
+            ADICIONALES_AGRUPADOS[tortaTematica.id] = [
+              {
+                nombre: 'Relleno',
+                tipo: 'radio',
+                requerido: true,
+                opciones: [
+                  { sku: '467' }, // Relleno de Dulce de Leche
+                  { sku: '466' }, // Relleno de Chocolate
+                  { sku: '300' }, // Relleno de Nutella
+                  { sku: '376' }, // Relleno Frutos Rojos
+                  { sku: '375' }, // Relleno Maracuyá
+                  { sku: '263' }, // Relleno Frutilla
+                  { sku: '367' }, // Relleno Limón
+                  { sku: '257' }, // Relleno Dulce de Leche (variante)
+                  { sku: '314' }  // Relleno Crema Pastelera
+                ]
+              },
+              {
+                nombre: 'Bizcochuelo',
+                tipo: 'radio',
+                requerido: true,
+                opciones: [
+                  { sku: '399' }, // Vainilla
+                  { sku: '398' }, // Chocolate
+                  { sku: '461' }  // Marmolado
+                ]
+              },
+              {
+                nombre: 'Cookies Temáticas',
+                tipo: 'checkbox',
+                requerido: false,
+                opciones: [
+                  { sku: '31' }  // Cookies Temáticas (6 unidades)
+                ]
+              },
+              {
+                nombre: 'Macarons',
+                tipo: 'checkbox',
+                requerido: false,
+                opciones: [
+                  { sku: '469' }, // Macaron Chocolate
+                  { sku: '254' }, // Macaron Frutos Rojos
+                  { sku: '256' }, // Macaron Dulce de Leche
+                  { sku: '255' }, // Macaron Limón
+                  { sku: '253' }, // Macaron Vainilla
+                  { sku: '84' }   // Macaron Frutilla
+                ]
+              }
+            ]
+
+            console.log(`[Tortas API] Configuración de campos y add-ons agregada para SKU 20 (ID: ${tortaTematica.id})`)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Tortas API] Error agregando SKU 20:', error)
+    }
 
     // ⚡ PASO 3 OPTIMIZADO: NO cargar variaciones en la carga inicial
     // Las variaciones se cargarán bajo demanda cuando el usuario haga clic en un producto
