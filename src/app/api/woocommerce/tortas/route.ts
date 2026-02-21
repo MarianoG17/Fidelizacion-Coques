@@ -368,6 +368,7 @@ export async function GET(req: NextRequest) {
             CAMPOS_TEXTO_POR_PRODUCTO[tortaTematica.id] = [
               { nombre: 'Nombre del cumpleañero', placeholder: 'Ej: María', requerido: false },
               { nombre: 'Años que cumple', placeholder: 'Ej: 5', requerido: false },
+              { nombre: 'Color de la cubierta', placeholder: 'Solo si elegís Buttercream: Ej: Rosa pastel, Azul bebé, Multicolor...', requerido: false },
               { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
               { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
               { nombre: 'URL Imagen Referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true },
@@ -384,15 +385,6 @@ export async function GET(req: NextRequest) {
                 opciones: [
                   { id: 9001, soloComentario: true },  // Buttercream (sin SKU, solo comentario)
                   { id: 9002, soloComentario: true }   // Ganache de chocolate (sin SKU, solo comentario)
-                ]
-              },
-              {
-                nombre: 'Color de la cubierta (solo para Buttercream)',
-                tipo: 'checkbox',
-                requerido: false,
-                descripcion: 'Si elegiste Buttercream, indicá el color. Si elegiste Ganache, dejá sin marcar.',
-                opciones: [
-                  { id: 9003, soloComentario: true }   // Campo de texto para color
                 ]
               },
               {
