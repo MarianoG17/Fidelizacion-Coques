@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
@@ -313,16 +313,29 @@ function CarritoPageContent() {
   }, 0)
 
   // Verificar si hay torta temática en el carrito (tiene campos de texto con temática)
-  const tieneTortaTematica = items.some(item =>
-    item.camposTexto && Object.keys(item.camposTexto).some(campo =>
-      campo.toLowerCase().includes('temática')
-    )
+  const tieneTortaTematica = useMemo(() =>
+    items.some(item =>
+      item.camposTexto && Object.keys(item.camposTexto).some(campo =>
+        campo.toLowerCase().includes('temática')
+      )
+    ), [items]
   )
 
   // NO aplicar descuento si hay torta temática en el carrito
-  const descuentoPorcentaje = tieneTortaTematica ? 0 : (nivelCliente?.descuento || 0)
-  const montoDescuento = precioTotal * (descuentoPorcentaje / 100)
-  const totalConDescuento = precioTotal - montoDescuento
+  const descuentoPorcentaje = useMemo(() =>
+    tieneTortaTematica ? 0 : (nivelCliente?.descuento || 0),
+    [tieneTortaTematica, nivelCliente]
+  )
+  
+  const montoDescuento = useMemo(() =>
+    precioTotal * (descuentoPorcentaje / 100),
+    [precioTotal, descuentoPorcentaje]
+  )
+  
+  const totalConDescuento = useMemo(() =>
+    precioTotal - montoDescuento,
+    [precioTotal, montoDescuento]
+  )
 
   if (!cargado) {
     return (

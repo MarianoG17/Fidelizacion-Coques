@@ -1,193 +1,137 @@
-# Cambios en Torta Temática - 21 Feb 2026
+# Cambios Torta Temática (SKU 20)
 
-## 🎯 Problemas Resueltos
+## Última actualización: 2026-02-21
 
-### 1. ✅ Opciones de Add-ons No Clickeables
-**Problema:** Los radio buttons y checkboxes de la torta temática no eran clickeables.
+## Cambios Implementados
 
-**Causa:** Los IDs virtuales (9001, 9002, etc.) estaban definidos pero faltaba la descripción en la interfaz de `ADICIONALES_AGRUPADOS`.
+### 1. **Tipo de cubierta** - Opciones actualizadas
+- ✅ Buttercream
+- ✅ Ganache Negro (antes: "Ganache de chocolate")
+- ✅ Ganache Blanco (NUEVO)
 
-**Solución:**
-- Agregado campo `descripcion` opcional en la interfaz de `ADICIONALES_AGRUPADOS`
-- Actualizada la renderización para usar `grupo.descripcion` en los add-ons
-- Agregado ID 9003 para "Color de cubierta (especificar)"
+### 2. **Color de la cubierta** - Campo obligatorio
+- ✅ Ahora es **obligatorio** completar este campo
+- ✅ Solo aparece si se selecciona **Buttercream**
+- ✅ Si se selecciona Ganache (Negro o Blanco), el campo no se muestra
 
-**Archivos modificados:**
-- [`src/app/api/woocommerce/tortas/route.ts`](src/app/api/woocommerce/tortas/route.ts): Líneas 122-128, 623-630
+### 3. **Rellenos** - Estructura por capas
+Cada capa (1, 2, 3) tiene:
+- **Base (radio, requerido)**:
+  - Dulce de leche (sin costo)
+  - Chocolate (+$3600)
+  - Nutella (+$6200)
+- **Extras (checkbox, opcional)**:
+  - Oreos trituradas (+$2400)
+  - Rocklets (sin costo)
+  - Merenguitos (sin costo)
+  - Chips de chocolate (sin costo)
+  - Nueces (sin costo)
 
----
+### 4. **Bizcochuelo** - Opciones
+- Vainilla (sin costo)
+- Chocolate (sin costo)
+- Colores (+$2400)
 
-### 2. ✅ Reorganización de Campos de Cubierta
+### 5. **Colores del Bizcochuelo** - Condicional
+- ✅ Solo aparece si se selecciona "Bizcochuelo Colores"
+- ✅ Máximo 4 colores seleccionables
+- Opciones: Verde, Amarillo, Naranja, Rojo, Celeste, Violeta
 
-**Cambio:** Separar "Tipo de cubierta" del campo "Color de la cubierta"
+### 6. **Cookies Temáticas** - Campo cantidad
+- ✅ Campo "Cantidad de Cookies Temáticas" agregado
+- ✅ Solo aparece si se tildan las Cookies Temáticas
 
-**Antes:**
-```
-- Campo texto: "Color de la cubierta" (siempre visible)
-```
+### 7. **Macarons** - Sabores actualizados
+Todos a $2800 c/u:
+- Macarrón de Dulce de Leche
+- Macarrón Pistacho
+- Macarrón Limón
+- Macarrón Frambuesa
+- Macarrón Chocolate Blanco
+- Macarrón Chocolate Negro
 
-**Ahora:**
-```
-- Radio: "Tipo de cubierta" (Buttercream / Ganache) - REQUERIDO
-- Checkbox: "Color de la cubierta (solo para Buttercream)" - OPCIONAL
-```
+### 8. **Sistema de descuentos**
+- ✅ Las tortas temáticas NO reciben descuento por nivel
+- ✅ Se paga precio completo independientemente del nivel del cliente
+- ✅ Cálculo de descuento con useMemo para reactividad correcta
 
-**Lógica:**
-- Si elige **Buttercream**: debe especificar color (rosa, azul, etc.)
-- Si elige **Ganache**: no hay opción de color (siempre chocolate)
-
-**Archivos modificados:**
-- [`src/app/api/woocommerce/tortas/route.ts`](src/app/api/woocommerce/tortas/route.ts): Líneas 366-389
-
----
-
-### 3. ✅ Descuentos por Nivel Deshabilitados para Torta Temática
-
-**Problema:** La torta temática (SKU 20) mostraba descuentos por nivel (5% Bronce, 10% Plata, etc.)
-
-**Requisito:** Las tortas temáticas NO deben tener descuento, independientemente del nivel del cliente.
-
-**Solución:**
-- Detecta si el producto tiene campos personalizados con "temática" en el nombre
-- Si es torta temática: `descuentoPorcentaje = 0`
-- Si NO es torta temática: aplica descuento normal según nivel
-
-**Archivos modificados:**
-- [`src/app/tortas/page.tsx`](src/app/tortas/page.tsx): Líneas 360-368
-- [`src/app/carrito/page.tsx`](src/app/carrito/page.tsx): Líneas 313-322
-
-**Código clave:**
-```typescript
-// Verificar si es Torta Temática
-const esTortaTematica = productoSeleccionado?.camposTexto?.some(campo => 
-  campo.nombre.toLowerCase().includes('temática')
-) || false
-
-// NO aplicar descuento si es torta temática
-const porcentajeDescuento = esTortaTematica ? 0 : (nivelCliente?.descuento || 0)
-```
+### 9. **Modo Staff**
+- ✅ Carrito se limpia al cambiar de cliente
+- ✅ Tortas temáticas no tienen descuento en pedidos staff
 
 ---
 
-### 4. ✅ Limpieza de Carrito al Cambiar Cliente (Modo Staff)
+## ⚠️ PENDIENTE: Actualización en WooCommerce
 
-**Problema:** Al tomar un nuevo pedido en modo staff, el carrito mantenía productos del cliente anterior.
+### Información del producto SKU 20 que debe actualizarse manualmente:
 
-**Solución:**
-- Al iniciar un nuevo pedido (página `/local/tomar-pedido`), se limpia el `localStorage` del carrito
-- Esto asegura que cada cliente tenga un carrito limpio
-
-**Archivos modificados:**
-- [`src/app/local/tomar-pedido/page.tsx`](src/app/local/tomar-pedido/page.tsx): Líneas 53-56
-
-**Código:**
-```typescript
-// Limpiar carrito anterior antes de iniciar un nuevo pedido
-localStorage.removeItem('fidelizacion_carrito')
+**Descripción corta actualizada:**
+```
+18cm de diámetro x 15cm de alto
+Rendimiento: 25 a 30 porciones medianas
 ```
 
----
-
-## 📋 Campos Finales de Torta Temática
-
-### Campos de Texto Personalizados
-1. **Nombre del cumpleañero** (opcional)
-2. **Años que cumple** (opcional)
-3. **Temática** (requerido) - Ej: Unicornio, Frozen, Fútbol
-4. **Mensaje en la torta** (requerido)
-5. **URL Imagen Referencia** (requerido)
-6. **Referencia de la imagen** (requerido) - Descripción de colores, texto, estilo
-
-### Add-ons (Radio/Checkbox)
-1. **Tipo de cubierta** (radio, requerido)
-   - Buttercream
-   - Ganache de chocolate
-
-2. **Color de la cubierta** (checkbox, opcional)
-   - Solo si se eligió Buttercream
-   - Campo de texto para especificar color
-
-3. **Relleno Capa 1, 2 y 3** (radio, requerido cada uno)
-   - Dulce de leche
-   - Chocolate
-   - Nutella
-   - Crema con oreos trituradas
-   - Rocklets
-   - Merenguitos
-   - Chips de chocolate
-   - Nueces
-
-4. **Bizcochuelo** (radio, requerido)
-   - Vainilla
-   - Chocolate
-   - Colores
-
-5. **Cookies Temáticas** (checkbox, opcional)
-6. **Macarons** (checkbox, opcional)
-   - 6 sabores disponibles
-7. **Flores Astromelias** (checkbox, opcional)
+**Dónde actualizar:**
+1. Ir a WooCommerce > Productos
+2. Buscar producto SKU "20" (Torta Temática Buttercream)
+3. En "Descripción corta", actualizar con el texto de arriba
+4. Guardar cambios
 
 ---
 
-## 🎨 Experiencia de Usuario
+## Archivos Modificados
 
-### Modo Normal (Cliente con Cuenta)
-- ✅ Ve todos los productos con descuento según su nivel
-- ❌ **Excepto Torta Temática**: Sin descuento
+### Backend (API)
+- `src/app/api/woocommerce/tortas/route.ts`
+  - Actualizado PRODUCTOS_SIN_SKU con nombres ganache
+  - Campo "Color de la cubierta" ahora obligatorio
+  - Campo "Cantidad de Cookies Temáticas" agregado
+  - Opciones de ganache: Negro y Blanco
 
-### Modo Staff (Sin Cuenta)
-- ✅ Inicia pedido con datos del cliente (nombre, teléfono)
-- ✅ Carrito se limpia automáticamente al cambiar de cliente
-- ✅ Precio estándar (sin descuentos)
+### Frontend
+- `src/app/tortas/page.tsx`
+  - Lógica condicional para "Colores del Bizcochuelo"
+  - Lógica condicional para "Color de la cubierta"
+  - Lógica condicional para "Cantidad de Cookies"
 
----
+- `src/app/carrito/page.tsx`
+  - Cálculos de descuento con useMemo para reactividad
+  - Fix: descuento se recalcula correctamente al eliminar productos
 
-## 🧪 Testing Recomendado
-
-### Test 1: Descuento
-1. Login como cliente Bronce
-2. Agregar torta clásica → Debe mostrar 5% descuento
-3. Agregar torta temática → NO debe mostrar descuento
-4. Ir al carrito → Verificar que solo hay descuento si NO tiene torta temática
-
-### Test 2: Carrito en Modo Staff
-1. `/local` → "📝 Pedido"
-2. Ingresar Cliente A
-3. Agregar productos al carrito
-4. Volver a `/local`
-5. "📝 Pedido" → Ingresar Cliente B
-6. Verificar que el carrito esté vacío
-
-### Test 3: Campos de Cubierta
-1. Abrir Torta Temática
-2. Seleccionar "Buttercream" → Debe aparecer opción de color
-3. Seleccionar "Ganache" → Color opcional (no requerido)
-4. Completar formulario y agregar al carrito
-5. Verificar en el pedido que se envíen correctamente los datos
+### Hooks
+- `src/hooks/useCarrito.ts`
+  - Interfaz ItemCarrito actualizada con nuevo formato add-ons
 
 ---
 
-## 📝 Notas Técnicas
+## Testing Recomendado
 
-### IDs Virtuales (Sin SKU en WooCommerce)
-Los siguientes IDs son virtuales y solo van a comentarios:
+1. ✅ Verificar que colores de bizcochuelo solo aparezcan con "Bizcochuelo Colores"
+2. ✅ Verificar que color de cubierta solo aparezca con "Buttercream"
+3. ✅ Verificar que campo cantidad cookies solo aparezca si se tildan cookies
+4. ✅ Verificar que todos los precios se sumen correctamente
+5. ✅ Verificar que torta temática NO tenga descuento
+6. ✅ Verificar que descuento se recalcule al eliminar productos del carrito
+7. ⏳ Verificar descripción actualizada en el catálogo (pendiente WooCommerce)
+
+---
+
+## Notas Técnicas
+
+### IDs de productos sin SKU (PRODUCTOS_SIN_SKU):
 - 9001: Buttercream
-- 9002: Ganache de chocolate
-- 9003: Color de cubierta (especificar)
-- 9101-9104: Rellenos base
+- 9002: Ganache Negro  
+- 9003: Ganache Blanco
+- 9101-9104: Rellenos base y extras
 - 9201-9202: Bizcochuelos
-- 9301: Cookies
+- 9211-9216: Colores bizcochuelo
+- 9301: Cookies temáticas
 - 9401-9406: Macarons
 - 9501: Flores Astromelias
 
-### Detección de Torta Temática
-El sistema detecta torta temática buscando la palabra "temática" en los campos personalizados:
+### Identificador único de add-ons:
 ```typescript
-const esTortaTematica = productoSeleccionado?.camposTexto?.some(campo => 
-  campo.nombre.toLowerCase().includes('temática')
-)
+const id = sku || wooId?.toString() || etiqueta
 ```
 
----
-
-**Última actualización:** 21 de Febrero de 2026
+Este sistema permite trabajar con productos que tienen SKU y productos virtuales sin SKU.

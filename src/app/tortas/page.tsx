@@ -797,46 +797,57 @@ function TortasPageContent() {
                   <div className="mb-6">
                     <h3 className="font-bold text-lg mb-3">Adicionales</h3>
                     <div className="space-y-4">
-                      {productoSeleccionado.addOns.map((addOn) => (
-                        <div key={addOn.nombre} className="border border-gray-200 rounded-xl p-4">
-                          {/* Solo mostrar título si hay más de una opción */}
-                          {addOn.opciones.length > 1 && (
-                            <>
-                              <h4 className="font-semibold text-gray-800 mb-2">
-                                {addOn.nombre}
-                                {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
-                              </h4>
-                              {addOn.descripcion && (
-                                <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
-                              )}
-                            </>
-                          )}
-                          <div className="space-y-2">
-                            {addOn.opciones.map((opcion) => (
-                              <label
-                                key={opcion.etiqueta}
-                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    type={addOn.tipo === 'radio' ? 'radio' : 'checkbox'}
-                                    name={addOn.tipo === 'radio' ? addOn.nombre : undefined}
-                                    checked={addOnsSeleccionados[addOn.nombre]?.some(o => o.id === (opcion.sku || opcion.wooId?.toString() || opcion.etiqueta)) || false}
-                                    onChange={() => toggleAddOn(addOn.nombre, opcion.sku || opcion.wooId?.toString() || opcion.etiqueta, opcion.sku, opcion.etiqueta, addOn.tipo)}
-                                    className="w-5 h-5 text-purple-600 focus:ring-purple-500"
-                                  />
-                                  <span className="text-gray-800">{opcion.etiqueta}</span>
-                                </div>
-                                {opcion.precio > 0 && (
-                                  <span className="text-green-600 font-semibold">
-                                    +${formatearPrecio(opcion.precio)}
-                                  </span>
+                      {productoSeleccionado.addOns.map((addOn) => {
+                        // Lógica para mostrar "Colores del Bizcochuelo" solo si se eligió "Bizcochuelo Colores"
+                        if (addOn.nombre.includes('Colores del Bizcochuelo')) {
+                          const bizcochuelo = addOnsSeleccionados['Bizcochuelo']?.[0]
+                          const esBizcochuloColores = bizcochuelo?.etiqueta?.includes('Colores')
+                          if (!esBizcochuloColores) {
+                            return null // No mostrar si no se eligió bizcochuelo de colores
+                          }
+                        }
+
+                        return (
+                          <div key={addOn.nombre} className="border border-gray-200 rounded-xl p-4">
+                            {/* Solo mostrar título si hay más de una opción */}
+                            {addOn.opciones.length > 1 && (
+                              <>
+                                <h4 className="font-semibold text-gray-800 mb-2">
+                                  {addOn.nombre}
+                                  {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
+                                </h4>
+                                {addOn.descripcion && (
+                                  <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
                                 )}
-                              </label>
-                            ))}
+                              </>
+                            )}
+                            <div className="space-y-2">
+                              {addOn.opciones.map((opcion) => (
+                                <label
+                                  key={opcion.etiqueta}
+                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type={addOn.tipo === 'radio' ? 'radio' : 'checkbox'}
+                                      name={addOn.tipo === 'radio' ? addOn.nombre : undefined}
+                                      checked={addOnsSeleccionados[addOn.nombre]?.some(o => o.id === (opcion.sku || opcion.wooId?.toString() || opcion.etiqueta)) || false}
+                                      onChange={() => toggleAddOn(addOn.nombre, opcion.sku || opcion.wooId?.toString() || opcion.etiqueta, opcion.sku, opcion.etiqueta, addOn.tipo)}
+                                      className="w-5 h-5 text-purple-600 focus:ring-purple-500"
+                                    />
+                                    <span className="text-gray-800">{opcion.etiqueta}</span>
+                                  </div>
+                                  {opcion.precio > 0 && (
+                                    <span className="text-green-600 font-semibold">
+                                      +${formatearPrecio(opcion.precio)}
+                                    </span>
+                                  )}
+                                </label>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -845,24 +856,43 @@ function TortasPageContent() {
                 {productoSeleccionado.camposTexto && productoSeleccionado.camposTexto.length > 0 && (
                   <div className="mb-6">
                     <div className="space-y-4">
-                      {productoSeleccionado.camposTexto.map((campo) => (
-                        <div key={campo.nombre}>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            {campo.nombre}
-                            {campo.requerido && <span className="text-red-500 ml-1">*</span>}
-                          </label>
-                          <input
-                            type="text"
-                            value={camposTextoValores[campo.nombre] || ''}
-                            onChange={(e) => setCamposTextoValores(prev => ({
-                              ...prev,
-                              [campo.nombre]: e.target.value
-                            }))}
-                            placeholder={campo.placeholder}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          />
-                        </div>
-                      ))}
+                      {productoSeleccionado.camposTexto.map((campo) => {
+                        // Lógica para mostrar "Color de la cubierta" solo si se eligió "Buttercream"
+                        if (campo.nombre.includes('Color de la cubierta')) {
+                          const cubierta = addOnsSeleccionados['Tipo de cubierta']?.[0]
+                          const esButtercream = cubierta?.etiqueta?.includes('Buttercream')
+                          if (!esButtercream) {
+                            return null // No mostrar si no se eligió Buttercream
+                          }
+                        }
+
+                        // Lógica para mostrar "Cantidad de Cookies" solo si se eligió "Cookies Temáticas"
+                        if (campo.nombre.includes('Cantidad de Cookies')) {
+                          const cookiesSeleccionadas = addOnsSeleccionados['Cookies Temáticas (especificar cantidad en notas)']
+                          if (!cookiesSeleccionadas || cookiesSeleccionadas.length === 0) {
+                            return null // No mostrar si no se eligieron cookies
+                          }
+                        }
+
+                        return (
+                          <div key={campo.nombre}>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              {campo.nombre}
+                              {campo.requerido && <span className="text-red-500 ml-1">*</span>}
+                            </label>
+                            <input
+                              type="text"
+                              value={camposTextoValores[campo.nombre] || ''}
+                              onChange={(e) => setCamposTextoValores(prev => ({
+                                ...prev,
+                                [campo.nombre]: e.target.value
+                              }))}
+                              placeholder={campo.placeholder}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            />
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
