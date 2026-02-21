@@ -38,6 +38,8 @@ interface DatosPedido {
   notas?: string
   fechaEntrega?: string
   horaEntrega?: string
+  modoStaff?: boolean
+  datosCliente?: { nombre: string, telefono: string }
 }
 
 /**
@@ -46,37 +48,47 @@ interface DatosPedido {
  */
 export async function POST(req: NextRequest) {
   try {
-    // Verificar autenticación del cliente
-    const clientePayload = await requireClienteAuth(req)
-    if (!clientePayload) {
-      return NextResponse.json(
-        { error: 'No autorizado. Debes iniciar sesión para realizar un pedido.' },
-        { status: 401 }
-      )
-    }
+    const body: DatosPedido = await req.json()
+    const { items, notas, fechaEntrega, horaEntrega, modoStaff, datosCliente } = body
 
-    // Obtener datos completos del cliente desde la BD (incluyendo nivel)
-    const cliente = await prisma.cliente.findUnique({
-      where: { id: clientePayload.clienteId },
-      select: {
-        id: true,
-        nombre: true,
-        email: true,
-        phone: true,
-        nivel: {
-          select: {
-            nombre: true,
-            descuentoPedidosTortas: true,
+    let cliente = null
+    let descuentoPorcentaje = 0
+
+    if (modoStaff) {
+      // MODO STAFF: No requiere autenticación de cliente
+      console.log('[Staff Order] Pedido para:', datosCliente?.nombre, datosCliente?.telefono)
+      descuentoPorcentaje = 0 // Sin descuentos en modo staff
+    } else {
+      // MODO NORMAL: Cliente autenticado
+      const clientePayload = await requireClienteAuth(req)
+      if (!clientePayload) {
+        return NextResponse.json(
+          { error: 'No autorizado. Debes iniciar sesión para realizar un pedido.' },
+          { status: 401 }
+        )
+      }
+
+      // Obtener datos completos del cliente desde la BD (incluyendo nivel)
+      cliente = await prisma.cliente.findUnique({
+        where: { id: clientePayload.clienteId },
+        include: {
+          nivel: {
+            select: {
+              nombre: true,
+              descuentoPedidosTortas: true,
+            }
           }
         }
-      }
-    })
+      })
 
-    if (!cliente) {
-      return NextResponse.json(
-        { error: 'Cliente no encontrado' },
-        { status: 404 }
-      )
+      if (!cliente) {
+        return NextResponse.json(
+          { error: 'Cliente no encontrado' },
+          { status: 404 }
+        )
+      }
+
+      descuentoPorcentaje = cliente.nivel?.descuentoPedidosTortas || 0
     }
 
     const wooUrl = process.env.WOOCOMMERCE_URL
@@ -89,9 +101,6 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       )
     }
-
-    const body: DatosPedido = await req.json()
-    const { items, notas, fechaEntrega, horaEntrega } = body
 
     // Validaciones
     if (!items || items.length === 0) {
@@ -216,8 +225,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Estructura del pedido para WooCommerce usando datos del cliente
-    const nombreCompleto = cliente.nombre || 'Cliente'
+    // Estructura del pedido para WooCommerce usando datos del cliente o staff
+    const nombreCompleto = modoStaff
+      ? (datosCliente?.nombre || 'Cliente')
+      : (cliente?.nombre || 'Cliente')
 
     // Formatear fecha y hora para mostrar
     const fechaObj = new Date(fechaEntrega + 'T00:00:00')
@@ -259,7 +270,9 @@ export async function POST(req: NextRequest) {
     const timestampFechaHora = Math.floor(fechaHoraEntrega.getTime() / 1000)  // Fecha + hora específica
 
     // Construir notas del cliente con fecha de entrega
-    let customerNote = `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
+    let customerNote = modoStaff
+      ? `📦 Pedido desde App de Fidelización (STAFF)\n👤 Cliente: ${datosCliente?.nombre || 'N/A'}\n📞 Teléfono: ${datosCliente?.telefono || 'N/A'}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
+      : `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente?.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
 
     // Agregar campos de texto personalizados (ej: Color de decoración)
     const camposTextoDetalle: string[] = []
@@ -284,7 +297,7 @@ export async function POST(req: NextRequest) {
     // Calcular descuento por nivel y aplicarlo directamente en los line_items
     // Los precios en WooCommerce incluyen IVA, pero los campos subtotal/total deben ser SIN IVA
     const IVA_FACTOR = 1.21 // IVA 21% en Argentina
-    const descuentoPorcentaje = cliente.nivel?.descuentoPedidosTortas || 0
+    // Nota: descuentoPorcentaje ya fue calculado arriba en línea 55-95
     const factorDescuento = descuentoPorcentaje > 0 ? (100 - descuentoPorcentaje) / 100 : 1
     let descuentoMontoTotal = 0
     let subtotalPedido = 0
@@ -294,7 +307,7 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < lineItems.length; i++) {
         const lineItem = lineItems[i]
         const itemOriginal = items.find(it => it.productoId === lineItem.product_id)
-        
+
         if (!itemOriginal) continue // Skip add-ons, solo aplicamos descuento a productos principales
 
         try {
@@ -324,23 +337,23 @@ export async function POST(req: NextRequest) {
 
           if (precioConIVA > 0) {
             const cantidad = lineItem.quantity
-            
+
             // Convertir precio con IVA a precio sin IVA
             const precioSinIVA = precioConIVA / IVA_FACTOR
             const subtotalSinIVA = precioSinIVA * cantidad
             let totalSinIVA = subtotalSinIVA * factorDescuento
-            
+
             // Redondear total con IVA hacia abajo a la centena más cercana
             let totalConIVA = totalSinIVA * IVA_FACTOR
             const totalRedondeado = Math.floor(totalConIVA / 100) * 100
-            
+
             // Recalcular totalSinIVA basándose en el total redondeado
             totalSinIVA = totalRedondeado / IVA_FACTOR
-            
+
             // Aplicar descuento en el line_item (precios SIN IVA)
             lineItems[i].subtotal = subtotalSinIVA.toFixed(2)
             lineItems[i].total = totalSinIVA.toFixed(2)
-            
+
             // Para el log, mostrar valores CON IVA (más fácil de entender)
             const subtotalConIVA = subtotalSinIVA * IVA_FACTOR
             subtotalPedido += subtotalConIVA
@@ -362,20 +375,20 @@ export async function POST(req: NextRequest) {
       billing: {
         first_name: nombreCompleto.split(' ')[0] || nombreCompleto,
         last_name: nombreCompleto.split(' ').slice(1).join(' ') || '',
-        email: cliente.email || '',
-        phone: cliente.phone || '',
+        email: modoStaff ? 'staff@coques.com' : (cliente?.email || ''),
+        phone: modoStaff ? (datosCliente?.telefono || '') : (cliente?.phone || ''),
       },
       line_items: lineItems,
       customer_note: customerNote,
       meta_data: [
         {
           key: 'origen',
-          value: 'app_fidelizacion',
+          value: modoStaff ? 'app_fidelizacion_staff' : 'app_fidelizacion',
         },
-        {
+        ...(modoStaff ? [] : [{
           key: 'cliente_app_id',
-          value: cliente.id,
-        },
+          value: cliente?.id || '',
+        }]),
         // *** CAMPOS DE FECHA Y HORA PARA AYRES IT ***
         // Campos que usa el pedido 2284 que funciona (incluyendo timestamps Unix)
         {
@@ -403,10 +416,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Agregar metadata del descuento para referencia (sin usar cupones)
-    if (descuentoMontoTotal > 0 && cliente.nivel) {
+    if (descuentoMontoTotal > 0 && cliente?.nivel) {
       orderData.meta_data.push({
         key: 'descuento_nivel_fidelizacion',
         value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)}`
+      })
+    }
+    
+    // Agregar metadata staff si aplica
+    if (modoStaff && datosCliente) {
+      orderData.meta_data.push({
+        key: 'pedido_staff',
+        value: `Tomado por staff para ${datosCliente.nombre} (${datosCliente.telefono})`
       })
     }
 
@@ -454,11 +475,16 @@ export async function POST(req: NextRequest) {
       total: order.total,
       moneda: order.currency,
       metodoPago: order.payment_method_title,
-      cliente: {
-        id: cliente.id,
-        nombre: cliente.nombre,
-        email: cliente.email,
-        telefono: cliente.phone,
+      cliente: modoStaff ? {
+        id: 'staff',
+        nombre: datosCliente?.nombre || 'Cliente',
+        email: 'staff@coques.com',
+        telefono: datosCliente?.telefono || '',
+      } : {
+        id: cliente?.id || '',
+        nombre: cliente?.nombre || '',
+        email: cliente?.email || '',
+        telefono: cliente?.phone || '',
       },
       items: order.line_items?.map((item: any) => ({
         productoId: item.product_id,

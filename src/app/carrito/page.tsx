@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
 
@@ -19,16 +19,21 @@ interface ProductoUpselling {
 
 export default function CarritoPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { items, actualizarCantidad, eliminarItem, vaciarCarrito, cantidadTotal, precioTotal, cargado, agregarItem } = useCarrito()
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false)
   const [numeroOrden, setNumeroOrden] = useState('')
 
+  // Detectar modo staff
+  const modoStaff = sessionStorage.getItem('pedido_staff_modo') === 'staff'
+  const [datosCliente, setDatosCliente] = useState<{ nombre: string, telefono: string } | null>(null)
+
   // Estado para productos de upselling
   const [productosUpselling, setProductosUpselling] = useState<ProductoUpselling[]>([])
   const [cargandoUpselling, setCargandoUpselling] = useState(false)
-  
+
   // Estado para imagen expandida
   const [imagenExpandida, setImagenExpandida] = useState<string | null>(null)
 
@@ -41,35 +46,47 @@ export default function CarritoPage() {
   const [notas, setNotas] = useState('')
 
   // Estado para nivel y descuento del cliente
-  const [nivelCliente, setNivelCliente] = useState<{nivel: string, descuento: number} | null>(null)
+  const [nivelCliente, setNivelCliente] = useState<{ nivel: string, descuento: number } | null>(null)
 
-  // Cargar nivel del cliente
+  // Cargar datos según el modo
   useEffect(() => {
-    async function fetchNivelCliente() {
-      const token = localStorage.getItem('fidelizacion_token')
-      if (!token) return
-      
-      try {
-        const res = await fetch('/api/pass', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        
-        if (res.ok) {
-          const data = await res.json()
-          if (data.data.nivel) {
-            setNivelCliente({
-              nivel: data.data.nivel.nombre,
-              descuento: data.data.nivel.descuentoPedidosTortas || 0
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Error al obtener nivel del cliente:', error)
+    if (modoStaff) {
+      // Modo staff: cargar datos del cliente desde sessionStorage
+      const clienteData = sessionStorage.getItem('pedido_staff_cliente')
+      if (clienteData) {
+        setDatosCliente(JSON.parse(clienteData))
       }
+    } else {
+      // Modo normal: buscar nivel del cliente autenticado
+      fetchNivelCliente()
     }
-    
-    fetchNivelCliente()
-  }, [])
+  }, [modoStaff])
+
+  // Cargar nivel del cliente (solo en modo normal)
+  async function fetchNivelCliente() {
+    if (modoStaff) return
+
+    const token = localStorage.getItem('fidelizacion_token')
+    if (!token) return
+
+    try {
+      const res = await fetch('/api/pass', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data.nivel) {
+          setNivelCliente({
+            nivel: data.data.nivel.nombre,
+            descuento: data.data.nivel.descuentoPedidosTortas || 0
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error al obtener nivel del cliente:', error)
+    }
+  }
 
   // Generar fechas disponibles (mínimo 24h, solo lun-sáb)
   useEffect(() => {
@@ -167,15 +184,42 @@ export default function CarritoPage() {
       return
     }
 
+    // Validación estricta de campos personalizados
+    for (const item of items) {
+      if (item.camposTexto) {
+        for (const [nombreCampo, valor] of Object.entries(item.camposTexto)) {
+          if (!valor || valor.trim() === '') {
+            setError(`⚠️ Falta completar el campo: ${nombreCampo}`)
+            return
+          }
+        }
+      }
+    }
+
     setProcesando(true)
 
     try {
-      // Obtener token del localStorage
-      const token = localStorage.getItem('fidelizacion_token')
-      if (!token) {
-        setError('Debes iniciar sesión para realizar un pedido')
-        router.push('/login')
-        return
+      let token = null
+      let headers: any = {
+        'Content-Type': 'application/json',
+      }
+
+      if (modoStaff) {
+        // Modo staff: no requiere token de cliente
+        // Pero podría requerir token de staff para autenticación
+        const staffToken = localStorage.getItem('coques_local_token')
+        if (staffToken) {
+          headers['X-Staff-Token'] = staffToken
+        }
+      } else {
+        // Modo normal: requiere token de cliente
+        token = localStorage.getItem('fidelizacion_token')
+        if (!token) {
+          setError('Debes iniciar sesión para realizar un pedido')
+          router.push('/login')
+          return
+        }
+        headers['Authorization'] = `Bearer ${token}`
       }
 
       // Construir items para el pedido
@@ -187,18 +231,23 @@ export default function CarritoPage() {
         camposTexto: item.camposTexto,
       }))
 
+      const body: any = {
+        items: itemsPedido,
+        notas: notas.trim() || undefined,
+        fechaEntrega,
+        horaEntrega,
+      }
+
+      // Si es modo staff, agregar datos del cliente
+      if (modoStaff && datosCliente) {
+        body.modoStaff = true
+        body.datosCliente = datosCliente
+      }
+
       const response = await fetch('/api/woocommerce/crear-pedido', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          items: itemsPedido,
-          notas: notas.trim() || undefined,
-          fechaEntrega,
-          horaEntrega,
-        }),
+        headers,
+        body: JSON.stringify(body),
       })
 
       const data = await response.json()
@@ -385,24 +434,24 @@ export default function CarritoPage() {
                     {item.nombreVariante && (
                       <p className="text-sm text-gray-600 mt-1">{item.nombreVariante}</p>
                     )}
-                    
+
                     {/* Mostrar add-ons si existen */}
                     {item.addOns && Object.keys(item.addOns).length > 0 && (
                       <div className="mt-2 space-y-1">
                         {Object.entries(item.addOns).map(([nombre, opciones]) => {
                           // Soportar formato antiguo (string[]) y nuevo ({sku, etiqueta}[])
                           let etiquetas: string[] = []
-                          
+
                           if (Array.isArray(opciones) && opciones.length > 0) {
                             if (typeof opciones[0] === 'string') {
                               // Formato antiguo
                               etiquetas = opciones as unknown as string[]
                             } else if (typeof opciones[0] === 'object' && 'etiqueta' in opciones[0]) {
                               // Formato nuevo
-                              etiquetas = (opciones as Array<{sku: string, etiqueta: string}>).map(o => o.etiqueta)
+                              etiquetas = (opciones as Array<{ sku: string, etiqueta: string }>).map(o => o.etiqueta)
                             }
                           }
-                          
+
                           return (
                             <div key={nombre} className="text-xs text-gray-600">
                               <span className="font-medium">{nombre}:</span>{' '}
@@ -412,7 +461,7 @@ export default function CarritoPage() {
                         })}
                       </div>
                     )}
-                    
+
                     {/* Mostrar campos de texto personalizados */}
                     {item.camposTexto && Object.keys(item.camposTexto).length > 0 && (
                       <div className="mt-1">
@@ -424,14 +473,14 @@ export default function CarritoPage() {
                         ))}
                       </div>
                     )}
-                    
+
                     {/* Mostrar rendimiento */}
                     {item.rendimiento && (
                       <p className="text-xs text-purple-600 font-medium mt-1 flex items-center gap-1">
                         <span>👥</span> {item.rendimiento}
                       </p>
                     )}
-                    
+
                     <div className="mt-2">
                       <p className="text-lg font-semibold text-green-600">
                         ${formatearPrecio(item.precio)}
@@ -651,7 +700,7 @@ export default function CarritoPage() {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Botones de navegación */}
                     {productosUpselling.length > 3 && (
                       <>
@@ -681,7 +730,7 @@ export default function CarritoPage() {
                         </button>
                       </>
                     )}
-                    
+
                     {/* Indicador de scroll */}
                     <p className="text-xs text-gray-500 text-center mt-2">← Deslizá o usá las flechas para ver más →</p>
                   </div>

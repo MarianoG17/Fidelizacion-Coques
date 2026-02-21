@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
@@ -63,7 +63,12 @@ interface Producto {
 
 export default function TortasPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { agregarItem, cantidadTotal } = useCarrito()
+
+  // Detectar si está en modo staff
+  const modoStaff = searchParams.get('modo') === 'staff'
+  const [datosCliente, setDatosCliente] = useState<{ nombre: string, telefono: string } | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [productos, setProductos] = useState<Producto[]>([])
@@ -78,10 +83,25 @@ export default function TortasPage() {
 
   useEffect(() => {
     cargarTortas()
-    fetchNivelCliente()
-  }, [])
+
+    if (modoStaff) {
+      // Cargar datos del cliente desde sessionStorage
+      const clienteData = sessionStorage.getItem('pedido_staff_cliente')
+      if (clienteData) {
+        setDatosCliente(JSON.parse(clienteData))
+      } else {
+        // Si no hay datos del cliente, redirigir a tomar datos
+        router.push('/local/tomar-pedido')
+      }
+    } else {
+      // Modo normal: buscar nivel del cliente autenticado
+      fetchNivelCliente()
+    }
+  }, [modoStaff, router])
 
   async function fetchNivelCliente() {
+    if (modoStaff) return // No buscar nivel en modo staff
+
     const token = localStorage.getItem('fidelizacion_token')
     if (!token) return
 
@@ -442,8 +462,29 @@ export default function TortasPage() {
         </div>
       </div>
 
+      {/* Banner de modo staff - sticky */}
+      {modoStaff && datosCliente && (
+        <div className="sticky top-0 z-50 bg-amber-600 text-white shadow-lg border-b-4 border-amber-700">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-white text-amber-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg">
+                📝
+              </div>
+              <div>
+                <p className="font-bold text-lg">Pedido para: {datosCliente.nombre}</p>
+                <p className="text-sm text-amber-100">Tel: {datosCliente.telefono}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-amber-100">Modo Staff</p>
+              <p className="text-sm font-semibold">Equipo Coques</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto p-4">
-        <BackButton href="/pass" />
+        <BackButton href={modoStaff ? "/local" : "/pass"} />
 
         <div className="mt-4 mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">

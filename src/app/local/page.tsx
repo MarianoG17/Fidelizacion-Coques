@@ -42,8 +42,8 @@ export default function LocalPage() {
     nombre: string
     phone: string
     nivel: string
-    beneficiosDisponibles: Array<{id: string, nombre: string, descripcionCaja: string}>
-    beneficiosAplicados: Array<{id: string, nombre: string, timestamp: Date}>
+    beneficiosDisponibles: Array<{ id: string, nombre: string, descripcionCaja: string }>
+    beneficiosAplicados: Array<{ id: string, nombre: string, timestamp: Date }>
     timestamp: Date
   }>>([])
 
@@ -266,20 +266,20 @@ export default function LocalPage() {
 
       const data = await res.json()
       console.log('Evento registrado:', data)
-      
+
       // Si es mostrador, actualizar la lista de clientes activos
       if (ubicacion === 'mostrador' && validacion?.cliente) {
         const c = validacion.cliente
-        
+
         // Buscar si el cliente ya está en la lista
         const clienteExistenteIndex = clientesMostrador.findIndex(cl => cl.id === c.id)
-        
+
         if (clienteExistenteIndex >= 0) {
           // Actualizar cliente existente
           setClientesMostrador(prev => {
             const updated = [...prev]
             const cliente = updated[clienteExistenteIndex]
-            
+
             // Si se aplicó un beneficio, agregarlo a aplicados y quitarlo de disponibles
             if (beneficioSeleccionado) {
               const beneficio = cliente.beneficiosDisponibles.find(b => b.id === beneficioSeleccionado)
@@ -292,19 +292,19 @@ export default function LocalPage() {
                 cliente.beneficiosDisponibles = cliente.beneficiosDisponibles.filter(b => b.id !== beneficioSeleccionado)
               }
             }
-            
+
             return updated
           })
         } else {
           // Agregar nuevo cliente
           const beneficiosAplicados = beneficioSeleccionado
             ? [{
-                id: beneficioSeleccionado,
-                nombre: c.beneficiosActivos.find(b => b.id === beneficioSeleccionado)?.nombre || '',
-                timestamp: new Date()
-              }]
+              id: beneficioSeleccionado,
+              nombre: c.beneficiosActivos.find(b => b.id === beneficioSeleccionado)?.nombre || '',
+              timestamp: new Date()
+            }]
             : []
-          
+
           const beneficiosDisponibles = beneficioSeleccionado
             ? c.beneficiosActivos.filter(b => b.id !== beneficioSeleccionado)
             : c.beneficiosActivos
@@ -327,7 +327,7 @@ export default function LocalPage() {
           ])
         }
       }
-      
+
       setEventoRegistrado(true)
     } catch (error) {
       console.error('Error en fetch:', error)
@@ -489,26 +489,32 @@ export default function LocalPage() {
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
         <p className="text-slate-400 text-sm mb-4">Equipo atención al cliente</p>
 
-        {/* Botones para alternar entre Scanner y Vista Salón */}
+        {/* Botones para alternar entre Scanner, Vista Salón y Tomar Pedido */}
         <div className="w-full max-w-sm mb-4">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <button
               onClick={() => setVistaSalon(false)}
-              className={`flex-1 py-3 rounded-xl font-bold transition ${!vistaSalon
+              className={`py-3 rounded-xl font-bold transition text-sm ${!vistaSalon
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-700 text-gray-300'
                 }`}
             >
-              📱 Scanner QR
+              📱 Scanner
             </button>
             <button
               onClick={() => setVistaSalon(true)}
-              className={`flex-1 py-3 rounded-xl font-bold transition ${vistaSalon
+              className={`py-3 rounded-xl font-bold transition text-sm ${vistaSalon
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-700 text-gray-300'
                 }`}
             >
-              🏠 Ver Salón
+              🏠 Salón
+            </button>
+            <button
+              onClick={() => window.location.href = '/local/tomar-pedido'}
+              className="py-3 rounded-xl font-bold transition text-sm bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              📝 Pedido
             </button>
           </div>
         </div>
