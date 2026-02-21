@@ -797,7 +797,7 @@ function TortasPageContent() {
                   <div className="mb-6">
                     <h3 className="font-bold text-lg mb-3">Adicionales</h3>
                     <div className="space-y-4">
-                      {productoSeleccionado.addOns.map((addOn) => {
+                      {productoSeleccionado.addOns.map((addOn, index) => {
                         // Lógica para mostrar "Colores del Bizcochuelo" solo si se eligió "Bizcochuelo Colores"
                         if (addOn.nombre.includes('Colores del Bizcochuelo')) {
                           const bizcochuelo = addOnsSeleccionados['Bizcochuelo']?.[0]
@@ -808,44 +808,75 @@ function TortasPageContent() {
                         }
 
                         return (
-                          <div key={addOn.nombre} className="border border-gray-200 rounded-xl p-4">
-                            {/* Solo mostrar título si hay más de una opción */}
-                            {addOn.opciones.length > 1 && (
-                              <>
-                                <h4 className="font-semibold text-gray-800 mb-2">
-                                  {addOn.nombre}
-                                  {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
-                                </h4>
-                                {addOn.descripcion && (
-                                  <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
-                                )}
-                              </>
-                            )}
-                            <div className="space-y-2">
-                              {addOn.opciones.map((opcion) => (
-                                <label
-                                  key={opcion.etiqueta}
-                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <input
-                                      type={addOn.tipo === 'radio' ? 'radio' : 'checkbox'}
-                                      name={addOn.tipo === 'radio' ? addOn.nombre : undefined}
-                                      checked={addOnsSeleccionados[addOn.nombre]?.some(o => o.id === (opcion.sku || opcion.wooId?.toString() || opcion.etiqueta)) || false}
-                                      onChange={() => toggleAddOn(addOn.nombre, opcion.sku || opcion.wooId?.toString() || opcion.etiqueta, opcion.sku, opcion.etiqueta, addOn.tipo)}
-                                      className="w-5 h-5 text-purple-600 focus:ring-purple-500"
-                                    />
-                                    <span className="text-gray-800">{opcion.etiqueta}</span>
-                                  </div>
-                                  {opcion.precio > 0 && (
-                                    <span className="text-green-600 font-semibold">
-                                      +${formatearPrecio(opcion.precio)}
-                                    </span>
+                          <React.Fragment key={addOn.nombre}>
+                            <div className="border border-gray-200 rounded-xl p-4">
+                              {/* Solo mostrar título si hay más de una opción */}
+                              {addOn.opciones.length > 1 && (
+                                <>
+                                  <h4 className="font-semibold text-gray-800 mb-2">
+                                    {addOn.nombre}
+                                    {addOn.requerido && <span className="text-red-500 ml-1">*</span>}
+                                  </h4>
+                                  {addOn.descripcion && (
+                                    <p className="text-sm text-gray-600 mb-3">{addOn.descripcion}</p>
                                   )}
-                                </label>
-                              ))}
+                                </>
+                              )}
+                              <div className="space-y-2">
+                                {addOn.opciones.map((opcion) => (
+                                  <label
+                                    key={opcion.etiqueta}
+                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type={addOn.tipo === 'radio' ? 'radio' : 'checkbox'}
+                                        name={addOn.tipo === 'radio' ? addOn.nombre : undefined}
+                                        checked={addOnsSeleccionados[addOn.nombre]?.some(o => o.id === (opcion.sku || opcion.wooId?.toString() || opcion.etiqueta)) || false}
+                                        onChange={() => toggleAddOn(addOn.nombre, opcion.sku || opcion.wooId?.toString() || opcion.etiqueta, opcion.sku, opcion.etiqueta, addOn.tipo)}
+                                        className="w-5 h-5 text-purple-600 focus:ring-purple-500"
+                                      />
+                                      <span className="text-gray-800">{opcion.etiqueta}</span>
+                                    </div>
+                                    {opcion.precio > 0 && (
+                                      <span className="text-green-600 font-semibold">
+                                        +${formatearPrecio(opcion.precio)}
+                                      </span>
+                                    )}
+                                  </label>
+                                ))}
+                              </div>
                             </div>
-                          </div>
+
+                            {/* Mostrar campo "Color de la cubierta" justo después de "Tipo de cubierta" */}
+                            {addOn.nombre === 'Tipo de cubierta' && (() => {
+                              const cubierta = addOnsSeleccionados['Tipo de cubierta']?.[0]
+                              const esButtercream = cubierta?.etiqueta?.includes('Buttercream')
+                              const campoColor = productoSeleccionado.camposTexto?.find(c => c.nombre.includes('Color de la cubierta'))
+                              
+                              if (esButtercream && campoColor) {
+                                return (
+                                  <div className="border border-gray-200 rounded-xl p-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                      {campoColor.nombre}
+                                      {campoColor.requerido && <span className="text-red-500 ml-1">*</span>}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={camposTextoValores[campoColor.nombre] || ''}
+                                      onChange={(e) => setCamposTextoValores(prev => ({
+                                        ...prev,
+                                        [campoColor.nombre]: e.target.value
+                                      }))}
+                                      placeholder={campoColor.placeholder}
+                                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    />
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
+                          </React.Fragment>
                         )
                       })}
                     </div>
@@ -857,13 +888,9 @@ function TortasPageContent() {
                   <div className="mb-6">
                     <div className="space-y-4">
                       {productoSeleccionado.camposTexto.map((campo) => {
-                        // Lógica para mostrar "Color de la cubierta" solo si se eligió "Buttercream"
+                        // NO mostrar "Color de la cubierta" aquí - se muestra después del selector de tipo de cubierta
                         if (campo.nombre.includes('Color de la cubierta')) {
-                          const cubierta = addOnsSeleccionados['Tipo de cubierta']?.[0]
-                          const esButtercream = cubierta?.etiqueta?.includes('Buttercream')
-                          if (!esButtercream) {
-                            return null // No mostrar si no se eligió Buttercream
-                          }
+                          return null
                         }
 
                         // Lógica para mostrar "Cantidad de Cookies" solo si se eligió "Cookies Temáticas"
