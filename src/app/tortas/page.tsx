@@ -262,14 +262,15 @@ function TortasPageContent() {
     }
 
     // Inicializar add-ons requeridos con su primera opción
-    const addOnsIniciales: { [key: string]: Array<{ sku: string, etiqueta: string }> } = {}
+    const addOnsIniciales: { [key: string]: Array<{ sku: string | undefined, etiqueta: string, id: string }> } = {}
     if (producto.addOns && producto.addOns.length > 0) {
       producto.addOns.forEach(addOn => {
         if (addOn.requerido && addOn.opciones.length > 0) {
           const primeraOpcion = addOn.opciones[0]
           addOnsIniciales[addOn.nombre] = [{
-            sku: primeraOpcion.sku || '',
-            etiqueta: primeraOpcion.etiqueta
+            sku: primeraOpcion.sku,
+            etiqueta: primeraOpcion.etiqueta,
+            id: primeraOpcion.sku || primeraOpcion.wooId?.toString() || primeraOpcion.etiqueta
           }]
         }
       })
