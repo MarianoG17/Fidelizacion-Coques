@@ -366,3 +366,4 @@ El sistema está **100% funcional** y listo para usar en producción.
 ---
 
 **Última actualización:** 21 de Febrero de 2026
+y cuand

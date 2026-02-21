@@ -93,6 +93,7 @@ const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = 
   // Tipo de cubierta
   9001: { nombre: 'Buttercream', precio: 0 },
   9002: { nombre: 'Ganache de chocolate', precio: 0 },
+  9003: { nombre: 'Color de cubierta (especificar)', precio: 0 },
   // Rellenos principales
   9101: { nombre: 'Dulce de leche', precio: 0 },
   9102: { nombre: 'Chocolate', precio: 0 },
@@ -121,6 +122,7 @@ const PRODUCTOS_SIN_SKU: { [id: number]: { nombre: string; precio: number } } = 
 const ADICIONALES_AGRUPADOS: {
   [key: number]: {
     nombre: string;
+    descripcion?: string;
     tipo: 'radio' | 'checkbox';
     requerido: boolean;
     opciones: { sku?: string; id?: number; soloComentario?: boolean }[]
@@ -366,7 +368,6 @@ export async function GET(req: NextRequest) {
             CAMPOS_TEXTO_POR_PRODUCTO[tortaTematica.id] = [
               { nombre: 'Nombre del cumpleañero', placeholder: 'Ej: María', requerido: false },
               { nombre: 'Años que cumple', placeholder: 'Ej: 5', requerido: false },
-              { nombre: 'Color de la cubierta', placeholder: 'Si buttercream: Rosa, Azul, etc. Si ganache: Chocolate negro', requerido: true },
               { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
               { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
               { nombre: 'URL Imagen Referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true },
@@ -379,9 +380,19 @@ export async function GET(req: NextRequest) {
                 nombre: 'Tipo de cubierta',
                 tipo: 'radio',
                 requerido: true,
+                descripcion: 'Seleccioná el tipo de cubierta para tu torta',
                 opciones: [
                   { id: 9001, soloComentario: true },  // Buttercream (sin SKU, solo comentario)
                   { id: 9002, soloComentario: true }   // Ganache de chocolate (sin SKU, solo comentario)
+                ]
+              },
+              {
+                nombre: 'Color de la cubierta (solo para Buttercream)',
+                tipo: 'checkbox',
+                requerido: false,
+                descripcion: 'Si elegiste Buttercream, indicá el color. Si elegiste Ganache, dejá sin marcar.',
+                opciones: [
+                  { id: 9003, soloComentario: true }   // Campo de texto para color
                 ]
               },
               {
@@ -613,7 +624,7 @@ export async function GET(req: NextRequest) {
           if (opcionesFormateadas.length > 0) {
             addOnsFormateados.push({
               nombre: grupo.nombre,
-              descripcion: '',
+              descripcion: grupo.descripcion || '',
               tipo: grupo.tipo,
               requerido: grupo.requerido,
               opciones: opcionesFormateadas

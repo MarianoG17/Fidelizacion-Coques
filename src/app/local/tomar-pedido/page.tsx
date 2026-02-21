@@ -50,6 +50,9 @@ export default function TomarPedidoStaffPage() {
             return
         }
 
+        // Limpiar carrito anterior antes de iniciar un nuevo pedido
+        localStorage.removeItem('fidelizacion_carrito')
+        
         // Guardar en sessionStorage para usar en el siguiente paso
         sessionStorage.setItem('pedido_staff_cliente', JSON.stringify(clienteData))
         sessionStorage.setItem('pedido_staff_modo', 'staff')

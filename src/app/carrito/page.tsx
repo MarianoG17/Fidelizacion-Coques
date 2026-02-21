@@ -312,8 +312,15 @@ function CarritoPageContent() {
     return total + (porcionesItem * item.cantidad)
   }, 0)
 
-  // Calcular descuento
-  const descuentoPorcentaje = nivelCliente?.descuento || 0
+  // Verificar si hay torta temática en el carrito (tiene campos de texto con temática)
+  const tieneTortaTematica = items.some(item =>
+    item.camposTexto && Object.keys(item.camposTexto).some(campo =>
+      campo.toLowerCase().includes('temática')
+    )
+  )
+
+  // NO aplicar descuento si hay torta temática en el carrito
+  const descuentoPorcentaje = tieneTortaTematica ? 0 : (nivelCliente?.descuento || 0)
   const montoDescuento = precioTotal * (descuentoPorcentaje / 100)
   const totalConDescuento = precioTotal - montoDescuento
 

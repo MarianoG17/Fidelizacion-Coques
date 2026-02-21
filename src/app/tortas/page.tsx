@@ -357,8 +357,13 @@ function TortasPageContent() {
       }
     }
 
-    // Aplicar descuento por nivel
-    const porcentajeDescuento = nivelCliente?.descuento || 0
+    // Verificar si es Torta Temática (tiene campos personalizados con temática)
+    const esTortaTematica = productoSeleccionado?.camposTexto?.some(campo =>
+      campo.nombre.toLowerCase().includes('temática')
+    ) || false
+
+    // NO aplicar descuento si es torta temática (SKU 20)
+    const porcentajeDescuento = esTortaTematica ? 0 : (nivelCliente?.descuento || 0)
     const montoDescuento = precioOriginal * (porcentajeDescuento / 100)
     const precioConDescuento = precioOriginal - montoDescuento
 
