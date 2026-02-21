@@ -383,7 +383,9 @@ export async function GET(req: NextRequest) {
               { nombre: 'Estilo de letra', placeholder: 'Ej: Cursiva, Imprenta, Manuscrita...', requerido: false },
               { nombre: 'URL Imagen Referencia', placeholder: 'Pegar link de Google Drive, Dropbox, etc.', requerido: true },
               { nombre: 'Referencia de la imagen', placeholder: 'Ej: Colores de decoración, Texto del diseño, Estilo general...', requerido: true },
-              { nombre: 'Cantidad de Cookies Temáticas', placeholder: 'Solo si elegiste Cookies Temáticas', requerido: false }
+              { nombre: 'Cantidad de Cookies Temáticas', placeholder: 'Solo si elegiste Cookies Temáticas', requerido: false },
+              { nombre: 'Descripción Cookies Temáticas', placeholder: 'Solo si elegiste Cookies: Describí qué querés que sean (ej: Unicornios, Estrellas, etc.)', requerido: false },
+              { nombre: 'URL Imagen Referencia Cookies', placeholder: 'Solo si elegiste Cookies: Link de imagen de referencia', requerido: false }
             ]
 
             // Agregar configuración dinámica de add-ons para SKU 20

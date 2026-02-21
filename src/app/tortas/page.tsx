@@ -900,8 +900,10 @@ function TortasPageContent() {
                           return null
                         }
 
-                        // Lógica para mostrar "Cantidad de Cookies" solo si se eligió "Cookies Temáticas"
-                        if (campo.nombre.includes('Cantidad de Cookies')) {
+                        // Lógica para mostrar campos de Cookies solo si se eligió "Cookies Temáticas"
+                        if (campo.nombre.includes('Cantidad de Cookies') ||
+                            campo.nombre.includes('Descripción Cookies') ||
+                            campo.nombre.includes('URL Imagen Referencia Cookies')) {
                           // Buscar cualquier add-on que contenga "Cookies" en su nombre
                           const cookiesSeleccionadas = Object.keys(addOnsSeleccionados).find(key =>
                             key.toLowerCase().includes('cookies')
