@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from 'react'
+import { useState, useEffect, useMemo, useCallback, Suspense, Fragment } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import BackButton from '@/components/shared/BackButton'
@@ -808,7 +808,7 @@ function TortasPageContent() {
                         }
 
                         return (
-                          <React.Fragment key={addOn.nombre}>
+                          <Fragment key={addOn.nombre}>
                             <div className="border border-gray-200 rounded-xl p-4">
                               {/* Solo mostrar título si hay más de una opción */}
                               {addOn.opciones.length > 1 && (
@@ -876,7 +876,7 @@ function TortasPageContent() {
                               }
                               return null
                             })()}
-                          </React.Fragment>
+                          </Fragment>
                         )
                       })}
                     </div>
