@@ -475,9 +475,21 @@ function TortasPageContent() {
                 <p className="text-sm text-amber-100">Tel: {datosCliente.telefono}</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-amber-100">Modo Staff</p>
-              <p className="text-sm font-semibold">Equipo Coques</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem('pedido_staff_cliente')
+                  sessionStorage.removeItem('pedido_staff_modo')
+                  router.push('/local/tomar-pedido')
+                }}
+                className="px-4 py-2 bg-white text-amber-600 rounded-lg font-semibold hover:bg-amber-50 transition-colors text-sm"
+              >
+                Cambiar cliente
+              </button>
+              <div className="text-right">
+                <p className="text-xs text-amber-100">Modo Staff</p>
+                <p className="text-sm font-semibold">Equipo Coques</p>
+              </div>
             </div>
           </div>
         </div>

@@ -364,6 +364,8 @@ export async function GET(req: NextRequest) {
 
             // Agregar configuración dinámica de campos personalizados para SKU 20
             CAMPOS_TEXTO_POR_PRODUCTO[tortaTematica.id] = [
+              { nombre: 'Nombre del cumpleañero', placeholder: 'Ej: María', requerido: false },
+              { nombre: 'Años que cumple', placeholder: 'Ej: 5', requerido: false },
               { nombre: 'Color de la cubierta', placeholder: 'Si buttercream: Rosa, Azul, etc. Si ganache: Chocolate negro', requerido: true },
               { nombre: 'Temática', placeholder: 'Ej: Unicornio, Frozen, Fútbol, Princesas...', requerido: true },
               { nombre: 'Mensaje en la torta', placeholder: 'Ej: Feliz cumpleaños María', requerido: true },
