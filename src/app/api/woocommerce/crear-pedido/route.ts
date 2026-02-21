@@ -28,7 +28,8 @@ interface ItemPedido {
   productoId: number
   varianteId?: number
   cantidad: number
-  addOns?: { [nombre: string]: string[] }
+  nombre?: string // Nombre del producto (opcional, para logs)
+  addOns?: { [nombre: string]: any[] } // Puede ser string[] o objeto[]
   addOnsSkus?: { sku: string; nombre: string }[]
   camposTexto?: { [nombreCampo: string]: string }
 }
@@ -127,6 +128,9 @@ export async function POST(req: NextRequest) {
     // Construir line_items para WooCommerce
     const lineItems: any[] = []
 
+    // Array para almacenar add-ons que van solo a comentarios (sin SKU)
+    const addOnsComentarios: { producto: string; grupo: string; opcion: string }[] = []
+
     // Recopilar todos los SKUs de add-ons para buscar sus IDs en WooCommerce
     const addOnSkus: string[] = []
     for (const item of items) {
@@ -134,10 +138,12 @@ export async function POST(req: NextRequest) {
         for (const [nombre, opciones] of Object.entries(item.addOns)) {
           opciones.forEach((opcion: any) => {
             let sku: string | undefined
+            let soloComentario = false
 
-            // Nuevo formato: objeto con {sku, etiqueta}
-            if (typeof opcion === 'object' && opcion.sku) {
+            // Nuevo formato: objeto con {sku, etiqueta, soloComentario}
+            if (typeof opcion === 'object') {
               sku = opcion.sku
+              soloComentario = opcion.soloComentario || false
             }
             // Formato antiguo (backwards compatibility): string con nombre
             else if (typeof opcion === 'string') {
@@ -145,7 +151,16 @@ export async function POST(req: NextRequest) {
               console.log(`[Crear Pedido] Usando mapeo legacy para: "${opcion}" -> SKU ${sku}`)
             }
 
-            if (sku && !addOnSkus.includes(sku)) {
+            // Si es solo comentario, no agregar al array de SKUs
+            if (soloComentario && typeof opcion === 'object') {
+              const productoItem = items.find(it => it.addOns && Object.keys(it.addOns).includes(nombre))
+              addOnsComentarios.push({
+                producto: productoItem?.nombre || 'Producto',
+                grupo: nombre,
+                opcion: opcion.etiqueta || 'N/A'
+              })
+              console.log(`[Crear Pedido] ℹ️ Add-on solo comentario: ${nombre} -> ${opcion.etiqueta}`)
+            } else if (sku && !addOnSkus.includes(sku)) {
               addOnSkus.push(sku)
             }
           })
@@ -190,17 +205,19 @@ export async function POST(req: NextRequest) {
 
       lineItems.push(lineItem)
 
-      // Agregar add-ons como productos separados
+      // Agregar add-ons como productos separados (solo los que tienen SKU)
       if (item.addOns) {
         for (const [nombre, opciones] of Object.entries(item.addOns)) {
           opciones.forEach((opcion: any) => {
             let sku: string | undefined
             let etiqueta: string
+            let soloComentario = false
 
-            // Nuevo formato: objeto con {sku, etiqueta}
-            if (typeof opcion === 'object' && opcion.sku) {
+            // Nuevo formato: objeto con {sku, etiqueta, soloComentario}
+            if (typeof opcion === 'object') {
               sku = opcion.sku
               etiqueta = opcion.etiqueta
+              soloComentario = opcion.soloComentario || false
             }
             // Formato antiguo (backwards compatibility): string con nombre
             else if (typeof opcion === 'string') {
@@ -208,6 +225,12 @@ export async function POST(req: NextRequest) {
               etiqueta = opcion
             } else {
               console.warn(`[Crear Pedido] ✗ Formato de add-on no reconocido:`, opcion)
+              return
+            }
+
+            // Si es solo comentario, ya se agregó al array addOnsComentarios, skip
+            if (soloComentario) {
+              console.log(`[Crear Pedido] ⏭️ Saltando add-on solo comentario: ${etiqueta}`)
               return
             }
 
@@ -274,7 +297,7 @@ export async function POST(req: NextRequest) {
       ? `📦 Pedido desde App de Fidelización (STAFF)\n👤 Cliente: ${datosCliente?.nombre || 'N/A'}\n📞 Teléfono: ${datosCliente?.telefono || 'N/A'}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
       : `📦 Pedido desde App de Fidelización\n👤 Cliente ID: ${cliente?.id}\n📅 Fecha de entrega: ${fechaFormateada}\n⏰ Horario: ${horaEntrega} hs`
 
-    // Agregar campos de texto personalizados (ej: Color de decoración)
+    // Agregar campos de texto personalizados (ej: Color de la cubierta)
     const camposTextoDetalle: string[] = []
     items.forEach((item, index) => {
       if (item.camposTexto && Object.keys(item.camposTexto).length > 0) {
@@ -290,8 +313,16 @@ export async function POST(req: NextRequest) {
       customerNote += `\n\n🎨 Personalizaciones:\n${camposTextoDetalle.join('\n')}`
     }
 
+    // Agregar add-ons que van solo a comentarios (sin SKU en Ayres IT)
+    if (addOnsComentarios.length > 0) {
+      customerNote += `\n\n📋 Opciones seleccionadas (sin SKU):\n`
+      addOnsComentarios.forEach(({ producto, grupo, opcion }) => {
+        customerNote += `• ${grupo}: ${opcion}\n`
+      })
+    }
+
     if (notas) {
-      customerNote += `\n\n📝 Notas adicionales: ${notas}`
+      customerNote += `\n📝 Notas adicionales: ${notas}`
     }
 
     // Calcular descuento por nivel y aplicarlo directamente en los line_items
@@ -422,7 +453,7 @@ export async function POST(req: NextRequest) {
         value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)}`
       })
     }
-    
+
     // Agregar metadata staff si aplica
     if (modoStaff && datosCliente) {
       orderData.meta_data.push({
