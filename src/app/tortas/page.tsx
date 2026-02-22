@@ -398,8 +398,9 @@ function TortasPageContent() {
       return
     }
 
-    // Validar campos de texto requeridos
-    if (productoSeleccionado.camposTexto) {
+    // Validar campos de texto requeridos SOLO si NO es modo staff
+    // En modo staff se permite agregar productos incompletos para guardar como presupuesto
+    if (!modoStaff && productoSeleccionado.camposTexto) {
       for (const campo of productoSeleccionado.camposTexto) {
         if (campo.requerido && !camposTextoValores[campo.nombre]?.trim()) {
           alert(`Por favor completá el campo: ${campo.nombre}`)
@@ -445,7 +446,7 @@ function TortasPageContent() {
 
     // Ocultar mensaje después de 2 segundos
     setTimeout(() => setAgregado(false), 2000)
-  }, [productoSeleccionado, varianteSeleccionada, addOnsSeleccionados, camposTextoValores, agregarItem])
+  }, [productoSeleccionado, varianteSeleccionada, addOnsSeleccionados, camposTextoValores, agregarItem, modoStaff])
 
   // ⚡ OPTIMIZACIÓN: Memoizar productos filtrados (si agregas filtros en el futuro)
   const productosVisibles = useMemo(() => productos, [productos])
