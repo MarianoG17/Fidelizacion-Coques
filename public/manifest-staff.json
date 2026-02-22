@@ -1,0 +1,89 @@
+{
+  "id": "/coques-staff-app",
+  "name": "Coques Staff - Atención al Cliente",
+  "short_name": "Coques Staff",
+  "description": "App de atención al cliente para empleados de Coques Bakery. Scanner QR, gestión de pedidos y presupuestos.",
+  "start_url": "/local",
+  "scope": "/local/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scanner QR",
+      "short_name": "Scanner",
+      "url": "/local",
+      "description": "Escanear QR de clientes",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Vista Salón",
+      "short_name": "Salón",
+      "url": "/local",
+      "description": "Ver estado de mesas del salón",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Tomar Pedido",
+      "short_name": "Pedido",
+      "url": "/local/tomar-pedido",
+      "description": "Tomar pedido de tortas para cliente",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Presupuestos",
+      "short_name": "Presupuestos",
+      "url": "/local/presupuestos",
+      "description": "Gestionar presupuestos guardados",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "lang": "es-AR",
+  "dir": "ltr"
+}
