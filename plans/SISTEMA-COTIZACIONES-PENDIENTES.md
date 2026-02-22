@@ -1,478 +1,312 @@
-# 🎨 SISTEMA DE COTIZACIONES PENDIENTES - DISEÑO ARQUITECTÓNICO
+# Sistema de Cotizaciones/Presupuestos Pendientes
 
-## 📋 CONTEXTO
-
-Actualmente, cuando staff toma un pedido de Torta Temática (SKU 20), se envía **directamente a WooCommerce**. 
-
-**Problema:** No hay forma de:
-- Revisar el pedido antes de confirmarlo
-- Ajustar precio según complejidad del diseño
-- Confirmar disponibilidad de materiales
-- Esperar imágenes adicionales del cliente
-
-**Solución:** Sistema de cotizaciones pendientes con estado intermedio.
+## Fecha: 2026-02-21
+## Estado: Planificación
 
 ---
 
-## 🎯 OBJETIVOS
+## 📋 Objetivo
 
-1. **Guardar cotizaciones en BD local** antes de enviar a WooCommerce
-2. **Estados**: Borrador → Pendiente → Confirmado → Enviado a WooCommerce
-3. **Interfaz admin** para revisar y confirmar cotizaciones
-4. **Edición de precio** antes de confirmar
-5. **Agregar notas internas** (ej: materiales necesarios, tiempo estimado)
+Permitir que los clientes y el staff guarden pedidos como **presupuestos pendientes** que pueden ser:
+- Completados posteriormente (agregar información faltante)
+- Confirmados y convertidos en pedido real
+- Gestionados por atención al cliente
 
 ---
 
-## 🗄️ DISEÑO DE BASE DE DATOS
+## 🎯 Casos de Uso
 
-### Nueva tabla: `Cotizacion`
+### Para Clientes:
+1. Cliente configura una torta temática compleja
+2. No tiene toda la información (ej: falta imagen de referencia)
+3. Guarda como **"Presupuesto Pendiente"**
+4. Recibe un código/link para acceder más tarde
+5. Completa la información faltante
+6. Confirma el pedido
+
+### Para Staff/Atención al Cliente:
+1. Cliente llama por teléfono para consultar
+2. Staff crea presupuesto con la información disponible
+3. Marca campos pendientes
+4. Cliente envía información faltante (fotos, etc.) por WhatsApp
+5. Staff completa el presupuesto
+6. Confirma y crea el pedido en WooCommerce
+
+---
+
+## 🗄️ Estructura de Base de Datos
+
+### Tabla: `Presupuesto`
 
 ```prisma
-model Cotizacion {
-  id                String   @id @default(cuid())
-  numero            Int      @default(autoincrement()) // Número correlativo
+model Presupuesto {
+  id                Int       @id @default(autoincrement())
+  codigo            String    @unique // Código para acceder (ej: "PRES-2024-001")
+  clienteId         Int?      // Opcional, puede ser anónimo
+  cliente           Cliente?  @relation(fields: [clienteId], references: [id])
   
-  // Relación con cliente (opcional si es pedido staff)
-  clienteId         String?
-  cliente           Cliente? @relation(fields: [clienteId], references: [id])
-  
-  // Datos del cliente (si es staff)
-  clienteNombre     String?
-  clienteTelefono   String?
+  // Información del cliente (puede ser manual)
+  nombreCliente     String?
+  telefonoCliente   String?
+  emailCliente      String?
   
   // Datos del pedido
-  productos         Json     // Array de productos con configuración
-  precioEstimado    Float    // Precio calculado automáticamente
-  precioFinal       Float?   // Precio ajustado manualmente
-  notas             String?  // Notas del cliente
-  notasInternas     String?  // Notas del staff (no visibles para cliente)
+  items             Json      // Array de items del carrito
+  precioTotal       Float
+  descuento         Float     @default(0)
   
   // Fechas
-  fechaEntrega      DateTime
-  horaEntrega       String
-  fechaCreacion     DateTime @default(now())
-  fechaConfirmacion DateTime?
-  fechaEnvio        DateTime?
+  fechaEntrega      DateTime?
+  horaEntrega       String?
   
   // Estado
-  estado            EstadoCotizacion
+  estado            String    @default("PENDIENTE") // PENDIENTE, COMPLETO, CONFIRMADO, CANCELADO
+  camposPendientes  Json?     // Array de campos que faltan completar
   
-  // Staff que lo creó
-  creadoPor         String?  // ID del empleado local
-  confirmadoPor     String?
+  // Notas
+  notasInternas     String?   // Para el staff
+  notasCliente      String?   // Del cliente
   
-  // Referencia a WooCommerce (cuando se envía)
-  woocommerceId     Int?
-  woocommerceNumero String?
+  // Tracking
+  creadoPor         String?   // "cliente" o nombre del staff
+  creadoEn          DateTime  @default(now())
+  actualizadoEn     DateTime  @updatedAt
+  confirmadoEn      DateTime? // Cuando se convierte en pedido
+  wooOrderId        Int?      // ID del pedido en WooCommerce si se confirmó
   
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  @@index([estado])
+  @@index([codigo])
   @@index([clienteId])
-  @@index([fechaCreacion])
-}
-
-enum EstadoCotizacion {
-  BORRADOR          // Recién creado, puede editarse libremente
-  PENDIENTE         // Esperando confirmación de precio/disponibilidad
-  CONFIRMADO        // Listo para enviar a WooCommerce
-  ENVIADO           // Ya enviado a WooCommerce
-  RECHAZADO         // No se puede realizar
-  CANCELADO         // Cancelado por el cliente
+  @@index([estado])
 }
 ```
 
 ---
 
-## 📊 FLUJO DE ESTADOS
+## 🔧 APIs Necesarias
 
-```mermaid
-graph TD
-    A[Staff crea cotización] --> B[BORRADOR]
-    B -->|Staff confirma datos| C[PENDIENTE]
-    B -->|Editar| B
-    C -->|Admin revisa y ajusta precio| D[CONFIRMADO]
-    C -->|Rechazar| E[RECHAZADO]
-    D -->|Enviar a WooCommerce| F[ENVIADO]
-    F -->|Pedido creado| G[WooCommerce Order]
-    
-    C -->|Cliente cancela| H[CANCELADO]
-    D -->|Cliente cancela| H
-    
-    style A fill:#e1f5ff
-    style B fill:#fff9c4
-    style C fill:#ffe0b2
-    style D fill:#c8e6c9
-    style E fill:#ffcdd2
-    style F fill:#b2ebf2
-    style G fill:#c5cae9
-    style H fill:#ffcdd2
-```
-
----
-
-## 🔄 FLUJOS DE USO
-
-### Flujo 1: Staff toma pedido (sin imágenes completas)
-
-1. **Staff en `/local/tomar-pedido`**
-   - Ingresa datos del cliente
-   - Va a `/tortas?modo=staff`
-
-2. **Selecciona SKU 20**
-   - Completa campos obligatorios
-   - **NO tiene todas las imágenes aún**
-   - Pone URL temporal o "Pendiente"
-
-3. **Agregar al carrito**
-   - En lugar de ir directo a checkout
-   - Nueva opción: **"Guardar como Cotización"**
-
-4. **Se guarda en BD**
-   - Estado: `BORRADOR`
-   - Se genera número de cotización: `COT-0001`
-
-5. **Staff puede:**
-   - Continuar editando
-   - Marcar como `PENDIENTE` (esperando info del cliente)
-   - Agregar notas internas
-
-6. **Cuando llegan imágenes:**
-   - Staff edita cotización
-   - Agrega URLs de imágenes
-   - Admin revisa y ajusta precio si es necesario
-   - Marca como `CONFIRMADO`
-
-7. **Enviar a WooCommerce:**
-   - Botón "Enviar Pedido"
-   - Se crea en WooCommerce
-   - Estado: `ENVIADO`
-   - Se guarda `woocommerceId`
-
-### Flujo 2: Cliente pide cotización (desde la app)
-
-1. **Cliente en `/tortas` (modo normal)**
-   - Selecciona SKU 20
-   - Completa lo que puede
-   - **Nuevo botón:** "Solicitar Cotización"
-
-2. **Se guarda en BD**
-   - Estado: `PENDIENTE`
-   - clienteId registrado
-   - Notificación al staff
-
-3. **Staff revisa:**
-   - Ve cotización en panel admin
-   - Ajusta precio según complejidad
-   - Marca como `CONFIRMADO`
-
-4. **Cliente recibe notificación:**
-   - "Tu cotización está lista: $XX.XXX"
-   - Botón: "Confirmar Pedido"
-
-5. **Cliente confirma:**
-   - Se envía a WooCommerce
-   - Estado: `ENVIADO`
-
----
-
-## 🖥️ INTERFACES NECESARIAS
-
-### 1. Panel Admin de Cotizaciones (`/admin/cotizaciones`)
-
-**Vista de lista:**
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 📋 Cotizaciones                         [+ Nueva Cotización] │
-├─────────────────────────────────────────────────────────────┤
-│ Filtros: [Todas ▼] [Estado: Pendientes ▼] [Buscar...]      │
-├─────────────────────────────────────────────────────────────┤
-│ N°     Cliente          Producto       Precio    Estado    │
-│ COT-12 María González   Torta Temát... $58,000  [PENDIENTE]│
-│ COT-11 Juan Pérez       Torta Temát... $65,000  [CONFIRMADO│
-│ COT-10 Ana López        Torta Temát... $52,000  [ENVIADO]  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Vista de detalle:**
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Cotización #COT-0012                     Estado: PENDIENTE  │
-├─────────────────────────────────────────────────────────────┤
-│ 👤 Cliente: María González                                  │
-│ 📞 Teléfono: +54 11 4567-8901                              │
-│ 📅 Entrega: 25 Feb 2026 - 17:00 hs                        │
-│                                                             │
-│ 🎂 Producto: Torta Temática Buttercream (25 porciones)     │
-│                                                             │
-│ Detalles:                                                   │
-│ • Color: Rosa pastel                                        │
-│ • Temática: Unicornio                                       │
-│ • Mensaje: "Feliz cumpleaños Sofi"                        │
-│ • Imagen: [Ver imagen] https://drive.google.com/...        │
-│ • Referencia: Colores de decoración                        │
-│                                                             │
-│ Rellenos:                                                   │
-│ • Capa 1: Dulce de leche                                    │
-│ • Capa 2: Chocolate                                         │
-│ • Capa 3: Dulce de leche                                    │
-│                                                             │
-│ Bizcochuelo: Vainilla                                       │
-│ Add-ons: Cookies Temáticas (6 un.)                         │
-│                                                             │
-│ 💰 Precio Estimado: $58,000                                │
-│ 💰 Precio Final: [________] (ajustar si es necesario)      │
-│                                                             │
-│ 📝 Notas del cliente:                                       │
-│ "Quiero que tenga muchos brillos y purpurina comestible"   │
-│                                                             │
-│ 🔒 Notas internas (no visibles para cliente):             │
-│ [_____________________________________________]             │
-│                                                             │
-│ [Rechazar] [Guardar Cambios] [Confirmar Cotización] →     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 2. Modificación en Carrito (`/carrito`)
-
-**Botones actuales:**
-- "Proceder al Checkout" → Envía directo a WooCommerce
-
-**Nuevos botones (solo para SKU 20):**
-- "Guardar como Cotización" → Guarda en BD, no envía a WooCommerce
-- "Proceder al Checkout" → Mantener comportamiento actual (opcional)
-
-### 3. Vista para Cliente (`/mis-cotizaciones`)
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 📋 Mis Cotizaciones                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ ┌───────────────────────────────────────────────────────┐  │
-│ │ 🎂 Torta Temática Buttercream                         │  │
-│ │ Estado: ✅ CONFIRMADO                                 │  │
-│ │ Precio: $58,000                                        │  │
-│ │ Entrega: 25 Feb 2026 - 17:00 hs                      │  │
-│ │                                                        │  │
-│ │ [Ver Detalles] [Confirmar Pedido] →                  │  │
-│ └───────────────────────────────────────────────────────┘  │
-│                                                             │
-│ ┌───────────────────────────────────────────────────────┐  │
-│ │ 🎂 Torta Temática Buttercream                         │  │
-│ │ Estado: ⏳ PENDIENTE                                  │  │
-│ │ Precio: Por confirmar                                  │  │
-│ │ Entrega: 28 Feb 2026 - 18:00 hs                      │  │
-│ │                                                        │  │
-│ │ [Ver Detalles] [Cancelar Solicitud]                  │  │
-│ └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🔧 APIs NECESARIAS
-
-### 1. POST `/api/cotizaciones`
-Crear nueva cotización
+### 1. Crear Presupuesto
+**POST** `/api/presupuestos`
 ```typescript
-// Request
 {
-  items: ItemPedido[],
-  clienteNombre?: string,
-  clienteTelefono?: string,
-  notas?: string,
-  fechaEntrega: string,
-  horaEntrega: string,
-  estado: 'BORRADOR' | 'PENDIENTE'
-}
-
-// Response
-{
-  id: string,
-  numero: number, // COT-0012
-  estado: string,
-  precioEstimado: number
+  items: ItemCarrito[],
+  nombreCliente?: string,
+  telefonoCliente?: string,
+  emailCliente?: string,
+  fechaEntrega?: string,
+  horaEntrega?: string,
+  notasCliente?: string,
+  camposPendientes?: string[] // ["imagen_referencia", "color_cubierta", etc.]
 }
 ```
 
-### 2. GET `/api/cotizaciones`
-Listar cotizaciones (con filtros)
+**Respuesta:**
 ```typescript
-// Query params
-?estado=PENDIENTE
-&clienteId=xxx
-&desde=2026-02-01
-&hasta=2026-02-28
-
-// Response
 {
-  cotizaciones: [...]
-  total: number,
-  pagina: number
+  codigo: "PRES-2024-001",
+  linkAcceso: "https://app.com/presupuestos/PRES-2024-001",
+  mensaje: "Presupuesto guardado. Código: PRES-2024-001"
 }
 ```
 
-### 3. GET `/api/cotizaciones/[id]`
-Obtener detalle de una cotización
+### 2. Consultar Presupuesto
+**GET** `/api/presupuestos/:codigo`
 
-### 4. PATCH `/api/cotizaciones/[id]`
-Actualizar cotización (precio, notas, estado)
-```typescript
-// Request
-{
-  precioFinal?: number,
-  notasInternas?: string,
-  estado?: EstadoCotizacion
-}
+### 3. Actualizar Presupuesto
+**PATCH** `/api/presupuestos/:codigo`
+
+### 4. Confirmar Presupuesto (convertir en pedido)
+**POST** `/api/presupuestos/:codigo/confirmar`
+
+### 5. Listar Presupuestos (Admin/Staff)
+**GET** `/api/presupuestos?estado=PENDIENTE&limite=50`
+
+---
+
+## 🎨 Interfaz de Usuario
+
+### 1. Página de Carrito - Botón Adicional
+```
+[Proceder al Checkout]  [Guardar como Presupuesto]
 ```
 
-### 5. POST `/api/cotizaciones/[id]/enviar-woocommerce`
-Enviar cotización confirmada a WooCommerce
-```typescript
-// Response
-{
-  woocommerceId: number,
-  woocommerceNumero: string,
-  urlAdmin: string
-}
+### 2. Modal de Guardar Presupuesto
+```
+┌─────────────────────────────────────────┐
+│  Guardar como Presupuesto               │
+├─────────────────────────────────────────┤
+│                                         │
+│  Nombre: [________________]             │
+│  Teléfono: [______________]             │
+│  Email (opcional): [______]             │
+│                                         │
+│  ¿Qué información te falta?             │
+│  ☐ Imagen de referencia                 │
+│  ☐ Color de cubierta                    │
+│  ☐ Fecha de entrega                     │
+│  ☐ Otro: [___________]                  │
+│                                         │
+│  Notas: [_________________________]     │
+│                                         │
+│  [Cancelar]  [Guardar Presupuesto]      │
+└─────────────────────────────────────────┘
 ```
 
-### 6. DELETE `/api/cotizaciones/[id]`
-Cancelar cotización (solo si no está ENVIADO)
+### 3. Confirmación
+```
+✓ Presupuesto Guardado
+
+Código: PRES-2024-001
+
+Guardá este código para acceder más tarde.
+También te enviamos un link por WhatsApp/Email.
+
+[Ir a mis presupuestos]  [Cerrar]
+```
+
+### 4. Página: `/presupuestos/:codigo`
+- Mostrar items del presupuesto
+- Campos pendientes destacados
+- Formulario para completar información
+- Botón "Confirmar Pedido"
+
+### 5. Admin: Gestión de Presupuestos
+Ruta: `/admin/presupuestos`
+
+Tabla con:
+- Código
+- Cliente
+- Fecha creación
+- Estado (PENDIENTE, COMPLETO, CONFIRMADO)
+- Precio total
+- Campos pendientes
+- Acciones: [Ver] [Editar] [Confirmar] [Cancelar]
 
 ---
 
-## 📱 NOTIFICACIONES
+## 📱 Notificaciones
 
-### Para Staff (notificación interna)
-- Nueva cotización solicitada por cliente
-- Cliente confirmó cotización
+### WhatsApp/Email Automático
+Cuando se crea un presupuesto:
+```
+🎂 Coques Bakery
 
-### Para Cliente (email/SMS)
-- Tu cotización está lista (CONFIRMADO)
-- Tu cotización fue rechazada (RECHAZADO)
-- Tu pedido fue enviado (ENVIADO)
+Tu presupuesto ha sido guardado.
 
----
+Código: PRES-2024-001
+Link: https://app.coquesbakery.com.ar/presupuestos/PRES-2024-001
 
-## 🔐 SEGURIDAD & PERMISOS
-
-### Staff (`/local`)
-- ✅ Crear cotizaciones
-- ✅ Ver sus cotizaciones
-- ❌ Editar precio final
-- ❌ Confirmar cotizaciones
-- ❌ Enviar a WooCommerce
-
-### Admin (`/admin/cotizaciones`)
-- ✅ Ver todas las cotizaciones
-- ✅ Editar precio final
-- ✅ Confirmar cotizaciones
-- ✅ Enviar a WooCommerce
-- ✅ Agregar notas internas
-
-### Cliente (`/mis-cotizaciones`)
-- ✅ Ver sus cotizaciones
-- ✅ Confirmar cotización (cuando está CONFIRMADO)
-- ✅ Cancelar solicitud (antes de ENVIADO)
-- ❌ Ver notas internas
+Podés completarlo cuando quieras.
+¿Dudas? WhatsApp: +54 9 XXX XXXXXXX
+```
 
 ---
 
-## 📈 MÉTRICAS & REPORTES
+## 🔄 Flujo Completo
 
-Dashboard de cotizaciones:
-- Total cotizaciones por mes
-- Tasa de conversión (PENDIENTE → CONFIRMADO → ENVIADO)
-- Tiempo promedio de confirmación
-- Precio promedio por cotización
-- Motivos de rechazo (si se registran)
+### Flujo Cliente:
+1. Cliente configura torta en `/tortas`
+2. Agrega al carrito
+3. En `/carrito`, click en "Guardar como Presupuesto"
+4. Completa formulario con datos básicos
+5. Marca qué información le falta
+6. Recibe código y link
+7. Más tarde, accede con el link
+8. Completa información pendiente
+9. Click en "Confirmar Pedido"
+10. Se crea pedido en WooCommerce
+
+### Flujo Staff:
+1. Cliente llama por teléfono
+2. Staff entra a `/local/presupuestos/nuevo`
+3. Configura el pedido con la info del cliente
+4. Marca campos pendientes (ej: "Falta imagen")
+5. Guarda presupuesto
+6. Envía código al cliente por WhatsApp
+7. Cliente envía foto por WhatsApp
+8. Staff en `/admin/presupuestos` edita y agrega la foto
+9. Confirma el presupuesto
+10. Se crea pedido en WooCommerce
 
 ---
 
-## 🚀 FASES DE IMPLEMENTACIÓN
+## ✅ Tareas de Implementación
 
-### Fase 1: MVP (Mínimo Viable)
-1. Crear tabla `Cotizacion` en Prisma
-2. API básica (crear, listar, detalle)
-3. Guardar cotización desde carrito
-4. Panel admin simple (lista + detalle)
-5. Enviar a WooCommerce desde admin
+### Backend:
+- [ ] Crear migración Prisma para tabla `Presupuesto`
+- [ ] API: POST `/api/presupuestos` (crear)
+- [ ] API: GET `/api/presupuestos/:codigo` (consultar)
+- [ ] API: PATCH `/api/presupuestos/:codigo` (actualizar)
+- [ ] API: POST `/api/presupuestos/:codigo/confirmar` (convertir en pedido)
+- [ ] API: GET `/api/admin/presupuestos` (listar para admin)
+- [ ] Función generadora de códigos únicos (ej: PRES-2024-001)
+- [ ] Integración con API de WooCommerce para crear pedido
 
-### Fase 2: Mejoras
-6. Edición de precio en admin
-7. Notas internas
-8. Estados completos (RECHAZADO, CANCELADO)
-9. Vista para clientes (`/mis-cotizaciones`)
-10. Confirmación de cliente
+### Frontend Cliente:
+- [ ] Botón "Guardar como Presupuesto" en página carrito
+- [ ] Modal para guardar presupuesto
+- [ ] Página `/presupuestos/:codigo` para ver/editar
+- [ ] Botón "Confirmar Pedido" en presupuesto completo
+- [ ] Lista de presupuestos del cliente en `/perfil`
 
-### Fase 3: Avanzado
+### Frontend Admin/Staff:
+- [ ] Página `/admin/presupuestos` con tabla
+- [ ] Filtros: Estado, Fecha, Cliente
+- [ ] Modal para editar presupuesto
+- [ ] Vista detallada de presupuesto
+- [ ] Botón confirmar presupuesto
+- [ ] Indicador de campos pendientes
+
+### Notificaciones:
+- [ ] Template de email con código y link
+- [ ] Template de WhatsApp (manual o API)
+- [ ] Notificación a staff cuando cliente completa presupuesto
+
+---
+
+## 🚀 Prioridad de Implementación
+
+### Fase 1 (MVP):
+1. Base de datos
+2. API crear presupuesto
+3. API consultar presupuesto
+4. Página ver presupuesto
+5. Botón en carrito
+
+### Fase 2:
+6. API confirmar presupuesto
+7. Botón confirmar en frontend
+8. Lista de presupuestos en perfil
+
+### Fase 3:
+9. Admin: Lista de presupuestos
+10. Admin: Editar presupuestos
 11. Notificaciones automáticas
-12. Upload de imágenes adicionales
-13. Historial de cambios
-14. Reportes y métricas
 
 ---
 
-## ⚠️ CONSIDERACIONES IMPORTANTES
+## 📊 Métricas a Considerar
 
-1. **Compatibilidad con sistema actual:**
-   - Mantener flujo directo a WooCommerce (para productos simples)
-   - Cotizaciones solo para productos complejos (SKU 20)
-
-2. **Sincronización con WooCommerce:**
-   - Una vez enviado a WooCommerce, la fuente de verdad es WooCommerce
-   - Cotización pasa a solo-lectura
-   - Cambios deben hacerse en WooCommerce
-
-3. **Manejo de errores:**
-   - ¿Qué pasa si falla el envío a WooCommerce?
-   - Reintento automático
-   - Notificación al admin
-
-4. **Limpieza de datos:**
-   - ¿Cuánto tiempo guardar cotizaciones RECHAZADAS/CANCELADAS?
-   - Sugerencia: 90 días, luego archivar
-
-5. **Concurrencia:**
-   - ¿Qué pasa si 2 admins editan la misma cotización?
-   - Implementar lock optimista (updatedAt)
+- Cantidad de presupuestos creados por día
+- Tasa de conversión (presupuestos → pedidos confirmados)
+- Tiempo promedio entre creación y confirmación
+- Campos más frecuentemente pendientes
+- Presupuestos abandonados (>7 días sin confirmar)
 
 ---
 
-## 🎯 DECISIONES PENDIENTES
+## 🔐 Seguridad
 
-1. **¿Permitir cotizaciones desde clientes** o solo staff?
-   - Opción A: Solo staff (más control)
-   - Opción B: Ambos (más flexible)
-
-2. **¿Cotizaciones solo para SKU 20** o también otros productos?
-   - Opción A: Solo SKU 20 (más simple)
-   - Opción B: Configurable por producto
-
-3. **¿Precio estimado visible para el cliente** antes de confirmar?
-   - Opción A: Sí, mostrar rango ($50k - $70k)
-   - Opción B: No, solo cuando admin confirma
-
-4. **¿Permitir múltiples imágenes por cotización?**
-   - Opción A: Sí, array de imágenes con categorías
-   - Opción B: Una imagen por ahora (Fase 1)
+- Códigos únicos no secuenciales (evitar adivinación)
+- Validar que cliente solo pueda editar sus propios presupuestos
+- Rate limiting en APIs
+- Solo staff puede ver todos los presupuestos
+- Log de cambios en presupuestos (auditoría)
 
 ---
 
-## 📝 PRÓXIMOS PASOS
+## Notas Adicionales
 
-1. **Revisar este diseño** y tomar decisiones pendientes
-2. **Priorizar fases** (¿Empezamos con MVP?)
-3. **Implementar en Code mode**
-4. **Testing exhaustivo**
-5. **Deploy progresivo** (primero sin eliminar flujo actual)
-
----
-
-**Fecha:** 21 de Febrero 2026  
-**Autor:** Roo (Architect Mode)  
-**Estado:** Diseño completo, pendiente aprobación
+- Compatible con modo staff actual
+- Los presupuestos expiran después de 30 días sin actividad
+- Posibilidad de duplicar presupuesto para hacer variaciones
+- Export a PDF para enviar por email/WhatsApp

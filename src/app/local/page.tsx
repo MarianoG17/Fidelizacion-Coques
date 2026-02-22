@@ -489,9 +489,9 @@ export default function LocalPage() {
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
         <p className="text-slate-400 text-sm mb-4">Equipo atención al cliente</p>
 
-        {/* Botones para alternar entre Scanner, Vista Salón y Tomar Pedido */}
+        {/* Botones para alternar entre Scanner, Vista Salón, Tomar Pedido y Presupuestos */}
         <div className="w-full max-w-sm mb-4">
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-2 mb-3">
             <button
               onClick={() => setVistaSalon(false)}
               className={`py-3 rounded-xl font-bold transition text-sm ${!vistaSalon
@@ -515,6 +515,12 @@ export default function LocalPage() {
               className="py-3 rounded-xl font-bold transition text-sm bg-amber-600 hover:bg-amber-700 text-white"
             >
               📝 Pedido
+            </button>
+            <button
+              onClick={() => window.location.href = '/local/presupuestos'}
+              className="py-3 rounded-xl font-bold transition text-sm bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              💾 Presupuestos
             </button>
           </div>
         </div>

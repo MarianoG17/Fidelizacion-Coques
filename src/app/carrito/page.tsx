@@ -48,6 +48,11 @@ function CarritoPageContent() {
   // Estado para nivel y descuento del cliente
   const [nivelCliente, setNivelCliente] = useState<{ nivel: string, descuento: number } | null>(null)
 
+  // Estado para modal de presupuesto
+  const [mostrarModalPresupuesto, setMostrarModalPresupuesto] = useState(false)
+  const [guardandoPresupuesto, setGuardandoPresupuesto] = useState(false)
+  const [codigoPresupuesto, setCodigoPresupuesto] = useState<string | null>(null)
+
   // Cargar datos según el modo
   useEffect(() => {
     if (modoStaff) {
@@ -173,6 +178,81 @@ function CarritoPageContent() {
 
     // Remover de la lista de upselling
     setProductosUpselling(prev => prev.filter(p => p.id !== producto.id))
+  }
+
+  async function guardarComoPresupuesto() {
+    setGuardandoPresupuesto(true)
+    setError(null)
+
+    try {
+      const token = localStorage.getItem('fidelizacion_token')
+      let clienteId: string | undefined
+      let nombreCliente: string | undefined
+      let telefonoCliente: string | undefined
+
+      if (modoStaff) {
+        // Modo staff - obtener datos del sessionStorage
+        nombreCliente = datosCliente?.nombre
+        telefonoCliente = datosCliente?.telefono
+      } else if (token) {
+        // Modo normal - obtener clienteId del token
+        const perfilRes = await fetch('/api/perfil', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (perfilRes.ok) {
+          const perfilData = await perfilRes.json()
+          clienteId = perfilData.data.id
+          nombreCliente = perfilData.data.nombre
+          telefonoCliente = perfilData.data.phone
+        }
+      }
+
+      const presupuestoData = {
+        clienteId,
+        nombreCliente,
+        telefonoCliente,
+        items: items.map(item => ({
+          productoId: item.productoId,
+          varianteId: item.varianteId,
+          nombre: item.nombre,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          precioAddOns: item.precioAddOns || 0,
+          addOns: item.addOns || {},
+          camposTexto: item.camposTexto || {},
+          rendimiento: item.rendimiento
+        })),
+        precioTotal: totalConDescuento,
+        descuento: montoDescuento,
+        fechaEntrega: fechaEntrega || null,
+        horaEntrega: horaEntrega || null,
+        notasCliente: notas || null,
+        creadoPor: modoStaff ? 'STAFF' : 'CLIENTE'
+      }
+
+      const response = await fetch('/api/presupuestos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(presupuestoData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al guardar presupuesto')
+      }
+
+      setCodigoPresupuesto(data.presupuesto.codigo)
+      setMostrarModalPresupuesto(true)
+
+    } catch (err: any) {
+      console.error('Error al guardar presupuesto:', err)
+      setError(err.message || 'Error al guardar presupuesto')
+    } finally {
+      setGuardandoPresupuesto(false)
+    }
   }
 
   async function procederCheckout() {
@@ -757,20 +837,92 @@ function CarritoPageContent() {
                 </div>
               )}
 
-              <button
-                onClick={procederCheckout}
-                disabled={procesando}
-                className={`w-full py-3 rounded-lg font-bold transition-colors ${procesando
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                  : 'bg-gray-800 text-white hover:bg-gray-700'
-                  }`}
-              >
-                {procesando ? 'Procesando...' : 'Realizar Pedido'}
-              </button>
+              {/* Botones de acción */}
+              <div className="space-y-2">
+                <button
+                  onClick={guardarComoPresupuesto}
+                  disabled={guardandoPresupuesto || items.length === 0}
+                  className={`w-full py-3 rounded-lg font-bold transition-colors ${guardandoPresupuesto || items.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                >
+                  {guardandoPresupuesto ? 'Guardando...' : '💾 Guardar como Presupuesto'}
+                </button>
+                
+                <button
+                  onClick={procederCheckout}
+                  disabled={procesando}
+                  className={`w-full py-3 rounded-lg font-bold transition-colors ${procesando
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-gray-800 text-white hover:bg-gray-700'
+                    }`}
+                >
+                  {procesando ? 'Procesando...' : 'Realizar Pedido'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modal de presupuesto guardado */}
+      {mostrarModalPresupuesto && codigoPresupuesto && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={() => {
+            setMostrarModalPresupuesto(false)
+            setCodigoPresupuesto(null)
+          }}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-4">
+              <span className="text-6xl">💾</span>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2 text-center">
+              Presupuesto Guardado
+            </h3>
+            <p className="text-gray-600 mb-4 text-center">
+              Tu presupuesto ha sido guardado exitosamente.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Código de presupuesto:</strong>
+              </p>
+              <p className="text-2xl font-bold text-blue-600 text-center tracking-wider">
+                {codigoPresupuesto}
+              </p>
+            </div>
+            <p className="text-xs text-gray-600 mb-4 text-center">
+              Guardá este código para consultar o confirmar tu presupuesto más tarde.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(codigoPresupuesto)
+                  alert('Código copiado al portapapeles')
+                }}
+                className="flex-1 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              >
+                📋 Copiar código
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarModalPresupuesto(false)
+                  setCodigoPresupuesto(null)
+                  router.push(`/presupuestos/${codigoPresupuesto}`)
+                }}
+                className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Ver presupuesto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de imagen expandida */}
       {imagenExpandida && (

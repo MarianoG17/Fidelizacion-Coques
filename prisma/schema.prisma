@@ -67,6 +67,13 @@ enum TipoNoticia {
   ADVERTENCIA
 }
 
+enum EstadoPresupuesto {
+  PENDIENTE
+  COMPLETO
+  CONFIRMADO
+  CANCELADO
+}
+
 // ─── Modelos ───────────────────────────────────────────────────────────────────
 
 model Cliente {
@@ -98,6 +105,7 @@ model Cliente {
   feedbacks             Feedback[]
   logros                LogroCliente[]
   sesionesMesa          SesionMesa[]  // sesiones en mesas del salón
+  presupuestos          Presupuesto[]
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
@@ -372,4 +380,34 @@ model LogroCliente {
   @@index([clienteId])
   @@index([logroId])
   @@index([obtenidoEn])
+}
+
+// Sistema de Presupuestos/Cotizaciones
+model Presupuesto {
+  id                Int                @id @default(autoincrement())
+  codigo            String             @unique
+  clienteId         String?
+  cliente           Cliente?           @relation(fields: [clienteId], references: [id])
+  nombreCliente     String?
+  telefonoCliente   String?
+  emailCliente      String?
+  items             Json
+  precioTotal       Float
+  descuento         Float              @default(0)
+  fechaEntrega      DateTime?
+  horaEntrega       String?
+  estado            EstadoPresupuesto  @default(PENDIENTE)
+  camposPendientes  Json?
+  notasInternas     String?
+  notasCliente      String?
+  creadoPor         String?
+  creadoEn          DateTime           @default(now())
+  actualizadoEn     DateTime           @updatedAt
+  confirmadoEn      DateTime?
+  wooOrderId        Int?
+  
+  @@index([codigo])
+  @@index([clienteId])
+  @@index([estado])
+  @@index([creadoEn])
 }
