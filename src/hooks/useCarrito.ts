@@ -12,9 +12,9 @@ export interface ItemCarrito {
   cantidad: number
   imagen: string | null
   rendimiento?: string | null
-  addOns?: {[addOnNombre: string]: Array<{sku: string | undefined, etiqueta: string, id: string}>}
+  addOns?: { [addOnNombre: string]: Array<{ sku: string | undefined, etiqueta: string, id: string }> }
   precioAddOns?: number
-  camposTexto?: {[nombreCampo: string]: string}
+  camposTexto?: { [nombreCampo: string]: string }
 }
 
 const CARRITO_KEY = 'fidelizacion_carrito'
@@ -88,6 +88,16 @@ export function useCarrito() {
     )
   }
 
+  const actualizarItem = (productoId: number, varianteId: number | undefined, itemActualizado: Partial<ItemCarrito>) => {
+    setItems(prevItems =>
+      prevItems.map(i =>
+        i.productoId === productoId && i.varianteId === varianteId
+          ? { ...i, ...itemActualizado }
+          : i
+      )
+    )
+  }
+
   const vaciarCarrito = () => {
     setItems([])
   }
@@ -103,6 +113,7 @@ export function useCarrito() {
     items,
     agregarItem,
     actualizarCantidad,
+    actualizarItem,
     eliminarItem,
     vaciarCarrito,
     cantidadTotal,

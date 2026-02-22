@@ -20,7 +20,7 @@ interface ProductoUpselling {
 function CarritoPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { items, actualizarCantidad, eliminarItem, vaciarCarrito, cantidadTotal, precioTotal, cargado, agregarItem } = useCarrito()
+  const { items, actualizarCantidad, actualizarItem, eliminarItem, vaciarCarrito, cantidadTotal, precioTotal, cargado, agregarItem } = useCarrito()
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false)
@@ -42,6 +42,10 @@ function CarritoPageContent() {
   const [horaEntrega, setHoraEntrega] = useState('')
   const [fechasDisponibles, setFechasDisponibles] = useState<string[]>([])
 
+  // Estados para edición de productos
+  const [productoEditando, setProductoEditando] = useState<any>(null)
+  const [camposTextoEditando, setCamposTextoEditando] = useState<{[key: string]: string}>({})
+  
   // Solo notas opcionales
   const [notas, setNotas] = useState('')
 
@@ -178,6 +182,28 @@ function CarritoPageContent() {
 
     // Remover de la lista de upselling
     setProductosUpselling(prev => prev.filter(p => p.id !== producto.id))
+  }
+
+  // Función para abrir edición de producto
+  function abrirEdicionProducto(item: any) {
+    setProductoEditando(item)
+    setCamposTextoEditando(item.camposTexto || {})
+  }
+
+  // Función para guardar edición
+  function guardarEdicion() {
+    if (!productoEditando) return
+    
+    actualizarItem(productoEditando.productoId, productoEditando.varianteId, {
+      camposTexto: Object.keys(camposTextoEditando).length > 0 ? camposTextoEditando : undefined,
+    })
+    
+    cerrarEdicion()
+  }
+
+  function cerrarEdicion() {
+    setProductoEditando(null)
+    setCamposTextoEditando({})
   }
 
   async function guardarComoPresupuesto() {
