@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
 
     let cliente = null
     let descuentoPorcentaje = 0
+    let emailClienteWoo: string | null = null
 
     if (modoStaff) {
       // MODO STAFF: No requiere autenticación de cliente
@@ -103,6 +104,50 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
+    const headers = {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'FidelizacionApp/1.0',
+    }
+
+    // Si es modo staff, buscar email del cliente en WooCommerce por teléfono
+    if (modoStaff && datosCliente?.telefono) {
+      try {
+        console.log(`[Staff Order] Buscando cliente en WooCommerce con teléfono: ${datosCliente.telefono}`)
+        
+        // Buscar pedidos anteriores con este teléfono
+        const ordersResponse = await fetch(
+          `${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(datosCliente.telefono)}&per_page=10`,
+          { headers }
+        )
+        
+        if (ordersResponse.ok) {
+          const orders = await ordersResponse.json()
+          
+          // Buscar un pedido que tenga este teléfono y un email válido
+          for (const order of orders) {
+            if (order.billing?.phone === datosCliente.telefono &&
+                order.billing?.email &&
+                order.billing.email !== 'pedidos@coques.com.ar' &&
+                order.billing.email !== 'staff@coques.com' &&
+                order.billing.email.includes('@')) {
+              emailClienteWoo = order.billing.email
+              console.log(`[Staff Order] ✓ Email encontrado: ${emailClienteWoo}`)
+              break
+            }
+          }
+        }
+        
+        if (!emailClienteWoo) {
+          console.log('[Staff Order] ℹ️ No se encontró email, usando pedidos@coques.com.ar')
+        }
+      } catch (error) {
+        console.error('[Staff Order] Error buscando email en WooCommerce:', error)
+        // Continuar con pedidos@coques.com.ar si hay error
+      }
+    }
+
     // Validaciones
     if (!items || items.length === 0) {
       return NextResponse.json(
@@ -116,13 +161,6 @@ export async function POST(req: NextRequest) {
         { error: 'Se requiere fecha y hora de entrega' },
         { status: 400 }
       )
-    }
-
-    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
-    const headers = {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'FidelizacionApp/1.0',
     }
 
     // Construir line_items para WooCommerce
@@ -406,7 +444,7 @@ export async function POST(req: NextRequest) {
       billing: {
         first_name: nombreCompleto.split(' ')[0] || nombreCompleto,
         last_name: nombreCompleto.split(' ').slice(1).join(' ') || '',
-        email: modoStaff ? 'staff@coques.com' : (cliente?.email || ''),
+        email: modoStaff ? 'pedidos@coques.com.ar' : (cliente?.email || ''),
         phone: modoStaff ? (datosCliente?.telefono || '') : (cliente?.phone || ''),
       },
       line_items: lineItems,
@@ -509,7 +547,7 @@ export async function POST(req: NextRequest) {
       cliente: modoStaff ? {
         id: 'staff',
         nombre: datosCliente?.nombre || 'Cliente',
-        email: 'staff@coques.com',
+        email: 'pedidos@coques.com.ar',
         telefono: datosCliente?.telefono || '',
       } : {
         id: cliente?.id || '',
