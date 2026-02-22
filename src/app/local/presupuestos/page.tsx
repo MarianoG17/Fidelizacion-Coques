@@ -111,7 +111,7 @@ export default function PresupuestosLocalPage() {
     <div className="min-h-screen bg-gray-50 pb-8">
       <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <BackButton />
+          <BackButton href="/local" label="Volver a Staff" />
           <h1 className="text-2xl font-bold text-gray-800 mt-2">
             💾 Presupuestos
           </h1>

@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Coques Staff',
   },
+  icons: {
+    apple: '/icon-192x192.png',
+  },
 }
 
 export default function LocalLayout({
@@ -17,5 +20,11 @@ export default function LocalLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return (
+    <>
+      {/* Forzar manifest staff en head */}
+      <link rel="manifest" href="/manifest-staff.json" />
+      {children}
+    </>
+  )
 }

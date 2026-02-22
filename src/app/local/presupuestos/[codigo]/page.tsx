@@ -120,7 +120,7 @@ export default function PresupuestoPage() {
   if (error || !presupuesto) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
-        <BackButton />
+        <BackButton href="/local/presupuestos" label="Volver a Presupuestos" />
         <div className="max-w-2xl mx-auto mt-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <span className="text-4xl mb-4 block">❌</span>
@@ -150,8 +150,8 @@ export default function PresupuestoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
-      <BackButton />
-      
+      <BackButton href="/local/presupuestos" label="Volver a Presupuestos" />
+
       <div className="max-w-4xl mx-auto px-4 pt-4">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
