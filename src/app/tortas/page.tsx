@@ -534,7 +534,7 @@ function TortasPageContent() {
         {/* Botón flotante del carrito */}
         {cantidadTotal > 0 && (
           <button
-            onClick={() => router.push('/carrito')}
+            onClick={() => router.push(modoStaff ? '/carrito?staff=true' : '/carrito')}
             className="fixed bottom-6 right-6 bg-gray-800 text-white p-4 rounded-full shadow-lg hover:bg-gray-700 transition-all z-50 flex items-center gap-2"
           >
             <span className="text-2xl">🛒</span>
