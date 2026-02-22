@@ -182,7 +182,7 @@ export default function PresupuestosLocalPage() {
             </p>
 
             <button
-              onClick={() => router.push(`/presupuestos/${presupuesto.codigo}`)}
+              onClick={() => router.push(`/local/presupuestos/${presupuesto.codigo}`)}
               className="w-full py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors"
             >
               Ver Detalle Completo →
@@ -238,7 +238,7 @@ export default function PresupuestosLocalPage() {
                 <div
                   key={p.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => router.push(`/presupuestos/${p.codigo}`)}
+                  onClick={() => router.push(`/local/presupuestos/${p.codigo}`)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">

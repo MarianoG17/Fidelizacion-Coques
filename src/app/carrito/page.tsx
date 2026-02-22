@@ -406,12 +406,12 @@ function CarritoPageContent() {
     tieneTortaTematica ? 0 : (nivelCliente?.descuento || 0),
     [tieneTortaTematica, nivelCliente]
   )
-  
+
   const montoDescuento = useMemo(() =>
     precioTotal * (descuentoPorcentaje / 100),
     [precioTotal, descuentoPorcentaje]
   )
-  
+
   const totalConDescuento = useMemo(() =>
     precioTotal - montoDescuento,
     [precioTotal, montoDescuento]
@@ -849,7 +849,7 @@ function CarritoPageContent() {
                 >
                   {guardandoPresupuesto ? 'Guardando...' : '💾 Guardar como Presupuesto'}
                 </button>
-                
+
                 <button
                   onClick={procederCheckout}
                   disabled={procesando}
@@ -913,7 +913,7 @@ function CarritoPageContent() {
                 onClick={() => {
                   setMostrarModalPresupuesto(false)
                   setCodigoPresupuesto(null)
-                  router.push(`/presupuestos/${codigoPresupuesto}`)
+                  router.push(`/local/presupuestos/${codigoPresupuesto}`)
                 }}
                 className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >

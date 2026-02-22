@@ -303,19 +303,28 @@ export default function PresupuestoPage() {
         {/* Acciones */}
         {presupuesto.estado !== 'CONFIRMADO' && presupuesto.estado !== 'CANCELADO' && (
           <div className="bg-white rounded-lg shadow-md p-6">
-            <button
-              onClick={confirmarPresupuesto}
-              disabled={confirmando}
-              className={`w-full py-3 rounded-lg font-bold transition-colors ${
-                confirmando
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {confirmando ? 'Confirmando...' : '✅ Confirmar Presupuesto'}
-            </button>
-            <p className="text-xs text-gray-600 mt-2 text-center">
-              Al confirmar se creará el pedido en WooCommerce
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push(`/local/presupuestos/${codigo}/editar`)}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+              >
+                ✏️ Editar Presupuesto
+              </button>
+              
+              <button
+                onClick={confirmarPresupuesto}
+                disabled={confirmando}
+                className={`w-full py-3 rounded-lg font-bold transition-colors ${
+                  confirmando
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {confirmando ? 'Confirmando...' : '✅ Confirmar Presupuesto'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 mt-3 text-center">
+              Podés editar el presupuesto para completar información antes de confirmar
             </p>
           </div>
         )}
