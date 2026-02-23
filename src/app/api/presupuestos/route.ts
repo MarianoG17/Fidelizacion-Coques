@@ -106,8 +106,18 @@ export async function GET(req: NextRequest) {
             where.clienteId = clienteId
         }
 
-        if (estado && ['PENDIENTE', 'COMPLETO', 'CONFIRMADO', 'CANCELADO'].includes(estado)) {
-            where.estado = estado
+        if (estado) {
+            // Soportar múltiples estados separados por coma: "PENDIENTE,COMPLETO"
+            const estadosValidos = ['PENDIENTE', 'COMPLETO', 'CONFIRMADO', 'CANCELADO']
+            const estadosArray = estado.split(',').filter(e => estadosValidos.includes(e.trim()))
+            
+            if (estadosArray.length > 0) {
+                if (estadosArray.length === 1) {
+                    where.estado = estadosArray[0]
+                } else {
+                    where.estado = { in: estadosArray }
+                }
+            }
         }
 
         if (codigo) {
