@@ -14,7 +14,12 @@ export default function CuestionarioOptional({
   fuenteConocimiento,
   onComplete,
 }: Props) {
-  const [fecha, setFecha] = useState(fechaCumpleanos || '')
+  // Parsear fecha existente si la hay
+  const fechaExistente = fechaCumpleanos ? new Date(fechaCumpleanos) : null
+  
+  const [dia, setDia] = useState(fechaExistente ? fechaExistente.getDate().toString() : '')
+  const [mes, setMes] = useState(fechaExistente ? (fechaExistente.getMonth() + 1).toString() : '')
+  const [anio, setAnio] = useState(fechaExistente ? fechaExistente.getFullYear().toString() : '')
   const [fuente, setFuente] = useState(fuenteConocimiento || '')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -25,18 +30,47 @@ export default function CuestionarioOptional({
   
   if (!faltaFecha && !faltaFuente) return null
 
+  // Generar arrays para los selectores
+  const dias = Array.from({ length: 31 }, (_, i) => (i + 1).toString())
+  const meses = [
+    { valor: '1', nombre: 'Enero' },
+    { valor: '2', nombre: 'Febrero' },
+    { valor: '3', nombre: 'Marzo' },
+    { valor: '4', nombre: 'Abril' },
+    { valor: '5', nombre: 'Mayo' },
+    { valor: '6', nombre: 'Junio' },
+    { valor: '7', nombre: 'Julio' },
+    { valor: '8', nombre: 'Agosto' },
+    { valor: '9', nombre: 'Septiembre' },
+    { valor: '10', nombre: 'Octubre' },
+    { valor: '11', nombre: 'Noviembre' },
+    { valor: '12', nombre: 'Diciembre' },
+  ]
+  
+  // Generar años desde 1930 hasta el año actual - 18 (mayoría de edad)
+  const anioActual = new Date().getFullYear()
+  const anios = Array.from({ length: anioActual - 1930 + 1 }, (_, i) => (anioActual - i).toString())
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
 
-    if (faltaFecha && !fecha) {
-      setError('Por favor ingresá tu fecha de cumpleaños')
+    if (faltaFecha && (!dia || !mes || !anio)) {
+      setError('Por favor completá día, mes y año de tu cumpleaños')
       return
     }
 
     if (faltaFuente && !fuente) {
       setError('Por favor seleccioná cómo nos conociste')
       return
+    }
+
+    // Construir fecha en formato ISO (YYYY-MM-DD)
+    let fechaCompleta = ''
+    if (faltaFecha && dia && mes && anio) {
+      const diaFormateado = dia.padStart(2, '0')
+      const mesFormateado = mes.padStart(2, '0')
+      fechaCompleta = `${anio}-${mesFormateado}-${diaFormateado}`
     }
 
     setGuardando(true)
@@ -50,7 +84,7 @@ export default function CuestionarioOptional({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          fechaCumpleanos: faltaFecha ? fecha : undefined,
+          fechaCumpleanos: faltaFecha ? fechaCompleta : undefined,
           fuenteConocimiento: faltaFuente ? fuente : undefined,
         }),
       })
@@ -85,16 +119,67 @@ export default function CuestionarioOptional({
       <form onSubmit={handleSubmit} className="space-y-3">
         {faltaFecha && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               📅 Fecha de cumpleaños
             </label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={(e) => setFecha(e.target.value)}
-              className="w-full bg-white border-2 border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:outline-none"
-              required={faltaFecha}
-            />
+            <div className="grid grid-cols-3 gap-2">
+              {/* Día */}
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Día</label>
+                <select
+                  value={dia}
+                  onChange={(e) => setDia(e.target.value)}
+                  className="w-full bg-white border-2 border-gray-300 rounded-lg px-2 py-2 focus:border-green-500 focus:outline-none text-sm"
+                  required={faltaFecha}
+                >
+                  <option value="">-</option>
+                  {dias.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mes */}
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Mes</label>
+                <select
+                  value={mes}
+                  onChange={(e) => setMes(e.target.value)}
+                  className="w-full bg-white border-2 border-gray-300 rounded-lg px-2 py-2 focus:border-green-500 focus:outline-none text-sm"
+                  required={faltaFecha}
+                >
+                  <option value="">-</option>
+                  {meses.map((m) => (
+                    <option key={m.valor} value={m.valor}>
+                      {m.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Año */}
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Año</label>
+                <select
+                  value={anio}
+                  onChange={(e) => setAnio(e.target.value)}
+                  className="w-full bg-white border-2 border-gray-300 rounded-lg px-2 py-2 focus:border-green-500 focus:outline-none text-sm"
+                  required={faltaFecha}
+                >
+                  <option value="">-</option>
+                  {anios.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              💡 Seleccioná primero el año para facilitar la navegación
+            </p>
           </div>
         )}
 
