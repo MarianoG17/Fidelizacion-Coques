@@ -322,7 +322,7 @@ function CarritoPageContent() {
         token = localStorage.getItem('fidelizacion_token')
         if (!token) {
           setError('Debes iniciar sesión para realizar un pedido')
-          router.push('/login')
+          router.push(modoStaff ? '/local/login' : '/login')
           return
         }
         headers['Authorization'] = `Bearer ${token}`
@@ -361,7 +361,7 @@ function CarritoPageContent() {
       if (!response.ok) {
         if (response.status === 401) {
           setError('Tu sesión expiró. Por favor iniciá sesión nuevamente.')
-          setTimeout(() => router.push('/login'), 2000)
+          setTimeout(() => router.push(modoStaff ? '/local/login' : '/login'), 2000)
           return
         }
         throw new Error(data.error || 'Error al crear el pedido')
@@ -474,7 +474,7 @@ function CarritoPageContent() {
             Podés ver el estado de tu pedido en tu email o contactarnos directamente.
           </p>
           <button
-            onClick={() => router.push('/pass')}
+            onClick={() => router.push(modoStaff ? '/local/tomar-pedido' : '/pass')}
             className="w-full bg-gray-800 text-white py-3 rounded-lg font-bold hover:bg-gray-700 transition-colors"
           >
             Volver al inicio
@@ -489,7 +489,7 @@ function CarritoPageContent() {
     return (
       <div className="min-h-screen bg-white p-4">
         <div className="max-w-4xl mx-auto">
-          <BackButton href="/tortas" />
+          <BackButton href={modoStaff ? "/tortas?modo=staff" : "/tortas"} />
 
           <div className="mt-8 text-center py-12">
             <span className="text-6xl mb-4 block">🛒</span>
@@ -500,7 +500,7 @@ function CarritoPageContent() {
               Agregá productos desde el catálogo de tortas
             </p>
             <button
-              onClick={() => router.push('/tortas')}
+              onClick={() => router.push(modoStaff ? '/tortas?modo=staff' : '/tortas')}
               className="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-700 transition-colors"
             >
               Ver catálogo
@@ -514,7 +514,7 @@ function CarritoPageContent() {
   return (
     <div className="min-h-screen bg-white p-4">
       <div className="max-w-4xl mx-auto">
-        <BackButton href="/tortas" />
+        <BackButton href={modoStaff ? "/tortas?modo=staff" : "/tortas"} />
 
         <div className="mt-4 mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">

@@ -482,20 +482,7 @@ export default function LocalPage() {
     return (
       <>
         <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
-        {/* Solo mostrar botón Volver si NO está en modo PWA */}
-        {!isStandalone && (
-          <div className="w-full max-w-sm mb-4">
-            <button
-              onClick={() => (window.location.href = '/')}
-              className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="font-medium">Volver</span>
-            </button>
-          </div>
-        )}
+        {/* Botón Volver removido para evitar navegación fuera de /local */}
 
         <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
         <p className="text-slate-400 text-sm mb-4">Equipo atención al cliente</p>
