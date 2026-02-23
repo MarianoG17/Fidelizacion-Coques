@@ -8,8 +8,9 @@ import VistaSalon from './components/VistaSalon'
 
 const LOCAL_API_KEY = process.env.NEXT_PUBLIC_LOCAL_API_KEY || ''
 
-// Importar QR Scanner dinámicamente (solo en cliente)
+// Importar componentes dinámicamente (solo en cliente)
 const QRScanner = dynamic(() => import('@/components/local/QRScanner'), { ssr: false })
+const InstallPWAButton = dynamic(() => import('./components/InstallPWAButton'), { ssr: false })
 
 type Pantalla = 'scanner' | 'cliente' | 'confirmar'
 type MetodoInput = 'qr' | 'manual'
@@ -473,6 +474,7 @@ export default function LocalPage() {
   // ─── Pantalla Scanner ─────────────────────────────────────────────────────
   if (pantalla === 'scanner') {
     return (
+      <>
       <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
         <div className="w-full max-w-sm mb-4">
           <button
