@@ -1,13 +1,15 @@
 // src/app/api/auth/local/login/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET_LOCAL || 'coques-local-secret-change-in-production'
+const USUARIO_COQUES = 'coques'
 
 export async function POST(req: NextRequest) {
   try {
     const { usuario, password } = await req.json()
 
     // Validar credenciales
-    const USUARIO_COQUES = 'coques'
     const PASSWORD_COQUES = process.env.COQUES_LOCAL_PASSWORD
 
     if (!PASSWORD_COQUES) {
@@ -18,11 +20,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (usuario === USUARIO_COQUES && password === PASSWORD_COQUES) {
-      // Generar token simple (timestamp + hash)
-      const token = crypto
-        .createHash('sha256')
-        .update(`${usuario}-${Date.now()}-${PASSWORD_COQUES}`)
-        .digest('hex')
+      // Generar token JWT seguro
+      const token = jwt.sign(
+        {
+          usuario: USUARIO_COQUES,
+          role: 'local_staff',
+          timestamp: Date.now()
+        },
+        JWT_SECRET,
+        { expiresIn: '12h' } // Token expira en 12 horas
+      )
 
       return NextResponse.json({
         success: true,

@@ -1,6 +1,7 @@
 'use client'
 // src/app/local/page.tsx
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { ValidacionResult, MesaLayout, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
@@ -16,6 +17,7 @@ type Pantalla = 'scanner' | 'cliente' | 'confirmar'
 type MetodoInput = 'qr' | 'manual'
 
 export default function LocalPage() {
+  const router = useRouter()
   const [pantalla, setPantalla] = useState<Pantalla>('scanner')
   const [metodoInput, setMetodoInput] = useState<MetodoInput>('qr')
   const [otpInput, setOtpInput] = useState('')
@@ -47,6 +49,40 @@ export default function LocalPage() {
     beneficiosAplicados: Array<{ id: string, nombre: string, timestamp: Date }>
     timestamp: Date
   }>>([])
+
+  // Verificar autenticación al cargar la página
+  useEffect(() => {
+    async function verificarAuth() {
+      const token = localStorage.getItem('coques_local_token')
+      
+      if (!token) {
+        router.push('/local/login')
+        return
+      }
+
+      // Validar token con el servidor
+      try {
+        const res = await fetch('/api/auth/local/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+
+        const data = await res.json()
+
+        if (!res.ok || !data.valid) {
+          console.log('[Local] Token inválido o expirado, redirigiendo al login')
+          localStorage.removeItem('coques_local_token')
+          router.push('/local/login')
+        }
+      } catch (error) {
+        console.error('[Local] Error verificando token:', error)
+        // Si hay error de red, permitir continuar pero loguear el error
+      }
+    }
+
+    verificarAuth()
+  }, [router])
 
   // Cargar mesas desde la base de datos
   useEffect(() => {
@@ -482,10 +518,24 @@ export default function LocalPage() {
     return (
       <>
         <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
-        {/* Botón Volver removido para evitar navegación fuera de /local */}
-
-        <h1 className="text-white text-xl font-bold mb-2">App del Local</h1>
-        <p className="text-slate-400 text-sm mb-4">Equipo atención al cliente</p>
+        {/* Header con botón de logout */}
+        <div className="w-full max-w-sm mb-4 flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-white text-xl font-bold mb-1">App del Local</h1>
+            <p className="text-slate-400 text-xs">Equipo atención al cliente</p>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('coques_local_token')
+              router.push('/local/login')
+            }}
+            className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
+            title="Cerrar sesión"
+          >
+            <span>🚪</span>
+            <span className="hidden sm:inline">Salir</span>
+          </button>
+        </div>
 
         {/* Botones para alternar entre Scanner, Vista Salón, Tomar Pedido y Presupuestos */}
         <div className="w-full max-w-sm mb-4">
