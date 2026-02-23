@@ -1,7 +1,7 @@
 // src/app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email'
 import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     // Construir link de reseteo
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://coques.vercel.app'}/reset-password/${token}`
 
-    // Enviar email con Resend
+    // Enviar email con Brevo
     try {
       // Log para debugging
       console.log('=====================================')
@@ -88,15 +88,10 @@ export async function POST(req: NextRequest) {
       console.log(`[Forgot Password] Token válido hasta: ${expiresAt.toLocaleString('es-AR')}`)
       console.log('=====================================')
 
-      // Verificar si tenemos la API key de Resend
-      if (process.env.RESEND_API_KEY) {
-        const resend = new Resend(process.env.RESEND_API_KEY)
-
-        const result = await resend.emails.send({
-          from: 'Coques Bakery <noreply@lavapp.ar>',
-          to: email,
-          subject: 'Recuperá tu contraseña - Coques Bakery',
-          html: `
+      await sendEmail({
+        to: email,
+        subject: 'Recuperá tu contraseña - Coques Bakery',
+        html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #9333ea;">Recuperación de contraseña</h2>
               <p>Hola <strong>${cliente.nombre || 'Cliente'}</strong>,</p>
@@ -113,12 +108,9 @@ export async function POST(req: NextRequest) {
               <p style="color: #999; font-size: 12px; text-align: center;">Coques Bakery - Sistema de fidelización</p>
             </div>
           `,
-        })
+      })
 
-        console.log('[Forgot Password] Email enviado exitosamente:', result)
-      } else {
-        console.warn('[Forgot Password] RESEND_API_KEY no configurada - Email no enviado')
-      }
+      console.log('[Forgot Password] Email de recuperación procesado')
     } catch (emailError) {
       console.error('[Forgot Password] Error al enviar email:', emailError)
       // No fallar la request por error de email
