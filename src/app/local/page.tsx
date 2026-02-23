@@ -832,8 +832,12 @@ export default function LocalPage() {
               </>
             )}
           </>
-        )}
-      </div>
+          )}
+        </div>
+        
+        {/* Botón de instalación PWA */}
+        <InstallPWAButton />
+      </>
     )
   }
 
