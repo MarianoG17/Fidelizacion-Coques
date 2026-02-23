@@ -13,7 +13,7 @@ interface Presupuesto {
   precioTotal: number
   fechaEntrega: string | null
   horaEntrega: string | null
-  createdAt: string
+  creadoEn: string
 }
 
 export default function PresupuestosLocalPage() {
@@ -200,7 +200,7 @@ export default function PresupuestosLocalPage() {
                           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                             <p className="text-xs text-gray-600 font-semibold mb-1">🕐 Creado el</p>
                             <p className="text-gray-800 font-medium">
-                              {formatearFechaHora(p.createdAt)}
+                              {formatearFechaHora(p.creadoEn)}
                             </p>
                           </div>
                         </div>
