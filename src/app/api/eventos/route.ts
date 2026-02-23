@@ -86,8 +86,10 @@ export async function POST(req: NextRequest) {
     })
 
     if (contabilizada && tipoEvento !== 'ESTADO_EXTERNO') {
-      evaluarNivel(clienteId).catch(console.error)
-      evaluarLogros(clienteId).catch(console.error)
+      // Primero evaluar nivel, luego evaluar logros (para detectar logros de nivel alcanzado)
+      evaluarNivel(clienteId)
+        .then(() => evaluarLogros(clienteId))
+        .catch(console.error)
     }
 
     return NextResponse.json({

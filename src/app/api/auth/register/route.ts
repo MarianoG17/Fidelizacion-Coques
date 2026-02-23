@@ -120,9 +120,10 @@ export async function POST(req: NextRequest) {
           },
         })
         
-        // Evaluar nivel y logros del referidor después de la visita bonus
-        evaluarNivel(referidoPorId).catch(console.error)
-        evaluarLogros(referidoPorId).catch(console.error)
+        // Evaluar nivel y logros del referidor después de la visita bonus - evaluar nivel primero
+        evaluarNivel(referidoPorId)
+          .then(() => evaluarLogros(referidoPorId))
+          .catch(console.error)
         
         console.log(`[Registro] Referidor recibió visita bonus`)
       }

@@ -71,9 +71,10 @@ export async function POST(req: NextRequest) {
                 },
             })
             
-            // Evaluar nivel y logros después de la visita bonus
-            evaluarNivel(clienteId).catch(console.error)
-            evaluarLogros(clienteId).catch(console.error)
+            // Evaluar nivel y logros después de la visita bonus - evaluar nivel primero
+            evaluarNivel(clienteId)
+                .then(() => evaluarLogros(clienteId))
+                .catch(console.error)
         }
 
         console.log(`[Cuestionario] Cliente ${clienteId} completó cuestionario y recibió visita extra`)
