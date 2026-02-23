@@ -475,7 +475,7 @@ export default function LocalPage() {
   if (pantalla === 'scanner') {
     return (
       <>
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
+        <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
         <div className="w-full max-w-sm mb-4">
           <button
             onClick={() => (window.location.href = '/')}
