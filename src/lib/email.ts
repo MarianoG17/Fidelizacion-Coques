@@ -44,14 +44,17 @@ export async function sendEmail({
   }
 
   try {
-    // Importación dinámica de Brevo para evitar problemas de tipos
-    const SibApiV3Sdk = require('@getbrevo/brevo')
+    // Importación correcta para Brevo v4.x
+    const brevo = require('@getbrevo/brevo')
     
     // Configurar la API de Brevo
-    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi()
+    const apiInstance = new brevo.TransactionalEmailsApi()
     
-    // Configurar API Key
-    apiInstance.authentications.apiKey.apiKey = process.env.BREVO_API_KEY
+    // Configurar API Key usando setApiKey
+    apiInstance.setApiKey(
+      brevo.TransactionalEmailsApiApiKeys.apiKey,
+      process.env.BREVO_API_KEY
+    )
 
     // Configurar email remitente por defecto
     const defaultFrom = {
@@ -60,7 +63,7 @@ export async function sendEmail({
     }
 
     // Preparar el email
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail()
+    const sendSmtpEmail = new brevo.SendSmtpEmail()
     sendSmtpEmail.sender = from || defaultFrom
     sendSmtpEmail.to = [{ email: to }]
     sendSmtpEmail.subject = subject
