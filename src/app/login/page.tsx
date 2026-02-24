@@ -158,13 +158,23 @@ export default function LoginPage() {
             )}
           </button>
 
-          <div className="text-center">
-            <a
-              href="/activar"
-              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
-            >
-              ¿No tenés cuenta? Registrate
-            </a>
+          <div className="text-center space-y-2">
+            <div>
+              <a
+                href="/recuperar-password"
+                className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
+            <div>
+              <a
+                href="/activar"
+                className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                ¿No tenés cuenta? Registrate
+              </a>
+            </div>
           </div>
         </div>
       </div>
