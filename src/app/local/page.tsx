@@ -39,7 +39,7 @@ export default function LocalPage() {
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [mesasOcupadas, setMesasOcupadas] = useState<Set<string>>(new Set())
 
-  // Historial de últimos clientes en mostrador (mantener info completa)
+  // Historial de últimos clientes en mostrador (ahora desde servidor)
   const [clientesMostrador, setClientesMostrador] = useState<Array<{
     id: string
     nombre: string
@@ -49,15 +49,19 @@ export default function LocalPage() {
     beneficiosAplicados: Array<{ id: string, nombre: string, timestamp: Date }>
     timestamp: Date
   }>>([])
+  const [cargandoHistorial, setCargandoHistorial] = useState(false)
 
-  // Cargar historial de clientes desde localStorage al montar
-  useEffect(() => {
+  // Función para cargar historial desde servidor
+  async function cargarHistorialMostrador() {
     try {
-      const stored = localStorage.getItem('coques_clientes_mostrador')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        // Convertir timestamps de string a Date
-        const clientesConFechas = parsed.map((c: any) => ({
+      setCargandoHistorial(true)
+      const res = await fetch('/api/local/historial-escaneos?limit=3', {
+        headers: { 'x-local-api-key': LOCAL_API_KEY },
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const clientes = data.data.clientes.map((c: any) => ({
           ...c,
           timestamp: new Date(c.timestamp),
           beneficiosAplicados: c.beneficiosAplicados.map((b: any) => ({
@@ -65,23 +69,20 @@ export default function LocalPage() {
             timestamp: new Date(b.timestamp)
           }))
         }))
-        setClientesMostrador(clientesConFechas)
+        setClientesMostrador(clientes)
+        console.log('[Local] Historial cargado desde servidor:', clientes.length, 'clientes')
       }
     } catch (error) {
-      console.error('[Local] Error cargando historial de clientes:', error)
+      console.error('[Local] Error cargando historial desde servidor:', error)
+    } finally {
+      setCargandoHistorial(false)
     }
-  }, [])
+  }
 
-  // Guardar historial en localStorage cuando cambia
+  // Cargar historial desde servidor al montar
   useEffect(() => {
-    try {
-      if (clientesMostrador.length > 0) {
-        localStorage.setItem('coques_clientes_mostrador', JSON.stringify(clientesMostrador))
-      }
-    } catch (error) {
-      console.error('[Local] Error guardando historial de clientes:', error)
-    }
-  }, [clientesMostrador])
+    cargarHistorialMostrador()
+  }, [])
 
   // Verificar autenticación al cargar la página
   useEffect(() => {
@@ -380,77 +381,11 @@ export default function LocalPage() {
       // NUEVO: Recargar beneficios del cliente (por si cambió de nivel)
       const clienteActualizado = await recargarBeneficiosCliente(validacion.cliente.id)
 
-      // Si es mostrador, actualizar la lista de clientes activos
-      if (ubicacion === 'mostrador' && validacion?.cliente) {
-        const c = clienteActualizado || validacion.cliente
-
-        // Buscar si el cliente ya está en la lista
-        const clienteExistenteIndex = clientesMostrador.findIndex(cl => cl.id === c.id)
-
-        if (clienteExistenteIndex >= 0) {
-          // Actualizar cliente existente
-          setClientesMostrador(prev => {
-            const updated = [...prev]
-            const cliente = updated[clienteExistenteIndex]
-
-            // Actualizar nivel si cambió
-            cliente.nivel = c.nivel || 'Sin nivel'
-
-            // Si se aplicó un beneficio, agregarlo a aplicados y quitarlo de disponibles
-            if (beneficioSeleccionado) {
-              const beneficio = cliente.beneficiosDisponibles.find(b => b.id === beneficioSeleccionado)
-              if (beneficio) {
-                cliente.beneficiosAplicados.push({
-                  id: beneficio.id,
-                  nombre: beneficio.nombre,
-                  timestamp: new Date()
-                })
-                cliente.beneficiosDisponibles = cliente.beneficiosDisponibles.filter(b => b.id !== beneficioSeleccionado)
-              }
-            }
-
-            // Actualizar beneficios disponibles (pueden haber cambiado por nivel)
-            cliente.beneficiosDisponibles = c.beneficiosActivos
-              .filter((b: any) => !cliente.beneficiosAplicados.some((ba: any) => ba.id === b.id))
-              .map((b: any) => ({
-                id: b.id,
-                nombre: b.nombre,
-                descripcionCaja: b.descripcionCaja
-              }))
-
-            return updated
-          })
-        } else {
-          // Agregar nuevo cliente
-          const beneficiosAplicados = beneficioSeleccionado
-            ? [{
-              id: beneficioSeleccionado,
-              nombre: c.beneficiosActivos.find((b: any) => b.id === beneficioSeleccionado)?.nombre || '',
-              timestamp: new Date()
-            }]
-            : []
-
-          const beneficiosDisponibles = beneficioSeleccionado
-            ? c.beneficiosActivos.filter((b: any) => b.id !== beneficioSeleccionado)
-            : c.beneficiosActivos
-
-          setClientesMostrador(prev => [
-            {
-              id: c.id,
-              nombre: c.nombre || c.phone,
-              phone: c.phone,
-              nivel: c.nivel || 'Sin nivel',
-              beneficiosDisponibles: beneficiosDisponibles.map((b: any) => ({
-                id: b.id,
-                nombre: b.nombre,
-                descripcionCaja: b.descripcionCaja
-              })),
-              beneficiosAplicados,
-              timestamp: new Date()
-            },
-            ...prev.slice(0, 2) // Mantener solo 3
-          ])
-        }
+      // Si es mostrador, recargar historial desde servidor para mantenerlo sincronizado
+      if (ubicacion === 'mostrador') {
+        // Esperar un poco para que el evento se procese completamente
+        await new Promise(resolve => setTimeout(resolve, 500))
+        await cargarHistorialMostrador()
       }
 
       setEventoRegistrado(true)
@@ -662,64 +597,73 @@ export default function LocalPage() {
           </div>
 
           {/* Clientes activos en mostrador */}
-          {!vistaSalon && clientesMostrador.length > 0 && (
+          {!vistaSalon && (
             <div className="w-full max-w-2xl mb-4">
               <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
                 <h3 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
                   <span>🪑</span>
                   Clientes en mostrador (últimos 3)
+                  {cargandoHistorial && (
+                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin ml-2" />
+                  )}
                 </h3>
-                <div className="space-y-3">
-                  {clientesMostrador.map((cliente) => (
-                    <div
-                      key={cliente.id}
-                      className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
-                    >
-                      {/* Header del cliente */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-bold">{cliente.nombre}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
-                            {cliente.nivel}
+                {clientesMostrador.length > 0 ? (
+                  <div className="space-y-3">
+                    {clientesMostrador.map((cliente) => (
+                      <div
+                        key={cliente.id}
+                        className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                      >
+                        {/* Header del cliente */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-bold">{cliente.nombre}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                              {cliente.nivel}
+                            </span>
+                          </div>
+                          <span className="text-slate-400 text-xs">
+                            {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
                         </div>
-                        <span className="text-slate-400 text-xs">
-                          {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
+
+                        {/* Beneficios aplicados */}
+                        {cliente.beneficiosAplicados.length > 0 && (
+                          <div className="mb-2">
+                            <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
+                            {cliente.beneficiosAplicados.map((b) => (
+                              <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
+                                <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Beneficios disponibles */}
+                        {cliente.beneficiosDisponibles.length > 0 ? (
+                          <div>
+                            <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
+                            {cliente.beneficiosDisponibles.map((b) => (
+                              <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
+                                <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
+                                <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : cliente.beneficiosAplicados.length === 0 ? (
+                          <p className="text-slate-500 text-xs">Sin beneficios</p>
+                        ) : null}
                       </div>
-
-                      {/* Beneficios aplicados */}
-                      {cliente.beneficiosAplicados.length > 0 && (
-                        <div className="mb-2">
-                          <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
-                          {cliente.beneficiosAplicados.map((b) => (
-                            <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
-                              <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Beneficios disponibles */}
-                      {cliente.beneficiosDisponibles.length > 0 ? (
-                        <div>
-                          <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
-                          {cliente.beneficiosDisponibles.map((b) => (
-                            <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
-                              <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
-                              <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : cliente.beneficiosAplicados.length === 0 ? (
-                        <p className="text-slate-500 text-xs">Sin beneficios</p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : !cargandoHistorial ? (
+                  <p className="text-slate-500 text-sm text-center py-4">
+                    No hay clientes recientes en mostrador hoy
+                  </p>
+                ) : null}
               </div>
             </div>
           )}
