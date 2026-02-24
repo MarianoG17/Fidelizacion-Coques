@@ -1,4 +1,6 @@
 // src/lib/email.ts
+import * as brevo from '@getbrevo/brevo'
+
 interface SendEmailParams {
   to: string
   subject: string
@@ -44,16 +46,11 @@ export async function sendEmail({
   }
 
   try {
-    // Importación correcta para Brevo v4.x
-    const brevo = require('@getbrevo/brevo')
-    
-    // Configurar la API de Brevo
+    // Configurar la API de Brevo con la API Key
     const apiInstance = new brevo.TransactionalEmailsApi()
-    
-    // Configurar API Key usando setApiKey
     apiInstance.setApiKey(
       brevo.TransactionalEmailsApiApiKeys.apiKey,
-      process.env.BREVO_API_KEY
+      process.env.BREVO_API_KEY!
     )
 
     // Configurar email remitente por defecto
