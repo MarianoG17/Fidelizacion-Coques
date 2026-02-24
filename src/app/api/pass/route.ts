@@ -21,7 +21,14 @@ export async function GET(req: NextRequest) {
       include: {
         nivel: true,
         autos: {
-          where: { activo: true },
+          where: {
+            activo: true,
+            // Excluir autos que ya fueron entregados
+            OR: [
+              { estadoActual: null }, // Autos sin estado (legacy)
+              { estadoActual: { estado: { not: 'ENTREGADO' } } }, // Autos en proceso o listos
+            ],
+          },
           include: { estadoActual: true },
           orderBy: { updatedAt: 'desc' },
         },
