@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireLocalAuth, unauthorized, serverError } from '@/lib/auth'
 import { getInicioHoyArgentina } from '@/lib/timezone'
+import { getBeneficiosActivos } from '@/lib/beneficios'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,21 +80,15 @@ export async function GET(req: NextRequest) {
                     orderBy: { timestamp: 'desc' },
                 })
 
-                // Beneficios disponibles (del nivel del cliente, excluyendo los ya aplicados hoy)
-                const beneficiosAplicadosIds = beneficiosAplicadosHoy
-                    .map(e => e.beneficioId)
-                    .filter(Boolean)
+                // Usar la misma lógica que la app del cliente para obtener beneficios realmente disponibles
+                // Esto valida: uso único, estados externos (lavadero), y condiciones del beneficio
+                const beneficiosActivosCliente = await getBeneficiosActivos(evento.clienteId)
 
-                const beneficiosDisponibles = cliente.nivel?.beneficios
-                    ?.filter((nb: any) =>
-                        nb.beneficio.activo &&
-                        !beneficiosAplicadosIds.includes(nb.beneficio.id)
-                    )
-                    .map((nb: any) => ({
-                        id: nb.beneficio.id,
-                        nombre: nb.beneficio.nombre,
-                        descripcionCaja: nb.beneficio.descripcionCaja,
-                    })) || []
+                const beneficiosDisponibles = beneficiosActivosCliente.map((b: any) => ({
+                    id: b.id,
+                    nombre: b.nombre,
+                    descripcionCaja: b.descripcionCaja || b.descripcion,
+                }))
 
                 clientesMap.set(evento.clienteId, {
                     id: cliente.id,

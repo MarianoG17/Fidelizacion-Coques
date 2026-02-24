@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import UpdateNotification from '@/components/UpdateNotification'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -41,17 +42,17 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="FidZona" />
-        
+
         {/* Android PWA Support */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="FidZona" />
-        
+
         {/* Additional PWA Meta Tags */}
         <meta name="format-detection" content="telephone=no" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="full-screen" content="yes" />
         <meta name="browsermode" content="application" />
-        
+
         {/* Service Worker Registration */}
         <script
           dangerouslySetInnerHTML={{
@@ -67,7 +68,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <UpdateNotification />
+      </body>
     </html>
   )
 }
