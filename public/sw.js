@@ -1,10 +1,11 @@
 // Service Worker para PWA - Fidelización Zona
-const CACHE_NAME = 'fidelizacion-zona-v1'
+const CACHE_NAME = 'fidelizacion-zona-v2' // Incrementado para forzar actualización
 const urlsToCache = [
     '/',
     '/pass',
     '/login',
     '/activar',
+    '/local',
     '/manifest.json'
 ]
 
