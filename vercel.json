@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/jobs/sincronizar-deltawash",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/jobs/inactividad",
       "schedule": "0 3 * * *"
     }
