@@ -6,6 +6,7 @@ import { generarSecretoOTP } from '@/lib/otp'
 import { evaluarNivel } from '@/lib/beneficios'
 import { evaluarLogros } from '@/lib/logros'
 import { sendEmail } from '@/lib/email'
+import { normalizarTelefono } from '@/lib/phone'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const validatedData = registerSchema.parse(body)
 
+    // Normalizar teléfono (15XXXXXXXX → 11XXXXXXXX)
+    const phoneNormalizado = normalizarTelefono(validatedData.phone)
+    if (!phoneNormalizado) {
+      return NextResponse.json(
+        { error: 'Teléfono inválido. Formato esperado: 1112345678 o 1512345678 (sin el 0 ni el +54)' },
+        { status: 400 }
+      )
+    }
+
     // Verificar si ya existe un cliente con ese email
     const existingEmail = await prisma.cliente.findUnique({
       where: { email: validatedData.email },
@@ -36,9 +46,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verificar si ya existe un cliente con ese teléfono
+    // Verificar si ya existe un cliente con ese teléfono (normalizado)
     const existingPhone = await prisma.cliente.findUnique({
-      where: { phone: validatedData.phone },
+      where: { phone: phoneNormalizado },
     })
 
     if (existingPhone) {
@@ -82,7 +92,7 @@ export async function POST(req: NextRequest) {
         email: validatedData.email,
         password: hashedPassword,
         nombre: validatedData.nombre,
-        phone: validatedData.phone,
+        phone: phoneNormalizado, // Guardar normalizado
         estado: 'ACTIVO',
         fuenteOrigen: 'AUTOREGISTRO',
         consentimientoAt: new Date(),
@@ -93,6 +103,88 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // 🚗 Procesar estados de auto pendientes del lavadero
+    try {
+      const estadosPendientes = await prisma.estadoAutoPendiente.findMany({
+        where: {
+          phone: phoneNormalizado, // Buscar con teléfono normalizado
+          procesado: false,
+        },
+      })
+
+      if (estadosPendientes.length > 0) {
+        console.log(`[Registro] Procesando ${estadosPendientes.length} estado(s) pendiente(s) del lavadero`)
+
+        const localLavadero = await prisma.local.findFirst({ where: { tipo: 'lavadero' } })
+
+        for (const pendiente of estadosPendientes) {
+          // Crear el auto
+          const auto = await prisma.auto.create({
+            data: {
+              clienteId: cliente.id,
+              patente: pendiente.patente,
+              marca: pendiente.marca || undefined,
+              modelo: pendiente.modelo || undefined,
+              activo: true,
+            },
+          })
+
+          // Crear el estado del auto
+          await prisma.estadoAuto.create({
+            data: {
+              autoId: auto.id,
+              estado: pendiente.estado,
+              localOrigenId: pendiente.localOrigenId || localLavadero?.id || '',
+              notas: pendiente.notas || null,
+            },
+          })
+
+          // Si está EN_PROCESO, activar beneficios
+          if (pendiente.estado === 'EN_PROCESO') {
+            const { triggerBeneficiosPorEstado } = await import('@/lib/beneficios')
+            const beneficios = await triggerBeneficiosPorEstado(cliente.id, 'EN_PROCESO')
+
+            if (beneficios.length > 0) {
+              console.log(`[Registro] ✅ Beneficio de lavadero activado: ${beneficios[0].nombre}`)
+            }
+          }
+
+          // Marcar como procesado
+          await prisma.estadoAutoPendiente.update({
+            where: { id: pendiente.id },
+            data: {
+              procesado: true,
+              procesadoEn: new Date(),
+            },
+          })
+
+          // Registrar evento
+          if (localLavadero) {
+            await prisma.eventoScan.create({
+              data: {
+                clienteId: cliente.id,
+                localId: localLavadero.id,
+                tipoEvento: 'ESTADO_EXTERNO',
+                metodoValidacion: 'QR',
+                estadoExternoSnap: {
+                  estado: pendiente.estado,
+                  patente: pendiente.patente,
+                  timestamp: pendiente.createdAt.toISOString(),
+                  procesadoRetroactivamente: true,
+                },
+                notas: `Auto ${pendiente.patente}: ${pendiente.estado} (procesado retroactivamente)`,
+              },
+            })
+          }
+        }
+
+        console.log(`[Registro] ✅ ${estadosPendientes.length} estado(s) pendiente(s) procesado(s) exitosamente`)
+      }
+    } catch (errorPendientes) {
+      // No fallar el registro si hay error procesando pendientes
+      console.error('[Registro] Error procesando estados pendientes:', errorPendientes)
+    }
+
     // Si fue referido, incrementar contador del referidor y darle beneficio
     if (referidoPorId) {
       await prisma.cliente.update({
@@ -101,13 +193,13 @@ export async function POST(req: NextRequest) {
           referidosActivados: { increment: 1 },
         },
       })
-      
+
       // Registrar visita bonus para el referidor
       const localPrincipal = await prisma.local.findFirst({
-          where: {
-              tipo: 'cafeteria',
-              activo: true
-          }
+        where: {
+          tipo: 'cafeteria',
+          activo: true
+        }
       })
       if (localPrincipal) {
         await prisma.eventoScan.create({
@@ -120,12 +212,12 @@ export async function POST(req: NextRequest) {
             notas: `Visita bonus por referir a ${validatedData.nombre}`,
           },
         })
-        
+
         // Evaluar nivel y logros del referidor después de la visita bonus - evaluar nivel primero
         evaluarNivel(referidoPorId)
           .then(() => evaluarLogros(referidoPorId))
           .catch(console.error)
-        
+
         console.log(`[Registro] Referidor recibió visita bonus`)
       }
     }

@@ -315,6 +315,28 @@ model EstadoAuto {
   @@index([estado])
 }
 
+// Estados pendientes cuando el cliente aún no está registrado en Coques
+// Se procesa automáticamente cuando el cliente se registra
+model EstadoAutoPendiente {
+  id              String         @id @default(uuid())
+  phone           String         // Teléfono del cliente (sin registrar en Coques)
+  patente         String         // Patente del auto
+  estado          EstadoAutoEnum // Estado: EN_PROCESO, LISTO, ENTREGADO
+  marca           String?        // Marca del auto (opcional)
+  modelo          String?        // Modelo del auto (opcional)
+  notas           String?        // Notas adicionales
+  localOrigenId   String?        // ID del local lavadero
+  procesado       Boolean        @default(false)  // true cuando se crea el cliente
+  procesadoEn     DateTime?      // timestamp cuando se procesó
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([phone])
+  @@index([procesado])
+  @@index([phone, procesado])  // para buscar pendientes de un cliente
+  @@index([createdAt])
+}
+
 // Sistema de Feedback y Calificaciones
 model Feedback {
   id                String   @id @default(uuid())

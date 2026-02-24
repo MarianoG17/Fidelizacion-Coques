@@ -1,12 +1,12 @@
 // src/app/api/webhook/deltawash/route.ts
 /**
  * Webhook: Recibir notificaciones de DeltaWash cuando se registra/actualiza un auto
- * 
+ *
  * Propósito:
  * - DeltaWash llama a este endpoint cuando hay cambios en estados de autos
  * - Sincroniza inmediatamente a la base de Fidelización
  * - Activa beneficios automáticamente
- * 
+ *
  * Seguridad:
  * - Requiere DELTAWASH_WEBHOOK_SECRET para autenticar
  * - Solo acepta requests desde DeltaWash
@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { triggerBeneficiosPorEstado } from '@/lib/beneficios'
 import { normalizarPatente } from '@/lib/patente'
+import { normalizarTelefono } from '@/lib/phone'
 import { EstadoAutoEnum } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -63,6 +64,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Patente inválida' }, { status: 400 })
         }
 
+        // Normalizar teléfono (15XXXXXXXX → 11XXXXXXXX)
+        const phoneNormalizado = normalizarTelefono(payload.phone)
+        if (!phoneNormalizado) {
+            return NextResponse.json({
+                error: 'Teléfono inválido. Formato esperado: 1112345678 o 1512345678'
+            }, { status: 400 })
+        }
+
         // Normalizar estado: "en proceso" → "EN_PROCESO"
         const estadoNormalizado = payload.estado.toLowerCase() === 'en proceso'
             ? 'EN_PROCESO'
@@ -72,21 +81,41 @@ export async function POST(req: NextRequest) {
 
         // 5. Buscar cliente en Fidelización
         const cliente = await prisma.cliente.findUnique({
-          where: { phone: payload.phone },
-          include: {
-            nivel: true,
-            autos: {
-              where: { patente: patenteNormalizada },
+            where: { phone: phoneNormalizado },
+            include: {
+                nivel: true,
+                autos: {
+                    where: { patente: patenteNormalizada },
+                },
             },
-          },
         })
 
         if (!cliente) {
-            console.log(`[Webhook DeltaWash] Cliente ${payload.phone} no existe en Fidelización`)
+            console.log(`[Webhook DeltaWash] Cliente ${phoneNormalizado} no existe en Fidelización aún`)
+
+            // Guardar estado pendiente para cuando se registre
+            const localLavadero = await prisma.local.findFirst({ where: { tipo: 'lavadero' } })
+
+            await prisma.estadoAutoPendiente.create({
+                data: {
+                    phone: phoneNormalizado, // Guardamos normalizado
+                    patente: patenteNormalizada,
+                    estado: estadoNormalizado as any,
+                    marca: payload.marca || null,
+                    modelo: payload.modelo || null,
+                    notas: payload.notas || null,
+                    localOrigenId: localLavadero?.id || null,
+                    procesado: false,
+                },
+            })
+
+            console.log(`[Webhook DeltaWash] ✅ Estado pendiente guardado para ${phoneNormalizado}`)
+
             return NextResponse.json({
-                success: false,
-                message: 'Cliente no registrado en sistema de fidelización',
-                accion: 'Invitar al cliente a descargar la app de Coques',
+                success: true,
+                message: 'Estado guardado. Se procesará cuando el cliente se registre en Coques',
+                pendiente: true,
+                accion: 'Invitar al cliente a descargar la app de Coques para ver su beneficio',
             })
         }
 
