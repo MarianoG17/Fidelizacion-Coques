@@ -98,6 +98,20 @@ export async function GET(req: NextRequest) {
                     yaUsado = usosTotal > 0
                 }
 
+                // Detectar si el beneficio expiró por tiempo (ej: lavadero después de 19:00)
+                // Si el beneficio NO está disponible, NO se usó hoy, y requiere estado externo,
+                // entonces está "expirado" (no disponible por tiempo)
+                let expirado = false
+                if (!estaDisponible && !yaUsado && cantidadUsosHoy === 0 && beneficio.requiereEstadoExterno) {
+                    // Verificar específicamente el beneficio del lavadero
+                    if (beneficio.id === 'beneficio-20porciento-lavadero') {
+                        const ahora = new Date()
+                        const cierreHoy = new Date(ahora)
+                        cierreHoy.setHours(19, 0, 0, 0) // 19:00 Argentina
+                        expirado = ahora > cierreHoy
+                    }
+                }
+
                 return {
                     id: beneficio.id,
                     nombre: beneficio.nombre,
@@ -111,6 +125,7 @@ export async function GET(req: NextRequest) {
                     requiereEstadoExterno: beneficio.requiereEstadoExterno,
                     estadoExternoTrigger: beneficio.estadoExternoTrigger,
                     yaUsado, // Para mostrar al usuario si es de uso único
+                    expirado, // Para distinguir "expirado por tiempo" vs "usado hoy"
                 }
             })
         )

@@ -20,6 +20,7 @@ interface BeneficioDisponible {
   usosHoy: number
   disponible: boolean
   yaUsado?: boolean
+  expirado?: boolean
 }
 
 interface NivelData {
@@ -451,16 +452,22 @@ export default function PassPage() {
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
                               ✓ Usado
                             </span>
-                          ) : (
+                          ) : beneficio.expirado ? (
                             <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded-full font-semibold">
                               ⏰ Expirado
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
+                              ✓ Usado
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-gray-500">
                           {beneficio.yaUsado
                             ? `Beneficio de uso único ya utilizado`
-                            : `Renueva mañana · ${beneficio.usosHoy}/${beneficio.maxPorDia} usado${beneficio.maxPorDia > 1 ? 's' : ''}`
+                            : beneficio.expirado
+                              ? `Beneficio expirado · Disponible solo hasta las 19:00`
+                              : `Ya usado hoy · ${beneficio.usosHoy}/${beneficio.maxPorDia} canje${beneficio.maxPorDia > 1 ? 's' : ''}`
                           }
                         </p>
                       </div>
