@@ -50,11 +50,44 @@ export default function LocalPage() {
     timestamp: Date
   }>>([])
 
+  // Cargar historial de clientes desde localStorage al montar
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('coques_clientes_mostrador')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // Convertir timestamps de string a Date
+        const clientesConFechas = parsed.map((c: any) => ({
+          ...c,
+          timestamp: new Date(c.timestamp),
+          beneficiosAplicados: c.beneficiosAplicados.map((b: any) => ({
+            ...b,
+            timestamp: new Date(b.timestamp)
+          }))
+        }))
+        setClientesMostrador(clientesConFechas)
+      }
+    } catch (error) {
+      console.error('[Local] Error cargando historial de clientes:', error)
+    }
+  }, [])
+
+  // Guardar historial en localStorage cuando cambia
+  useEffect(() => {
+    try {
+      if (clientesMostrador.length > 0) {
+        localStorage.setItem('coques_clientes_mostrador', JSON.stringify(clientesMostrador))
+      }
+    } catch (error) {
+      console.error('[Local] Error guardando historial de clientes:', error)
+    }
+  }, [clientesMostrador])
+
   // Verificar autenticación al cargar la página
   useEffect(() => {
     async function verificarAuth() {
       const token = localStorage.getItem('coques_local_token')
-      
+
       if (!token) {
         router.push('/local/login')
         return
@@ -265,6 +298,46 @@ export default function LocalPage() {
     }
   }
 
+  async function recargarBeneficiosCliente(clienteId: string) {
+    try {
+      // Esperar un momento para que evaluarNivel termine (es async)
+      await new Promise(resolve => setTimeout(resolve, 800))
+
+      const res = await fetch(`/api/clientes/${clienteId}`, {
+        headers: {
+          'x-local-api-key': LOCAL_API_KEY,
+        },
+      })
+
+      if (res.ok) {
+        const response = await res.json()
+        const clienteActualizado = response.data
+
+        console.log('[Local] Cliente actualizado:', clienteActualizado)
+
+        // Actualizar validación con los nuevos beneficios y nivel
+        if (validacion && validacion.cliente) {
+          setValidacion({
+            valido: true,
+            cliente: {
+              id: validacion.cliente.id,
+              nombre: validacion.cliente.nombre,
+              phone: validacion.cliente.phone,
+              nivel: clienteActualizado.nivel,
+              beneficiosActivos: clienteActualizado.beneficiosActivos,
+              autos: clienteActualizado.autos || validacion.cliente.autos
+            }
+          })
+        }
+
+        return clienteActualizado
+      }
+    } catch (error) {
+      console.error('[Local] Error recargando beneficios:', error)
+    }
+    return null
+  }
+
   async function registrarEvento() {
     if (!validacion?.cliente) return
     setCargando(true)
@@ -304,9 +377,12 @@ export default function LocalPage() {
       const data = await res.json()
       console.log('Evento registrado:', data)
 
+      // NUEVO: Recargar beneficios del cliente (por si cambió de nivel)
+      const clienteActualizado = await recargarBeneficiosCliente(validacion.cliente.id)
+
       // Si es mostrador, actualizar la lista de clientes activos
       if (ubicacion === 'mostrador' && validacion?.cliente) {
-        const c = validacion.cliente
+        const c = clienteActualizado || validacion.cliente
 
         // Buscar si el cliente ya está en la lista
         const clienteExistenteIndex = clientesMostrador.findIndex(cl => cl.id === c.id)
@@ -316,6 +392,9 @@ export default function LocalPage() {
           setClientesMostrador(prev => {
             const updated = [...prev]
             const cliente = updated[clienteExistenteIndex]
+
+            // Actualizar nivel si cambió
+            cliente.nivel = c.nivel || 'Sin nivel'
 
             // Si se aplicó un beneficio, agregarlo a aplicados y quitarlo de disponibles
             if (beneficioSeleccionado) {
@@ -330,6 +409,15 @@ export default function LocalPage() {
               }
             }
 
+            // Actualizar beneficios disponibles (pueden haber cambiado por nivel)
+            cliente.beneficiosDisponibles = c.beneficiosActivos
+              .filter((b: any) => !cliente.beneficiosAplicados.some((ba: any) => ba.id === b.id))
+              .map((b: any) => ({
+                id: b.id,
+                nombre: b.nombre,
+                descripcionCaja: b.descripcionCaja
+              }))
+
             return updated
           })
         } else {
@@ -337,13 +425,13 @@ export default function LocalPage() {
           const beneficiosAplicados = beneficioSeleccionado
             ? [{
               id: beneficioSeleccionado,
-              nombre: c.beneficiosActivos.find(b => b.id === beneficioSeleccionado)?.nombre || '',
+              nombre: c.beneficiosActivos.find((b: any) => b.id === beneficioSeleccionado)?.nombre || '',
               timestamp: new Date()
             }]
             : []
 
           const beneficiosDisponibles = beneficioSeleccionado
-            ? c.beneficiosActivos.filter(b => b.id !== beneficioSeleccionado)
+            ? c.beneficiosActivos.filter((b: any) => b.id !== beneficioSeleccionado)
             : c.beneficiosActivos
 
           setClientesMostrador(prev => [
@@ -352,7 +440,7 @@ export default function LocalPage() {
               nombre: c.nombre || c.phone,
               phone: c.phone,
               nivel: c.nivel || 'Sin nivel',
-              beneficiosDisponibles: beneficiosDisponibles.map(b => ({
+              beneficiosDisponibles: beneficiosDisponibles.map((b: any) => ({
                 id: b.id,
                 nombre: b.nombre,
                 descripcionCaja: b.descripcionCaja
@@ -518,369 +606,369 @@ export default function LocalPage() {
     return (
       <>
         <div className="min-h-screen bg-slate-900 flex flex-col items-center py-8 px-4">
-        {/* Header con botón de logout */}
-        <div className="w-full max-w-sm mb-4 flex items-center justify-between">
-          <div className="flex-1">
-            <h1 className="text-white text-xl font-bold mb-1">App del Local</h1>
-            <p className="text-slate-400 text-xs">Equipo atención al cliente</p>
-          </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem('coques_local_token')
-              router.push('/local/login')
-            }}
-            className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
-            title="Cerrar sesión"
-          >
-            <span>🚪</span>
-            <span className="hidden sm:inline">Salir</span>
-          </button>
-        </div>
-
-        {/* Botones para alternar entre Scanner, Vista Salón, Tomar Pedido y Presupuestos */}
-        <div className="w-full max-w-sm mb-4">
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          {/* Header con botón de logout */}
+          <div className="w-full max-w-sm mb-4 flex items-center justify-between">
+            <div className="flex-1">
+              <h1 className="text-white text-xl font-bold mb-1">App del Local</h1>
+              <p className="text-slate-400 text-xs">Equipo atención al cliente</p>
+            </div>
             <button
-              onClick={() => setVistaSalon(false)}
-              className={`py-3 rounded-xl font-bold transition text-sm ${!vistaSalon
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-700 text-gray-300'
-                }`}
+              onClick={() => {
+                localStorage.removeItem('coques_local_token')
+                router.push('/local/login')
+              }}
+              className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
+              title="Cerrar sesión"
             >
-              📱 Scanner
-            </button>
-            <button
-              onClick={() => setVistaSalon(true)}
-              className={`py-3 rounded-xl font-bold transition text-sm ${vistaSalon
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-700 text-gray-300'
-                }`}
-            >
-              🏠 Salón
-            </button>
-            <button
-              onClick={() => window.location.href = '/local/tomar-pedido'}
-              className="py-3 rounded-xl font-bold transition text-sm bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              📝 Pedido
-            </button>
-            <button
-              onClick={() => window.location.href = '/local/presupuestos'}
-              className="py-3 rounded-xl font-bold transition text-sm bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              💾 Presupuestos
+              <span>🚪</span>
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
-        </div>
 
-        {/* Clientes activos en mostrador */}
-        {!vistaSalon && clientesMostrador.length > 0 && (
-          <div className="w-full max-w-2xl mb-4">
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-              <h3 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
-                <span>🪑</span>
-                Clientes en mostrador (últimos 3)
-              </h3>
-              <div className="space-y-3">
-                {clientesMostrador.map((cliente) => (
-                  <div
-                    key={cliente.id}
-                    className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
-                  >
-                    {/* Header del cliente */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-bold">{cliente.nombre}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
-                          {cliente.nivel}
-                        </span>
-                      </div>
-                      <span className="text-slate-400 text-xs">
-                        {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-
-                    {/* Beneficios aplicados */}
-                    {cliente.beneficiosAplicados.length > 0 && (
-                      <div className="mb-2">
-                        <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
-                        {cliente.beneficiosAplicados.map((b) => (
-                          <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
-                            <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Beneficios disponibles */}
-                    {cliente.beneficiosDisponibles.length > 0 ? (
-                      <div>
-                        <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
-                        {cliente.beneficiosDisponibles.map((b) => (
-                          <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
-                            <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
-                            <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : cliente.beneficiosAplicados.length === 0 ? (
-                      <p className="text-slate-500 text-xs">Sin beneficios</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+          {/* Botones para alternar entre Scanner, Vista Salón, Tomar Pedido y Presupuestos */}
+          <div className="w-full max-w-sm mb-4">
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <button
+                onClick={() => setVistaSalon(false)}
+                className={`py-3 rounded-xl font-bold transition text-sm ${!vistaSalon
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-700 text-gray-300'
+                  }`}
+              >
+                📱 Scanner
+              </button>
+              <button
+                onClick={() => setVistaSalon(true)}
+                className={`py-3 rounded-xl font-bold transition text-sm ${vistaSalon
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-700 text-gray-300'
+                  }`}
+              >
+                🏠 Salón
+              </button>
+              <button
+                onClick={() => window.location.href = '/local/tomar-pedido'}
+                className="py-3 rounded-xl font-bold transition text-sm bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                📝 Pedido
+              </button>
+              <button
+                onClick={() => window.location.href = '/local/presupuestos'}
+                className="py-3 rounded-xl font-bold transition text-sm bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                💾 Presupuestos
+              </button>
             </div>
           </div>
-        )}
 
-        {vistaSalon ? (
-          // ─── Vista de Salón ───
-          <div className="w-full max-w-6xl">
-            <VistaSalon
-              estadoSalon={estadoSalon}
-              onCerrarSesion={cerrarSesionMesa}
-              onAplicarBeneficio={aplicarBeneficioDesdeMesa}
-            />
-          </div>
-        ) : (
-          // ─── Vista de Scanner ───
-          <>
-            {/* Paso 1: Elegir ubicación (Mostrador o Salón) */}
-            {!ubicacion && (
-              <div className="w-full max-w-sm">
-                <h2 className="text-white text-lg font-bold mb-3 text-center">
-                  ¿Dónde se ubica el cliente?
-                </h2>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <button
-                    onClick={() => seleccionarUbicacion('mostrador')}
-                    className="bg-slate-800 hover:bg-amber-600 rounded-xl p-6 transition-all hover:scale-105 border-2 border-transparent hover:border-amber-500"
-                  >
-                    <div className="text-4xl mb-2">🪑</div>
-                    <p className="font-bold text-white">Mostrador</p>
-                  </button>
-                  <button
-                    onClick={() => seleccionarUbicacion('salon')}
-                    className="bg-slate-800 hover:bg-green-600 rounded-xl p-6 transition-all hover:scale-105 border-2 border-transparent hover:border-green-500"
-                  >
-                    <div className="text-4xl mb-2">🍽️</div>
-                    <p className="font-bold text-white">Salón</p>
-                  </button>
+          {/* Clientes activos en mostrador */}
+          {!vistaSalon && clientesMostrador.length > 0 && (
+            <div className="w-full max-w-2xl mb-4">
+              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h3 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
+                  <span>🪑</span>
+                  Clientes en mostrador (últimos 3)
+                </h3>
+                <div className="space-y-3">
+                  {clientesMostrador.map((cliente) => (
+                    <div
+                      key={cliente.id}
+                      className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                    >
+                      {/* Header del cliente */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-bold">{cliente.nombre}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                            {cliente.nivel}
+                          </span>
+                        </div>
+                        <span className="text-slate-400 text-xs">
+                          {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Beneficios aplicados */}
+                      {cliente.beneficiosAplicados.length > 0 && (
+                        <div className="mb-2">
+                          <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
+                          {cliente.beneficiosAplicados.map((b) => (
+                            <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
+                              <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Beneficios disponibles */}
+                      {cliente.beneficiosDisponibles.length > 0 ? (
+                        <div>
+                          <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
+                          {cliente.beneficiosDisponibles.map((b) => (
+                            <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
+                              <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
+                              <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : cliente.beneficiosAplicados.length === 0 ? (
+                        <p className="text-slate-500 text-xs">Sin beneficios</p>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Paso 2: Si eligió Salón, seleccionar mesa */}
-            {ubicacion === 'salon' && !mesaSeleccionada && (
-              <div className="w-full max-w-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-white text-lg font-bold">
-                    Seleccioná la mesa
+          {vistaSalon ? (
+            // ─── Vista de Salón ───
+            <div className="w-full max-w-6xl">
+              <VistaSalon
+                estadoSalon={estadoSalon}
+                onCerrarSesion={cerrarSesionMesa}
+                onAplicarBeneficio={aplicarBeneficioDesdeMesa}
+              />
+            </div>
+          ) : (
+            // ─── Vista de Scanner ───
+            <>
+              {/* Paso 1: Elegir ubicación (Mostrador o Salón) */}
+              {!ubicacion && (
+                <div className="w-full max-w-sm">
+                  <h2 className="text-white text-lg font-bold mb-3 text-center">
+                    ¿Dónde se ubica el cliente?
                   </h2>
-                  <button
-                    onClick={() => {
-                      setUbicacion(null)
-                      setMesaSeleccionada(null)
-                    }}
-                    className="text-slate-400 hover:text-white text-sm"
-                  >
-                    ← Cambiar ubicación
-                  </button>
-                </div>
-                <div
-                  className="relative bg-slate-800 rounded-2xl mb-4 overflow-hidden"
-                  style={{ paddingBottom: '150%' }}
-                >
-                  <div className="absolute inset-0 p-3">
-                    {mesas.map((mesa: MesaLayout) => {
-                      const estaOcupada = mesasOcupadas.has(mesa.id)
-                      const mesaSel = mesaSeleccionada as MesaLayout | null
-                      const estaSeleccionada = mesaSel?.id === mesa.id
-                      return (
-                        <button
-                          key={mesa.id}
-                          onClick={() => setMesaSeleccionada(mesa)}
-                          className={`absolute rounded-lg text-xs font-bold transition-all shadow ${estaSeleccionada
-                            ? 'bg-blue-600 text-white scale-110 z-10'
-                            : estaOcupada
-                              ? 'bg-red-500 text-white hover:bg-red-600'
-                              : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105'
-                            }`}
-                          style={{
-                            left: `${mesa.posX}%`,
-                            top: `${mesa.posY}%`,
-                            width: `${mesa.ancho}%`,
-                            height: `${mesa.alto}%`,
-                          }}
-                        >
-                          <div className="flex flex-col items-center justify-center h-full">
-                            <div className="text-base">
-                              {estaOcupada ? '🔴' : '🟢'}
-                            </div>
-                            <div>{mesa.nombre}</div>
-                          </div>
-                        </button>
-                      )
-                    })}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <button
+                      onClick={() => seleccionarUbicacion('mostrador')}
+                      className="bg-slate-800 hover:bg-amber-600 rounded-xl p-6 transition-all hover:scale-105 border-2 border-transparent hover:border-amber-500"
+                    >
+                      <div className="text-4xl mb-2">🪑</div>
+                      <p className="font-bold text-white">Mostrador</p>
+                    </button>
+                    <button
+                      onClick={() => seleccionarUbicacion('salon')}
+                      className="bg-slate-800 hover:bg-green-600 rounded-xl p-6 transition-all hover:scale-105 border-2 border-transparent hover:border-green-500"
+                    >
+                      <div className="text-4xl mb-2">🍽️</div>
+                      <p className="font-bold text-white">Salón</p>
+                    </button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Paso 3: Scanner (solo si ya eligió ubicación y mesa en caso de salón) */}
-            {((ubicacion === 'mostrador') || (ubicacion === 'salon' && mesaSeleccionada)) && (
-              <>
-                {/* Info de selección */}
-                <div className="w-full max-w-sm mb-4">
-                  <div className="bg-slate-800 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">
-                          {ubicacion === 'mostrador' ? '🪑' : '🍽️'}
-                        </span>
-                        <div>
-                          <p className="text-white font-bold">
-                            {ubicacion === 'mostrador' ? 'Mostrador' : `Mesa ${mesaSeleccionada?.nombre}`}
-                          </p>
-                          <p className="text-slate-400 text-sm">
-                            {ubicacion === 'mostrador' ? 'Cliente en mostrador' : 'Cliente en salón'}
-                          </p>
+              {/* Paso 2: Si eligió Salón, seleccionar mesa */}
+              {ubicacion === 'salon' && !mesaSeleccionada && (
+                <div className="w-full max-w-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-white text-lg font-bold">
+                      Seleccioná la mesa
+                    </h2>
+                    <button
+                      onClick={() => {
+                        setUbicacion(null)
+                        setMesaSeleccionada(null)
+                      }}
+                      className="text-slate-400 hover:text-white text-sm"
+                    >
+                      ← Cambiar ubicación
+                    </button>
+                  </div>
+                  <div
+                    className="relative bg-slate-800 rounded-2xl mb-4 overflow-hidden"
+                    style={{ paddingBottom: '150%' }}
+                  >
+                    <div className="absolute inset-0 p-3">
+                      {mesas.map((mesa: MesaLayout) => {
+                        const estaOcupada = mesasOcupadas.has(mesa.id)
+                        const mesaSel = mesaSeleccionada as MesaLayout | null
+                        const estaSeleccionada = mesaSel?.id === mesa.id
+                        return (
+                          <button
+                            key={mesa.id}
+                            onClick={() => setMesaSeleccionada(mesa)}
+                            className={`absolute rounded-lg text-xs font-bold transition-all shadow ${estaSeleccionada
+                              ? 'bg-blue-600 text-white scale-110 z-10'
+                              : estaOcupada
+                                ? 'bg-red-500 text-white hover:bg-red-600'
+                                : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105'
+                              }`}
+                            style={{
+                              left: `${mesa.posX}%`,
+                              top: `${mesa.posY}%`,
+                              width: `${mesa.ancho}%`,
+                              height: `${mesa.alto}%`,
+                            }}
+                          >
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <div className="text-base">
+                                {estaOcupada ? '🔴' : '🟢'}
+                              </div>
+                              <div>{mesa.nombre}</div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 3: Scanner (solo si ya eligió ubicación y mesa en caso de salón) */}
+              {((ubicacion === 'mostrador') || (ubicacion === 'salon' && mesaSeleccionada)) && (
+                <>
+                  {/* Info de selección */}
+                  <div className="w-full max-w-sm mb-4">
+                    <div className="bg-slate-800 rounded-xl p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {ubicacion === 'mostrador' ? '🪑' : '🍽️'}
+                          </span>
+                          <div>
+                            <p className="text-white font-bold">
+                              {ubicacion === 'mostrador' ? 'Mostrador' : `Mesa ${mesaSeleccionada?.nombre}`}
+                            </p>
+                            <p className="text-slate-400 text-sm">
+                              {ubicacion === 'mostrador' ? 'Cliente en mostrador' : 'Cliente en salón'}
+                            </p>
+                          </div>
                         </div>
+                        <button
+                          onClick={() => {
+                            setUbicacion(null)
+                            setMesaSeleccionada(null)
+                          }}
+                          className="text-slate-400 hover:text-white text-sm underline"
+                        >
+                          Cambiar
+                        </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Selector de método */}
+                  <div className="w-full max-w-sm mb-4">
+                    <div className="bg-slate-800 rounded-xl p-1 flex gap-1">
                       <button
-                        onClick={() => {
-                          setUbicacion(null)
-                          setMesaSeleccionada(null)
-                        }}
-                        className="text-slate-400 hover:text-white text-sm underline"
+                        onClick={() => cambiarMetodo('qr')}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'qr'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-slate-400 hover:text-slate-200'
+                          }`}
                       >
-                        Cambiar
+                        📷 Escanear QR
+                      </button>
+                      <button
+                        onClick={() => cambiarMetodo('manual')}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'manual'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                      >
+                        ⌨️ Código manual
                       </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Selector de método */}
-                <div className="w-full max-w-sm mb-4">
-                  <div className="bg-slate-800 rounded-xl p-1 flex gap-1">
-                    <button
-                      onClick={() => cambiarMetodo('qr')}
-                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'qr'
-                        ? 'bg-blue-500 text-white'
-                        : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                    >
-                      📷 Escanear QR
-                    </button>
-                    <button
-                      onClick={() => cambiarMetodo('manual')}
-                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${metodoInput === 'manual'
-                        ? 'bg-blue-500 text-white'
-                        : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                    >
-                      ⌨️ Código manual
-                    </button>
-                  </div>
-                </div>
+                  <div className="w-full max-w-sm">
+                    {metodoInput === 'qr' ? (
+                      // ─── Scanner QR ───
+                      <div className="bg-slate-800 rounded-2xl p-6">
+                        <p className="text-slate-300 text-sm text-center mb-4">
+                          Pedile al cliente que muestre su QR
+                        </p>
 
-                <div className="w-full max-w-sm">
-                  {metodoInput === 'qr' ? (
-                    // ─── Scanner QR ───
-                    <div className="bg-slate-800 rounded-2xl p-6">
-                      <p className="text-slate-300 text-sm text-center mb-4">
-                        Pedile al cliente que muestre su QR
-                      </p>
-
-                      {scannerActivo ? (
-                        <QRScanner
-                          onScan={handleQrScan}
-                          onError={handleQrError}
-                          isActive={scannerActivo}
-                        />
-                      ) : (
-                        <div className="aspect-square bg-slate-700 rounded-xl flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                            <p className="text-slate-400 text-sm">Validando...</p>
+                        {scannerActivo ? (
+                          <QRScanner
+                            onScan={handleQrScan}
+                            onError={handleQrError}
+                            isActive={scannerActivo}
+                          />
+                        ) : (
+                          <div className="aspect-square bg-slate-700 rounded-xl flex items-center justify-center">
+                            <div className="text-center">
+                              <div className="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                              <p className="text-slate-400 text-sm">Validando...</p>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {errorMsg && (
-                        <div className="mt-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
-                          <p className="text-red-300 text-sm text-center">{errorMsg}</p>
-                          <button
-                            onClick={() => {
-                              setErrorMsg('')
-                              setScannerActivo(true)
-                            }}
-                            className="w-full mt-2 text-red-300 text-xs underline"
-                          >
-                            Reintentar
-                          </button>
-                        </div>
-                      )}
+                        {errorMsg && (
+                          <div className="mt-4 bg-red-500/20 border border-red-500/50 rounded-lg p-3">
+                            <p className="text-red-300 text-sm text-center">{errorMsg}</p>
+                            <button
+                              onClick={() => {
+                                setErrorMsg('')
+                                setScannerActivo(true)
+                              }}
+                              className="w-full mt-2 text-red-300 text-xs underline"
+                            >
+                              Reintentar
+                            </button>
+                          </div>
+                        )}
 
-                      {cargando && (
-                        <div className="flex justify-center mt-4">
-                          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    // ─── Input Manual ───
-                    <div className="bg-slate-800 rounded-2xl p-6">
-                      <p className="text-slate-300 text-sm text-center mb-4">
-                        Ingresá el código del cliente
-                      </p>
-                      <input
-                        ref={inputRef}
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={6}
-                        value={otpInput}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '')
-                          setOtpInput(val)
-                          setErrorMsg('')
-                          if (val.length === 6) validarOTP(val)
-                        }}
-                        placeholder="_ _ _ _ _ _"
-                        className="w-full text-center text-4xl font-mono tracking-[0.4em] bg-slate-700 text-white rounded-xl py-4 px-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
-                        autoFocus
-                        disabled={cargando}
-                      />
+                        {cargando && (
+                          <div className="flex justify-center mt-4">
+                            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // ─── Input Manual ───
+                      <div className="bg-slate-800 rounded-2xl p-6">
+                        <p className="text-slate-300 text-sm text-center mb-4">
+                          Ingresá el código del cliente
+                        </p>
+                        <input
+                          ref={inputRef}
+                          type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          value={otpInput}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '')
+                            setOtpInput(val)
+                            setErrorMsg('')
+                            if (val.length === 6) validarOTP(val)
+                          }}
+                          placeholder="_ _ _ _ _ _"
+                          className="w-full text-center text-4xl font-mono tracking-[0.4em] bg-slate-700 text-white rounded-xl py-4 px-2 outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
+                          autoFocus
+                          disabled={cargando}
+                        />
 
-                      {errorMsg && (
-                        <p className="text-red-400 text-sm text-center mt-3">{errorMsg}</p>
-                      )}
+                        {errorMsg && (
+                          <p className="text-red-400 text-sm text-center mt-3">{errorMsg}</p>
+                        )}
 
-                      {cargando && (
-                        <div className="flex justify-center mt-4">
-                          <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        {cargando && (
+                          <div className="flex justify-center mt-4">
+                            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  <p className="text-slate-500 text-xs text-center mt-4">
-                    {metodoInput === 'qr'
-                      ? 'El cliente muestra su QR desde la app /pass'
-                      : 'El cliente muestra el código de 6 dígitos'
-                    }
-                  </p>
-                </div>
-              </>
-            )}
-          </>
+                    <p className="text-slate-500 text-xs text-center mt-4">
+                      {metodoInput === 'qr'
+                        ? 'El cliente muestra su QR desde la app /pass'
+                        : 'El cliente muestra el código de 6 dígitos'
+                      }
+                    </p>
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
-        
+
         {/* Botón de instalación PWA */}
         <InstallPWAButton />
       </>
