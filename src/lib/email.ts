@@ -1,5 +1,4 @@
 // src/lib/email.ts
-import * as brevo from '@getbrevo/brevo'
 
 interface SendEmailParams {
   to: string
@@ -19,7 +18,7 @@ interface SendEmailResult {
 }
 
 /**
- * Servicio de envío de emails usando Brevo (Sendinblue)
+ * Servicio de envío de emails usando Brevo (Sendinblue) API REST
  *
  * Variables de entorno requeridas:
  * - BREVO_API_KEY: API Key de Brevo
@@ -46,28 +45,37 @@ export async function sendEmail({
   }
 
   try {
-    // Configurar la API de Brevo con la API Key
-    const apiInstance = new brevo.TransactionalEmailsApi()
-    apiInstance.setApiKey(
-      brevo.TransactionalEmailsApiApiKeys.apiKey,
-      process.env.BREVO_API_KEY!
-    )
-
     // Configurar email remitente por defecto
     const defaultFrom = {
       name: 'Coques Bakery',
       email: process.env.BREVO_FROM_EMAIL || 'noreply@mail.coques.com.ar',
     }
 
-    // Preparar el email
-    const sendSmtpEmail = new brevo.SendSmtpEmail()
-    sendSmtpEmail.sender = from || defaultFrom
-    sendSmtpEmail.to = [{ email: to }]
-    sendSmtpEmail.subject = subject
-    sendSmtpEmail.htmlContent = html
+    // Preparar el payload para la API de Brevo
+    const payload = {
+      sender: from || defaultFrom,
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: html
+    }
 
-    // Enviar el email
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
+    // Enviar el email usando la API REST de Brevo
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const result = await response.json()
     
     console.log('[Email] ✅ Email enviado exitosamente')
     console.log('[Email] Destinatario:', to)
