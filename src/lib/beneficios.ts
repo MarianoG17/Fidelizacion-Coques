@@ -40,6 +40,17 @@ export async function getBeneficiosActivos(clienteId: string) {
           (auto: any) => auto.estadoActual?.estado === beneficio.estadoExternoTrigger
         )
         if (!autoConEstado) return null
+        
+        // Para beneficio de lavadero, verificar que no pasó de las 19:00
+        if (beneficio.id === 'beneficio-20porciento-lavadero') {
+          const ahora = new Date()
+          const cierreHoy = new Date(ahora)
+          cierreHoy.setHours(19, 0, 0, 0) // 19:00 Argentina
+          
+          if (ahora > cierreHoy) {
+            return null // Ya cerró el local, beneficio expirado
+          }
+        }
       }
 
       // Verificar límites de uso

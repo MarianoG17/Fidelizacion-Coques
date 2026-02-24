@@ -447,9 +447,15 @@ export default function PassPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-semibold text-gray-600">{beneficio.nombre}</p>
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
-                            ✓ Usado
-                          </span>
+                          {beneficio.yaUsado ? (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
+                              ✓ Usado
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded-full font-semibold">
+                              ⏰ Expirado
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-500">
                           {beneficio.yaUsado
