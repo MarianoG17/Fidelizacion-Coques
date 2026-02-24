@@ -72,12 +72,13 @@ export async function POST(req: NextRequest) {
 
         // 5. Buscar cliente en Fidelización
         const cliente = await prisma.cliente.findUnique({
-            where: { phone: payload.phone },
-            include: {
-                autos: {
-                    where: { patente: patenteNormalizada },
-                },
+          where: { phone: payload.phone },
+          include: {
+            nivel: true,
+            autos: {
+              where: { patente: patenteNormalizada },
             },
+          },
         })
 
         if (!cliente) {
