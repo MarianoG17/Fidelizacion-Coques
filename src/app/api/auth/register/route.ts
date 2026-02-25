@@ -208,17 +208,17 @@ export async function POST(req: NextRequest) {
             localId: localPrincipal.id,
             tipoEvento: 'VISITA',
             metodoValidacion: 'OTP_MANUAL',
-            contabilizada: true,
-            notas: `Visita bonus por referir a ${validatedData.nombre}`,
+            contabilizada: false, // NO cuenta como visita real, solo para historial
+            notas: `Bonus por referir a ${validatedData.nombre} (no contabilizada)`,
           },
         })
 
-        // Evaluar nivel y logros del referidor después de la visita bonus - evaluar nivel primero
+        // Evaluar nivel y logros del referidor después del bonus - evaluar nivel primero
         evaluarNivel(referidoPorId)
           .then(() => evaluarLogros(referidoPorId))
           .catch(console.error)
 
-        console.log(`[Registro] Referidor recibió visita bonus`)
+        console.log(`[Registro] Referidor recibió bonus por referir`)
       }
     }
 

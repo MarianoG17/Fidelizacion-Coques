@@ -41,13 +41,16 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Contar visitas del cliente
-    const totalVisitas = await prisma.eventoScan.count({
-      where: {
-        clienteId: cliente.id,
-        contabilizada: true,
-      },
-    })
+    // Contar DÍAS ÚNICOS con visitas (no eventos individuales)
+    // Un cliente puede venir varias veces en un día, pero solo cuenta como 1 visita
+    const totalVisitasResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
+      FROM "EventoScan"
+      WHERE "clienteId" = ${cliente.id}
+        AND "contabilizada" = true
+        AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+    `
+    const totalVisitas = Number(totalVisitasResult[0]?.count || 0)
 
     // Mapear niveles con información de progreso
     const nivelesData = niveles.map((nivel) => {

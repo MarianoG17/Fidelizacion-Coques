@@ -66,12 +66,12 @@ export async function POST(req: NextRequest) {
                     localId: localPrincipal.id,
                     tipoEvento: 'VISITA',
                     metodoValidacion: 'OTP_MANUAL',
-                    contabilizada: true,
-                    notas: 'Visita bonus por completar cuestionario',
+                    contabilizada: false, // NO cuenta como visita real, solo para historial
+                    notas: 'Bonus por completar cuestionario (no contabilizada)',
                 },
             })
             
-            // Evaluar nivel y logros después de la visita bonus - evaluar nivel primero
+            // Evaluar nivel y logros después del bonus - evaluar nivel primero
             evaluarNivel(clienteId)
                 .then(() => evaluarLogros(clienteId))
                 .catch(console.error)

@@ -109,15 +109,17 @@ export async function evaluarNivel(clienteId: string) {
   // Usar timezone Argentina — el servidor corre en UTC (ver APRENDIZAJES.md)
   const hace30dias = getHaceNDias(30)
 
-  // Contar SOLO visitas contabilizadas en los últimos 30 días
-  const visitasRecientes = await prisma.eventoScan.count({
-    where: {
-      clienteId,
-      contabilizada: true,
-      timestamp: { gte: hace30dias },
-      tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
-    },
-  })
+  // Contar DÍAS ÚNICOS con visitas contabilizadas en los últimos 30 días
+  // Un cliente puede venir varias veces en un día, pero solo cuenta como 1 visita
+  const visitasRecientesResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+    SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
+    FROM "EventoScan"
+    WHERE "clienteId" = ${clienteId}
+      AND "contabilizada" = true
+      AND "timestamp" >= ${hace30dias}
+      AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+  `
+  const visitasRecientes = Number(visitasRecientesResult[0]?.count || 0)
 
   // Contar usos cruzados (distintos locales en últimos 30 días)
   const localesDistintos = await prisma.eventoScan.findMany({
