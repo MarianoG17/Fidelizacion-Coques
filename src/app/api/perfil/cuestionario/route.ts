@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
                     localId: localPrincipal.id,
                     tipoEvento: 'VISITA',
                     metodoValidacion: 'OTP_MANUAL',
-                    contabilizada: false, // NO cuenta como visita real, solo para historial
-                    notas: 'Bonus por completar cuestionario (no contabilizada)',
+                    contabilizada: true, // SÍ cuenta para subir de nivel
+                    notas: 'Visita bonus por completar cuestionario',
                 },
             })
             

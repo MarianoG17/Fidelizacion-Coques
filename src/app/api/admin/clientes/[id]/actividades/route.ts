@@ -66,11 +66,15 @@ export async function GET(
 
     // Calcular estadísticas
     const totalEventos = eventos.length
-    const visitasContabilizadas = eventos.filter(
-      (e) => e.tipoEvento === 'VISITA' && e.contabilizada
-    ).length
+    
+    // Visitas bonus: identificadas por la palabra "bonus" en las notas
     const visitasBonus = eventos.filter(
-      (e) => e.notas?.includes('bonus') || e.notas?.includes('Visita bonus')
+      (e) => e.tipoEvento === 'VISITA' && (e.notas?.toLowerCase().includes('bonus'))
+    ).length
+    
+    // Visitas contabilizadas: solo visitas reales (excluir bonus)
+    const visitasContabilizadas = eventos.filter(
+      (e) => e.tipoEvento === 'VISITA' && e.contabilizada && !e.notas?.toLowerCase().includes('bonus')
     ).length
     const beneficiosAplicados = eventos.filter(
       (e) => e.tipoEvento === 'BENEFICIO_APLICADO'
