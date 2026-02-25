@@ -40,13 +40,13 @@ export async function getBeneficiosActivos(clienteId: string) {
           (auto: any) => auto.estadoActual?.estado === beneficio.estadoExternoTrigger
         )
         if (!autoConEstado) return null
-        
+
         // Para beneficio de lavadero, verificar que no pasó de las 19:00
         if (beneficio.id === 'beneficio-20porciento-lavadero') {
           const ahora = new Date()
           const cierreHoy = new Date(ahora)
           cierreHoy.setHours(19, 0, 0, 0) // 19:00 Argentina
-          
+
           if (ahora > cierreHoy) {
             return null // Ya cerró el local, beneficio expirado
           }
@@ -134,50 +134,97 @@ export async function evaluarNivel(clienteId: string) {
 
   // Obtener nivel actual del cliente
   const nivelActualOrden = cliente.nivel?.orden || 0
-  
-  // Buscar el SIGUIENTE nivel inmediato (upgrade incremental)
+  const nivelActual = niveles.find((n) => n.orden === nivelActualOrden)
+
+  // Verificar si tiene perfil completo y referidos (se usa para múltiples verificaciones)
+  const perfilCompleto = !!(cliente.fechaCumpleanos && cliente.fuenteConocimiento)
+  const referidosActuales = cliente.referidosActivados || 0
+
+  // 🔻 PASO 1: Verificar si debe BAJAR de nivel (si no cumple requisitos del nivel actual)
+  if (nivelActual && nivelActualOrden > 1) { // Solo si no está en el nivel mínimo (Bronce)
+    const criteriosActual = nivelActual.criterios as {
+      visitas?: number
+      visitasMinimas?: number
+      diasVentana?: number
+      usosCruzados?: number
+      referidosMinimos?: number
+      perfilCompleto?: boolean
+    }
+
+    const visitasRequeridasActual = criteriosActual.visitas || criteriosActual.visitasMinimas || 0
+    const usosCruzadosRequeridosActual = criteriosActual.usosCruzados || 0
+    const referidosRequeridosActual = criteriosActual.referidosMinimos || 0
+    const requierePerfilCompletoActual = criteriosActual.perfilCompleto || false
+
+    // Si NO cumple con los requisitos de su nivel actual → BAJAR
+    if (
+      visitasRecientes < visitasRequeridasActual ||
+      usosCruzados < usosCruzadosRequeridosActual ||
+      referidosActuales < referidosRequeridosActual ||
+      (requierePerfilCompletoActual && !perfilCompleto)
+    ) {
+      // Buscar el nivel inmediato inferior
+      const nivelInferior = niveles.find((n) => n.orden === nivelActualOrden - 1)
+
+      if (nivelInferior) {
+        await prisma.cliente.update({
+          where: { id: clienteId },
+          data: { nivelId: nivelInferior.id },
+        })
+
+        // Crear notificación de bajada de nivel
+        await prisma.noticia.create({
+          data: {
+            clienteId,
+            titulo: `Tu nivel cambió a ${nivelInferior.nombre}`,
+            cuerpo: `Para mantener ${nivelActual.nombre} necesitás ${visitasRequeridasActual} visitas en los últimos 30 días. Actualmente tenés ${visitasRecientes}. ¡Volvé pronto para recuperar tu nivel!`,
+            tipo: 'NIVEL',
+          },
+        })
+
+        console.log(`[evaluarNivel] 🔻 Cliente ${clienteId} BAJÓ de ${nivelActual.nombre} a ${nivelInferior.nombre} (${visitasRecientes}/${visitasRequeridasActual} visitas, ${usosCruzados}/${usosCruzadosRequeridosActual} usos cruzados, ${referidosActuales}/${referidosRequeridosActual} referidos)`)
+        return { nivel: nivelInferior, cambio: 'BAJO' } as any
+      }
+    }
+  }
+
+  // 🔺 PASO 2: Verificar si puede SUBIR de nivel
   const siguienteNivel = niveles.find((n) => n.orden === nivelActualOrden + 1)
-  
+
   if (!siguienteNivel) {
-    console.log(`[evaluarNivel] Cliente ${clienteId} ya está en el nivel máximo`)
+    console.log(`[evaluarNivel] Cliente ${clienteId} ya está en el nivel máximo y cumple requisitos`)
     return null
   }
 
-  const criterios = siguienteNivel.criterios as {
-    visitas?: number          // nombre correcto en BD
-    visitasMinimas?: number   // retrocompatibilidad
+  const criteriosSiguiente = siguienteNivel.criterios as {
+    visitas?: number
+    visitasMinimas?: number
     diasVentana?: number
     usosCruzados?: number
     referidosMinimos?: number
     perfilCompleto?: boolean
   }
 
-  const visitasRequeridas = criterios.visitas || criterios.visitasMinimas || 0
-  const usosCruzadosRequeridos = criterios.usosCruzados || 0
-  const referidosRequeridos = criterios.referidosMinimos || 0
-  const requierePerfilCompleto = criterios.perfilCompleto || false
-
-  // Verificar si tiene perfil completo
-  const perfilCompleto = !!(cliente.fechaCumpleanos && cliente.fuenteConocimiento)
-  
-  // Verificar referidos
-  const referidosActuales = cliente.referidosActivados || 0
+  const visitasRequeridasSiguiente = criteriosSiguiente.visitas || criteriosSiguiente.visitasMinimas || 0
+  const usosCruzadosRequeridosSiguiente = criteriosSiguiente.usosCruzados || 0
+  const referidosRequeridosSiguiente = criteriosSiguiente.referidosMinimos || 0
+  const requierePerfilCompletoSiguiente = criteriosSiguiente.perfilCompleto || false
 
   if (
-    visitasRecientes >= visitasRequeridas &&
-    usosCruzados >= usosCruzadosRequeridos &&
-    referidosActuales >= referidosRequeridos &&
-    (!requierePerfilCompleto || perfilCompleto)
+    visitasRecientes >= visitasRequeridasSiguiente &&
+    usosCruzados >= usosCruzadosRequeridosSiguiente &&
+    referidosActuales >= referidosRequeridosSiguiente &&
+    (!requierePerfilCompletoSiguiente || perfilCompleto)
   ) {
     // Subir al siguiente nivel
     await prisma.cliente.update({
       where: { id: clienteId },
       data: { nivelId: siguienteNivel.id },
     })
-    console.log(`[evaluarNivel] Cliente ${clienteId} subió a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados, ${referidosActuales} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'})`)
+    console.log(`[evaluarNivel] 🔺 Cliente ${clienteId} SUBIÓ a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados, ${referidosActuales} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'})`)
     return siguienteNivel // retorna el nuevo nivel para notificación
   } else {
-    console.log(`[evaluarNivel] Cliente ${clienteId} mantiene nivel actual (${visitasRecientes}/${visitasRequeridas} visitas, ${usosCruzados}/${usosCruzadosRequeridos} usos cruzados, ${referidosActuales}/${referidosRequeridos} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'} ${requierePerfilCompleto ? '(requerido)' : ''})`)
+    console.log(`[evaluarNivel] ➡️ Cliente ${clienteId} mantiene nivel ${nivelActual?.nombre || 'actual'} (${visitasRecientes}/${visitasRequeridasSiguiente} visitas para subir, ${usosCruzados}/${usosCruzadosRequeridosSiguiente} usos cruzados, ${referidosActuales}/${referidosRequeridosSiguiente} referidos)`)
   }
 
   return null
