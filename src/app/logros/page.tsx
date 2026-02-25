@@ -10,6 +10,7 @@ interface NivelData {
   nombre: string
   orden: number
   descripcionBeneficios: string | null
+  descuentoTortas: number
   visitasRequeridas: number
   esNivelActual: boolean
   beneficios: Array<{
@@ -245,18 +246,29 @@ export default function LogrosPage() {
                                             {/* Beneficios - TODOS visibles */}
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-600 mb-2">Beneficios:</p>
-                                                {nivel.beneficios.length > 0 ? (
-                                                    <ul className="space-y-1.5 max-h-48 overflow-y-auto">
-                                                        {nivel.beneficios.map((beneficio) => (
+                                                <ul className="space-y-1.5 max-h-48 overflow-y-auto">
+                                                    {/* Descuento en tortas (si existe) */}
+                                                    {nivel.descuentoTortas > 0 && (
+                                                        <li className="flex items-start gap-2 text-xs text-gray-600">
+                                                            <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                                                            <span className="flex-1">🎂 {nivel.descuentoTortas}% de descuento en tortas</span>
+                                                        </li>
+                                                    )}
+                                                    
+                                                    {/* Beneficios del nivel */}
+                                                    {nivel.beneficios.length > 0 ? (
+                                                        nivel.beneficios.map((beneficio) => (
                                                             <li key={beneficio.id} className="flex items-start gap-2 text-xs text-gray-600">
                                                                 <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
                                                                 <span className="flex-1">{beneficio.nombre}</span>
                                                             </li>
-                                                        ))}
-                                                    </ul>
-                                                ) : (
-                                                    <p className="text-xs text-gray-400 italic">Beneficios básicos</p>
-                                                )}
+                                                        ))
+                                                    ) : (
+                                                        !nivel.descuentoTortas && (
+                                                            <li className="text-xs text-gray-400 italic">Beneficios básicos</li>
+                                                        )
+                                                    )}
+                                                </ul>
                                             </div>
                                         </div>
                                     )

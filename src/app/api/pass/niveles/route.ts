@@ -32,7 +32,13 @@ export async function GET(req: NextRequest) {
     // Obtener todos los niveles con sus beneficios
     const niveles = await prisma.nivel.findMany({
       orderBy: { orden: 'asc' },
-      include: {
+      select: {
+        id: true,
+        nombre: true,
+        orden: true,
+        descripcionBeneficios: true,
+        descuentoPedidosTortas: true,
+        criterios: true,
         beneficios: {
           include: {
             beneficio: true,
@@ -63,6 +69,7 @@ export async function GET(req: NextRequest) {
         nombre: nivel.nombre,
         orden: nivel.orden,
         descripcionBeneficios: nivel.descripcionBeneficios,
+        descuentoTortas: nivel.descuentoPedidosTortas, // Descuento en tortas
         visitasRequeridas,
         esNivelActual,
         beneficios: nivel.beneficios.map((nb) => ({
