@@ -14,14 +14,41 @@ export async function GET(req: NextRequest) {
     const clientes = await prisma.cliente.findMany({
       include: {
         nivel: true,
-        _count: {
-          select: { eventos: true },
+        eventos: {
+          where: {
+            tipoEvento: 'VISITA',
+            contabilizada: true,
+          },
+          select: {
+            id: true,
+            notas: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json({ data: clientes })
+    // Calcular visitas reales y bonus por separado
+    const clientesConEstadisticas = clientes.map((cliente) => {
+      const visitasBonus = cliente.eventos.filter(
+        (e) => e.notas?.toLowerCase().includes('bonus')
+      ).length
+      
+      const visitasReales = cliente.eventos.filter(
+        (e) => !e.notas?.toLowerCase().includes('bonus')
+      ).length
+
+      // Remover eventos del objeto para no enviar data innecesaria
+      const { eventos, ...clienteSinEventos } = cliente
+
+      return {
+        ...clienteSinEventos,
+        visitasReales,
+        visitasBonus,
+      }
+    })
+
+    return NextResponse.json({ data: clientesConEstadisticas })
   } catch (error) {
     console.error('Error al obtener clientes:', error)
     return NextResponse.json(

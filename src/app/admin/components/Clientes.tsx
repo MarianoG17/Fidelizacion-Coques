@@ -285,6 +285,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   Visitas
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  Bonus
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Referidos
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -337,7 +340,10 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                     </span>
                   </td>
                   <td className="p-4">
-                    <p className="text-white">{cliente._count.eventos}</p>
+                    <p className="text-white">{(cliente as any).visitasReales || 0}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-purple-400 font-semibold">{(cliente as any).visitasBonus || 0}</p>
                   </td>
                   <td className="p-4">
                     <p className="text-white">{cliente.referidosActivados || 0}</p>
