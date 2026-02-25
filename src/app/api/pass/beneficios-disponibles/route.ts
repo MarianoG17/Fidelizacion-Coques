@@ -99,16 +99,36 @@ export async function GET(req: NextRequest) {
                 }
 
                 // Detectar si el beneficio expiró por tiempo (ej: lavadero después de 19:00)
-                // Si el beneficio NO está disponible, NO se usó hoy, y requiere estado externo,
-                // entonces está "expirado" (no disponible por tiempo)
+                // Solo se considera "expirado" si el cliente tiene/tuvo el estado necesario
                 let expirado = false
-                if (!estaDisponible && !yaUsado && cantidadUsosHoy === 0 && beneficio.requiereEstadoExterno) {
-                    // Verificar específicamente el beneficio del lavadero
-                    if (beneficio.id === 'beneficio-20porciento-lavadero') {
-                        const ahora = new Date()
-                        const cierreHoy = new Date(ahora)
-                        cierreHoy.setHours(19, 0, 0, 0) // 19:00 Argentina
-                        expirado = ahora > cierreHoy
+                let tieneEstadoRequerido = false
+                
+                if (beneficio.requiereEstadoExterno) {
+                    // Verificar si el cliente tiene el estado requerido actualmente
+                    const clienteConAutos = await prisma.cliente.findUnique({
+                        where: { id: clientePayload.clienteId },
+                        include: {
+                            autos: {
+                                include: {
+                                    estadoActual: true
+                                }
+                            }
+                        }
+                    })
+                    
+                    tieneEstadoRequerido = clienteConAutos?.autos?.some(
+                        (auto: any) => auto.estadoActual?.estado === beneficio.estadoExternoTrigger
+                    ) || false
+                    
+                    // Solo verificar expiración si tiene el estado requerido pero no está disponible
+                    if (tieneEstadoRequerido && !estaDisponible && cantidadUsosHoy === 0) {
+                        // Verificar específicamente el beneficio del lavadero
+                        if (beneficio.id === 'beneficio-20porciento-lavadero') {
+                            const ahora = new Date()
+                            const cierreHoy = new Date(ahora)
+                            cierreHoy.setHours(19, 0, 0, 0) // 19:00 Argentina
+                            expirado = ahora > cierreHoy
+                        }
                     }
                 }
 
@@ -126,6 +146,7 @@ export async function GET(req: NextRequest) {
                     estadoExternoTrigger: beneficio.estadoExternoTrigger,
                     yaUsado, // Para mostrar al usuario si es de uso único
                     expirado, // Para distinguir "expirado por tiempo" vs "usado hoy"
+                    tieneEstadoRequerido, // Para determinar si debe mostrarse
                 }
             })
         )
@@ -133,7 +154,20 @@ export async function GET(req: NextRequest) {
         // Separar beneficios disponibles y usados
         // Los beneficios de uso único ya utilizados NO se muestran (se pueden ver en historial)
         const disponibles = beneficiosConUso.filter((b) => b.disponible)
-        const usados = beneficiosConUso.filter((b) => !b.disponible && !b.yaUsado)
+        
+        // Solo mostrar en "usados" si:
+        // 1. Se usó hoy (usosHoy > 0), o
+        // 2. Está expirado después de haber estado disponible (expirado === true), o
+        // 3. No requiere estado externo (beneficios normales con límite diario)
+        const usados = beneficiosConUso.filter((b) =>
+            !b.disponible &&
+            !b.yaUsado &&
+            (
+                b.usosHoy > 0 ||
+                b.expirado ||
+                (!b.requiereEstadoExterno && b.maxPorDia > 0)
+            )
+        )
 
         return NextResponse.json({
             data: {
