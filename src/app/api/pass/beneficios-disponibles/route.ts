@@ -152,17 +152,17 @@ export async function GET(req: NextRequest) {
         )
 
         // Separar beneficios disponibles y usados
-        // Los beneficios de uso único ya utilizados NO se muestran (se pueden ver en historial)
         const disponibles = beneficiosConUso.filter((b) => b.disponible)
         
-        // Solo mostrar en "usados" si:
-        // 1. Se usó hoy (usosHoy > 0), o
-        // 2. Está expirado después de haber estado disponible (expirado === true), o
-        // 3. No requiere estado externo (beneficios normales con límite diario)
+        // Mostrar en "usados" si:
+        // 1. Es de uso único y ya se usó (yaUsado === true), o
+        // 2. Se usó hoy (usosHoy > 0), o
+        // 3. Está expirado después de haber estado disponible (expirado === true), o
+        // 4. No requiere estado externo (beneficios normales con límite diario alcanzado)
         const usados = beneficiosConUso.filter((b) =>
             !b.disponible &&
-            !b.yaUsado &&
             (
+                b.yaUsado ||
                 b.usosHoy > 0 ||
                 b.expirado ||
                 (!b.requiereEstadoExterno && b.maxPorDia > 0)
