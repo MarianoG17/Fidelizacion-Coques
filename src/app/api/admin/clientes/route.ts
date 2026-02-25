@@ -14,39 +14,43 @@ export async function GET(req: NextRequest) {
     const clientes = await prisma.cliente.findMany({
       include: {
         nivel: true,
-        eventos: {
-          where: {
-            tipoEvento: 'VISITA',
-            contabilizada: true,
-          },
-          select: {
-            id: true,
-            notas: true,
-          },
-        },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    // Calcular visitas reales y bonus por separado
-    const clientesConEstadisticas = clientes.map((cliente) => {
-      const visitasBonus = cliente.eventos.filter(
-        (e) => e.notas?.toLowerCase().includes('bonus')
-      ).length
-      
-      const visitasReales = cliente.eventos.filter(
-        (e) => !e.notas?.toLowerCase().includes('bonus')
-      ).length
+    // Calcular visitas únicas (por día) para cada cliente
+    const clientesConEstadisticas = await Promise.all(
+      clientes.map(async (cliente) => {
+        // Contar días únicos de visitas reales (sin bonus)
+        const visitasRealesResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
+          FROM "EventoScan"
+          WHERE "clienteId" = ${cliente.id}
+            AND "contabilizada" = true
+            AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+            AND (LOWER("notas") NOT LIKE '%bonus%' OR "notas" IS NULL)
+        `
+        
+        // Contar días únicos de visitas bonus
+        const visitasBonusResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
+          FROM "EventoScan"
+          WHERE "clienteId" = ${cliente.id}
+            AND "contabilizada" = true
+            AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+            AND LOWER("notas") LIKE '%bonus%'
+        `
 
-      // Remover eventos del objeto para no enviar data innecesaria
-      const { eventos, ...clienteSinEventos } = cliente
+        const visitasReales = Number(visitasRealesResult[0]?.count || 0)
+        const visitasBonus = Number(visitasBonusResult[0]?.count || 0)
 
-      return {
-        ...clienteSinEventos,
-        visitasReales,
-        visitasBonus,
-      }
-    })
+        return {
+          ...cliente,
+          visitasReales,
+          visitasBonus,
+        }
+      })
+    )
 
     return NextResponse.json({ data: clientesConEstadisticas })
   } catch (error) {
