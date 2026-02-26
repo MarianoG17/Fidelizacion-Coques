@@ -146,13 +146,22 @@ export default function PassPage() {
 
   // Manejar autenticación con NextAuth (Google OAuth)
   useEffect(() => {
-    if (sessionStatus === 'loading') return
+    console.log('[PASS] sessionStatus:', sessionStatus)
+    console.log('[PASS] session:', session)
+
+    if (sessionStatus === 'loading') {
+      console.log('[PASS] Session loading...')
+      return
+    }
 
     if (sessionStatus === 'authenticated' && session?.user) {
+      console.log('[PASS] Session authenticated!')
       const needsPhone = (session.user as any).needsPhone
+      console.log('[PASS] needsPhone:', needsPhone)
 
       // Si necesita completar teléfono, mostrar modal
       if (needsPhone) {
+        console.log('[PASS] Showing phone modal')
         setShowPhoneModal(true)
         setLoading(false)
         return
@@ -160,30 +169,56 @@ export default function PassPage() {
 
       // Si ya tiene sesión de NextAuth pero no tiene token local, generarlo
       const token = localStorage.getItem('fidelizacion_token')
+      console.log('[PASS] Token en localStorage:', token ? 'existe' : 'no existe')
+
       if (!token) {
+        console.log('[PASS] Generando token...')
         // Generar token JWT para el sistema existente
         fetch('/api/auth/session-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         })
-          .then(res => res.json())
+          .then(res => {
+            console.log('[PASS] Response status:', res.status)
+            return res.json()
+          })
           .then(data => {
+            console.log('[PASS] Response data:', data)
             if (data.token) {
               localStorage.setItem('fidelizacion_token', data.token)
+              console.log('[PASS] Token guardado, fetching data...')
               fetchPass()
               fetchBeneficios()
               fetchNiveles()
+            } else {
+              console.error('[PASS] No token in response')
+              setError('Error: No se recibió token')
+              setLoading(false)
             }
           })
           .catch(err => {
-            console.error('Error generando token:', err)
+            console.error('[PASS] Error generando token:', err)
             setError('Error de autenticación')
             setLoading(false)
           })
         return
+      } else {
+        console.log('[PASS] Token exists, fetching data...')
+        fetchPass()
+        fetchBeneficios()
+        fetchNiveles()
+      }
+    } else if (sessionStatus === 'unauthenticated') {
+      console.log('[PASS] Session unauthenticated, checking localStorage token...')
+      const token = localStorage.getItem('fidelizacion_token')
+      if (!token) {
+        console.log('[PASS] No token found, redirecting to login')
+        // Solo si no hay token en localStorage
+        setError('no_auth')
+        setLoading(false)
       }
     }
-  }, [session, sessionStatus])
+  }, [session, sessionStatus, fetchPass, fetchBeneficios, fetchNiveles])
 
   // Refresco periódico del OTP y beneficios
   useEffect(() => {
