@@ -293,10 +293,8 @@ export default function PassPage() {
   }
 
   if (loading) return <LoadingScreen />
-  if (error === 'no_auth') return <NoAuthScreen />
-  if (error) return <ErrorScreen message={error} />
   
-  // Mostrar modal de completar teléfono si es necesario (ANTES de verificar pass)
+  // IMPORTANTE: Verificar modal ANTES de error para usuarios OAuth
   if (showPhoneModal) {
     return (
       <>
@@ -313,6 +311,9 @@ export default function PassPage() {
       </>
     )
   }
+  
+  if (error === 'no_auth') return <NoAuthScreen />
+  if (error) return <ErrorScreen message={error} />
 
   if (!pass) return null
 
