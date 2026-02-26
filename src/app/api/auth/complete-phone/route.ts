@@ -1,7 +1,7 @@
 // src/app/api/auth/complete-phone/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../[...nextauth]/route'
+import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
 import { normalizarTelefono } from '@/lib/phone'
 
