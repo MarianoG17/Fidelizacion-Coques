@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
-import { normalizePhone } from '@/lib/phone'
+import { normalizarTelefono } from '@/lib/phone'
 
 /**
  * Endpoint para completar el teléfono de usuarios que se registraron con Google
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Normalizar teléfono
-        const normalizedPhone = normalizePhone(phone)
+        const normalizedPhone = normalizarTelefono(phone)
 
         if (!normalizedPhone) {
             return NextResponse.json(
