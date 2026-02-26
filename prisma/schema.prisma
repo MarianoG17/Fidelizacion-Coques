@@ -95,9 +95,13 @@ model Cliente {
   referidoPorId         String?       // ID del cliente que lo refirió
   referidoPor           Cliente?      @relation("Referidos", fields: [referidoPorId], references: [id])
   referidos             Cliente[]     @relation("Referidos")
-  referidosActivados    Int           @default(0)  // contador de referidos que se activaron
+  referidosActivados    Int           @default(0)  // contador de referidos que se activados
   resetPasswordToken    String?       @unique  // token para recuperación de contraseña
   resetPasswordExpires  DateTime?     // expiración del token
+  // OAuth fields
+  googleId              String?       @unique  // Google ID único del usuario
+  authProvider          String?       @default("email")  // 'email' | 'google'
+  profileImage          String?       // URL de la foto de perfil (Google)
   eventos               EventoScan[]
   autos                 Auto[]        // un cliente puede tener múltiples autos
   inscripciones         Inscripcion[]

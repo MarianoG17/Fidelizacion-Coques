@@ -2,10 +2,12 @@
 // src/app/pass/page.tsx
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
 import CuestionarioOptional from './components/CuestionarioOptional'
+import CompletePhoneModal from '@/components/CompletePhoneModal'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
@@ -53,6 +55,7 @@ interface NivelesResponse {
 
 export default function PassPage() {
   const router = useRouter()
+  const { data: session, status: sessionStatus } = useSession()
   const [pass, setPass] = useState<PassData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -61,6 +64,7 @@ export default function PassPage() {
   const [beneficiosDisponibles, setBeneficiosDisponibles] = useState<BeneficioDisponible[]>([])
   const [beneficiosUsados, setBeneficiosUsados] = useState<BeneficioDisponible[]>([])
   const [nivelesData, setNivelesData] = useState<NivelesResponse | null>(null)
+  const [showPhoneModal, setShowPhoneModal] = useState(false)
 
   const fetchPass = useCallback(async () => {
     const token = localStorage.getItem('fidelizacion_token')
@@ -140,8 +144,52 @@ export default function PassPage() {
     }
   }, [])
 
+  // Manejar autenticación con NextAuth (Google OAuth)
+  useEffect(() => {
+    if (sessionStatus === 'loading') return
+
+    if (sessionStatus === 'authenticated' && session?.user) {
+      const needsPhone = (session.user as any).needsPhone
+
+      // Si necesita completar teléfono, mostrar modal
+      if (needsPhone) {
+        setShowPhoneModal(true)
+        setLoading(false)
+        return
+      }
+
+      // Si ya tiene sesión de NextAuth pero no tiene token local, generarlo
+      const token = localStorage.getItem('fidelizacion_token')
+      if (!token) {
+        // Generar token JWT para el sistema existente
+        fetch('/api/auth/session-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.token) {
+              localStorage.setItem('fidelizacion_token', data.token)
+              fetchPass()
+              fetchBeneficios()
+              fetchNiveles()
+            }
+          })
+          .catch(err => {
+            console.error('Error generando token:', err)
+            setError('Error de autenticación')
+            setLoading(false)
+          })
+        return
+      }
+    }
+  }, [session, sessionStatus])
+
   // Refresco periódico del OTP y beneficios
   useEffect(() => {
+    const token = localStorage.getItem('fidelizacion_token')
+    if (!token || showPhoneModal) return
+
     fetchPass()
     fetchBeneficios()
     fetchNiveles()
@@ -150,7 +198,7 @@ export default function PassPage() {
       fetchBeneficios()
     }, REFRESH_INTERVAL)
     return () => clearInterval(interval)
-  }, [fetchPass, fetchBeneficios, fetchNiveles])
+  }, [fetchPass, fetchBeneficios, fetchNiveles, showPhoneModal])
 
   // ⚡ PREFETCH ELIMINADO: Con cache de 30min y batch queries,
   // la primera carga es suficientemente rápida
@@ -213,6 +261,24 @@ export default function PassPage() {
   if (!pass) return null
 
   const nivelColor = pass.nivel ? NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' : '#6b7280'
+
+  // Mostrar modal de completar teléfono si es necesario
+  if (showPhoneModal) {
+    return (
+      <>
+        <CompletePhoneModal
+          isOpen={true}
+          userName={session?.user?.name || null}
+        />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Completando registro...</p>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
