@@ -31,12 +31,26 @@ export async function GET(req: NextRequest) {
 
         // Obtener últimos eventos únicos por cliente (solo visitas y beneficios aplicados hoy)
         // Usamos DISTINCT ON simulado con GROUP BY
+        // IMPORTANTE: Excluir visitas bonus (referidos, cuestionario, etc.) que no son físicas
         const eventosRecientes = await prisma.eventoScan.findMany({
             where: {
                 localId: local.id,
                 tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
                 timestamp: { gte: inicioHoy },
                 mesaId: null, // Solo clientes en mostrador (no en salón)
+                NOT: {
+                    AND: [
+                        { tipoEvento: 'VISITA' },
+                        {
+                            OR: [
+                                { notas: { contains: 'bonus', mode: 'insensitive' } },
+                                { notas: { contains: 'referir', mode: 'insensitive' } },
+                                { notas: { contains: 'cuestionario', mode: 'insensitive' } },
+                                { notas: { contains: 'retroactivamente', mode: 'insensitive' } },
+                            ]
+                        }
+                    ]
+                }
             },
             orderBy: { timestamp: 'desc' },
             include: {

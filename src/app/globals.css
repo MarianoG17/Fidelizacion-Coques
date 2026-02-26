@@ -1,56 +1,25 @@
-/* src/app/globals.css */
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --color-brand-50: #EAF4FB;
-  --color-brand-100: #C5E1F5;
-  --color-brand-500: #2E7D9E;
-  --color-brand-800: #1A3C5E;
-  --color-brand-900: #0F2340;
-
-  --font-family-mono: var(--font-mono), 'Courier New', monospace;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 248, 250, 252;
+/* Animación para el banner de instalación */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
-  -webkit-tap-highlight-color: transparent;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Evitar zoom en inputs en iOS */
-input[type="tel"],
-input[type="number"],
-input[type="text"],
-input[type="email"] {
-  font-size: 16px;
-}
-
-/* Ocultar scrollbar en carruseles horizontales */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
-}
-
-/* Mejorar el scroll suave en carruseles */
-.snap-x {
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-}
-
-.snap-center {
-  scroll-snap-align: center;
-}
-
-.snap-mandatory {
-  scroll-snap-type: x mandatory;
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
 }

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import UpdateNotification from '@/components/UpdateNotification'
+import InstallPrompt from '@/components/InstallPrompt'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -71,6 +72,7 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <UpdateNotification />
+        <InstallPrompt />
       </body>
     </html>
   )
