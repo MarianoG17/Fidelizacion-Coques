@@ -223,6 +223,9 @@ export default function PassPage() {
 
   // Refresco periódico del OTP y beneficios
   useEffect(() => {
+    // NO ejecutar hasta que la sesión esté completamente resuelta
+    if (sessionStatus === 'loading') return
+    
     const token = localStorage.getItem('fidelizacion_token')
     if (!token || showPhoneModal) return
 
@@ -235,7 +238,7 @@ export default function PassPage() {
     }, REFRESH_INTERVAL)
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPhoneModal])
+  }, [showPhoneModal, sessionStatus])
 
   // ⚡ PREFETCH ELIMINADO: Con cache de 30min y batch queries,
   // la primera carga es suficientemente rápida
