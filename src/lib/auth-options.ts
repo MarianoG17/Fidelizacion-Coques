@@ -158,16 +158,17 @@ export const authOptions: NextAuthOptions = {
         },
 
         async jwt({ token, user, account }) {
-            // Agregar datos adicionales al token JWT
+            // Agregar datos adicionales al token JWT en el primer login
             if (user) {
                 token.userId = user.id
                 token.phone = (user as any).phone
             }
 
-            // Si es login con Google, obtener datos actualizados del cliente
-            if (account?.provider === "google") {
+            // SIEMPRE verificar el estado actual del cliente en la BD
+            // Esto asegura que el token se actualice después de completar el teléfono
+            if (token.email) {
                 const cliente: any = await prisma.cliente.findUnique({
-                    where: { email: token.email! }
+                    where: { email: token.email }
                 })
 
                 if (cliente) {
@@ -175,7 +176,8 @@ export const authOptions: NextAuthOptions = {
                     token.phone = cliente.phone
                     token.name = cliente.nombre
                     token.picture = cliente.profileImage
-                    token.needsPhone = cliente.phone.includes('TEMP') // Flag si necesita completar teléfono
+                    // Solo necesita completar teléfono si es temporal (contiene TEMP)
+                    token.needsPhone = cliente.phone?.includes('TEMP') || false
                 }
             }
 
