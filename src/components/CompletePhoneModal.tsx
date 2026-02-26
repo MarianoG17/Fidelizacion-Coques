@@ -40,6 +40,11 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                 throw new Error(data.error || 'Error al actualizar teléfono')
             }
 
+            // Guardar nuevo token JWT con estado actualizado
+            if (data.token) {
+                localStorage.setItem('fidelizacion_token', data.token)
+            }
+
             // Recargar página completa para actualizar sesión de NextAuth
             window.location.reload()
         } catch (e) {

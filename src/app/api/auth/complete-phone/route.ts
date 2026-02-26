@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
 import { normalizarTelefono } from '@/lib/phone'
+import jwt from 'jsonwebtoken'
 
 /**
  * Endpoint para completar el teléfono de usuarios que se registraron con Google
@@ -58,18 +59,34 @@ export async function POST(req: NextRequest) {
                 phone: normalizedPhone,
                 estado: 'ACTIVO', // Activar cuenta al completar teléfono
             },
-            select: {
-                id: true,
-                phone: true,
-                email: true,
-                nombre: true,
-                estado: true,
+            include: {
+                nivel: true
             }
         })
 
+        // Generar nuevo token JWT con el estado actualizado
+        const token = jwt.sign(
+            {
+                clienteId: cliente.id,
+                email: cliente.email,
+                nombre: cliente.nombre,
+                phone: cliente.phone,
+                nivel: cliente.nivel?.nombre || 'Bronce',
+            },
+            process.env.JWT_SECRET || 'secret-key-coques-2024',
+            { expiresIn: '30d' }
+        )
+
         return NextResponse.json({
             success: true,
-            data: cliente
+            token, // Incluir el nuevo token
+            data: {
+                id: cliente.id,
+                phone: cliente.phone,
+                email: cliente.email,
+                nombre: cliente.nombre,
+                estado: cliente.estado,
+            }
         })
     } catch (error) {
         console.error('Error completando teléfono:', error)
