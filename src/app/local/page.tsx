@@ -349,34 +349,65 @@ export default function LocalPage() {
         await crearSesionMesa(validacion.cliente.id, mesaSeleccionada.id)
       }
 
-      const payload = {
+      // SIEMPRE registrar la visita física primero
+      const visitaPayload = {
         clienteId: validacion.cliente.id,
         mesaId: mesaSeleccionada?.id || null,
-        tipoEvento: beneficioSeleccionado ? 'BENEFICIO_APLICADO' : 'VISITA',
-        beneficioId: beneficioSeleccionado,
-        metodoValidacion: metodoInput === 'qr' ? 'QR' : 'OTP_MANUAL',
+        tipoEvento: 'VISITA' as const,
+        metodoValidacion: metodoInput === 'qr' ? 'QR' as const : 'OTP_MANUAL' as const,
       }
 
-      console.log('Enviando evento:', payload)
+      console.log('Registrando visita física:', visitaPayload)
 
-      const res = await fetch('/api/eventos', {
+      const resVisita = await fetch('/api/eventos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-local-api-key': LOCAL_API_KEY,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(visitaPayload),
       })
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}))
-        console.error('Error al registrar evento:', res.status, errorData)
-        setErrorMsg(`Error al registrar evento: ${errorData.error || res.statusText}`)
+      if (!resVisita.ok) {
+        const errorData = await resVisita.json().catch(() => ({}))
+        console.error('Error al registrar visita:', resVisita.status, errorData)
+        setErrorMsg(`Error al registrar visita: ${errorData.error || resVisita.statusText}`)
         return
       }
 
-      const data = await res.json()
-      console.log('Evento registrado:', data)
+      const dataVisita = await resVisita.json()
+      console.log('Visita registrada:', dataVisita)
+
+      // Si hay beneficio seleccionado, registrarlo como evento adicional
+      if (beneficioSeleccionado) {
+        const beneficioPayload = {
+          clienteId: validacion.cliente.id,
+          mesaId: mesaSeleccionada?.id || null,
+          tipoEvento: 'BENEFICIO_APLICADO' as const,
+          beneficioId: beneficioSeleccionado,
+          metodoValidacion: metodoInput === 'qr' ? 'QR' as const : 'OTP_MANUAL' as const,
+        }
+
+        console.log('Aplicando beneficio:', beneficioPayload)
+
+        const resBeneficio = await fetch('/api/eventos', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-local-api-key': LOCAL_API_KEY,
+          },
+          body: JSON.stringify(beneficioPayload),
+        })
+
+        if (!resBeneficio.ok) {
+          const errorData = await resBeneficio.json().catch(() => ({}))
+          console.warn('Error al aplicar beneficio:', resBeneficio.status, errorData)
+          // No retornar aquí, la visita ya se registró correctamente
+        } else {
+          const dataBeneficio = await resBeneficio.json()
+          console.log('Beneficio aplicado:', dataBeneficio)
+        }
+      }
 
       // NUEVO: Recargar beneficios del cliente (por si cambió de nivel)
       const clienteActualizado = await recargarBeneficiosCliente(validacion.cliente.id)
