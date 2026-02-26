@@ -218,7 +218,8 @@ export default function PassPage() {
         setLoading(false)
       }
     }
-  }, [session, sessionStatus, fetchPass, fetchBeneficios, fetchNiveles])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, sessionStatus])
 
   // Refresco periódico del OTP y beneficios
   useEffect(() => {
@@ -233,7 +234,8 @@ export default function PassPage() {
       fetchBeneficios()
     }, REFRESH_INTERVAL)
     return () => clearInterval(interval)
-  }, [fetchPass, fetchBeneficios, fetchNiveles, showPhoneModal])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPhoneModal])
 
   // ⚡ PREFETCH ELIMINADO: Con cache de 30min y batch queries,
   // la primera carga es suficientemente rápida
