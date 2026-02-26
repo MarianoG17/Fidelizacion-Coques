@@ -180,9 +180,9 @@ export const authOptions: NextAuthOptions = {
                     console.log('[AUTH] jwt - user data added to token')
                 }
 
-                // Verificar el estado actual del cliente en la BD
-                // Solo en el primer login (cuando hay account) o cuando es Google OAuth
-                if (token.email && (account?.provider === 'google' || user)) {
+                // SIEMPRE verificar el estado actual en la BD para obtener datos actualizados
+                // Esto es necesario para detectar cambios como completar el teléfono
+                if (token.email) {
                     console.log('[AUTH] jwt - querying DB for:', token.email)
                     const cliente: any = await prisma.cliente.findUnique({
                         where: { email: token.email }
