@@ -136,22 +136,15 @@ export const authOptions: NextAuthOptions = {
 
             // Si es login con Google, obtener datos actualizados del cliente
             if (account?.provider === "google") {
-                const cliente = await prisma.cliente.findUnique({
-                    where: { email: token.email! },
-                    select: {
-                        id: true,
-                        phone: true,
-                        nombre: true,
-                        profileImage: true as any,
-                        estado: true,
-                    } as any
+                const cliente: any = await prisma.cliente.findUnique({
+                    where: { email: token.email! }
                 })
 
                 if (cliente) {
                     token.userId = cliente.id
                     token.phone = cliente.phone
                     token.name = cliente.nombre
-                    token.picture = (cliente as any).profileImage
+                    token.picture = cliente.profileImage
                     token.needsPhone = cliente.phone.includes('TEMP') // Flag si necesita completar teléfono
                 }
             }
