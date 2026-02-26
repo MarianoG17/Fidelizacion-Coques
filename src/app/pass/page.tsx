@@ -295,11 +295,8 @@ export default function PassPage() {
   if (loading) return <LoadingScreen />
   if (error === 'no_auth') return <NoAuthScreen />
   if (error) return <ErrorScreen message={error} />
-  if (!pass) return null
-
-  const nivelColor = pass.nivel ? NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' : '#6b7280'
-
-  // Mostrar modal de completar teléfono si es necesario
+  
+  // Mostrar modal de completar teléfono si es necesario (ANTES de verificar pass)
   if (showPhoneModal) {
     return (
       <>
@@ -316,6 +313,10 @@ export default function PassPage() {
       </>
     )
   }
+
+  if (!pass) return null
+
+  const nivelColor = pass.nivel ? NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' : '#6b7280'
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
