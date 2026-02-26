@@ -158,30 +158,36 @@ export const authOptions: NextAuthOptions = {
         },
 
         async jwt({ token, user, account }) {
-            // Agregar datos adicionales al token JWT en el primer login
-            if (user) {
-                token.userId = user.id
-                token.phone = (user as any).phone
-            }
-
-            // SIEMPRE verificar el estado actual del cliente en la BD
-            // Esto asegura que el token se actualice después de completar el teléfono
-            if (token.email) {
-                const cliente: any = await prisma.cliente.findUnique({
-                    where: { email: token.email }
-                })
-
-                if (cliente) {
-                    token.userId = cliente.id
-                    token.phone = cliente.phone
-                    token.name = cliente.nombre
-                    token.picture = cliente.profileImage
-                    // Solo necesita completar teléfono si es temporal (contiene TEMP)
-                    token.needsPhone = cliente.phone?.includes('TEMP') || false
+            try {
+                // Agregar datos adicionales al token JWT en el primer login
+                if (user) {
+                    token.userId = user.id
+                    token.phone = (user as any).phone
                 }
-            }
 
-            return token
+                // Verificar el estado actual del cliente en la BD
+                // Solo en el primer login (cuando hay account) o cuando es Google OAuth
+                if (token.email && (account?.provider === 'google' || user)) {
+                    const cliente: any = await prisma.cliente.findUnique({
+                        where: { email: token.email }
+                    })
+
+                    if (cliente) {
+                        token.userId = cliente.id
+                        token.phone = cliente.phone
+                        token.name = cliente.nombre
+                        token.picture = cliente.profileImage
+                        // Solo necesita completar teléfono si es temporal (contiene TEMP)
+                        token.needsPhone = cliente.phone?.includes('TEMP') || false
+                    }
+                }
+
+                return token
+            } catch (error) {
+                console.error('[AUTH] Error in jwt callback:', error)
+                // Retornar token sin modificar en caso de error
+                return token
+            }
         },
 
         async session({ session, token }) {
