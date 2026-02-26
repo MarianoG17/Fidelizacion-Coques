@@ -95,18 +95,24 @@ export const authOptions: NextAuthOptions = {
 
     callbacks: {
         async signIn({ user, account, profile }) {
+            console.log('[AUTH] signIn callback started', { provider: account?.provider, email: user?.email })
+            
             // Solo procesar para Google OAuth
             if (account?.provider === "google" && user.email) {
                 try {
+                    console.log('[AUTH] Processing Google OAuth login for:', user.email)
+                    
                     // Buscar cliente por email
                     let cliente = await prisma.cliente.findUnique({
                         where: { email: user.email }
                     })
 
+                    console.log('[AUTH] Cliente found:', cliente ? 'YES' : 'NO')
+
                     if (!cliente) {
                         // Cliente nuevo - requiere teléfono para completar registro
-                        // Por ahora creamos un pre-registro que se completará después
                         const googleId = account.providerAccountId
+                        console.log('[AUTH] New user, checking googleId:', googleId)
 
                         // Verificar si ya existe con este googleId
                         const existingByGoogleId = await prisma.cliente.findUnique({
@@ -114,11 +120,12 @@ export const authOptions: NextAuthOptions = {
                         })
 
                         if (existingByGoogleId) {
-                            return true // Ya existe, permitir login
+                            console.log('[AUTH] User already exists with googleId, allowing login')
+                            return true
                         }
 
+                        console.log('[AUTH] Creating new PRE_REGISTRADO user')
                         // Crear nuevo cliente con estado PRE_REGISTRADO
-                        // El teléfono se pedirá en un paso posterior
                         cliente = await prisma.cliente.create({
                             data: {
                                 email: user.email,
@@ -127,14 +134,17 @@ export const authOptions: NextAuthOptions = {
                                 authProvider: 'google',
                                 profileImage: user.image,
                                 estado: 'PRE_REGISTRADO',
-                                phone: `+549TEMP${Date.now()}`, // Temporal, se actualizará después
+                                phone: `+549TEMP${Date.now()}`,
                                 fuenteOrigen: 'AUTOREGISTRO',
                                 codigoReferido: Math.random().toString(36).substring(2, 10).toUpperCase(),
                             } as any
                         })
+                        console.log('[AUTH] New user created:', cliente.id, 'phone:', cliente.phone)
                     } else {
+                        console.log('[AUTH] Existing user, estado:', (cliente as any).estado, 'phone:', cliente.phone)
                         // Cliente existente - actualizar con datos de Google si no los tiene
                         if (!(cliente as any).googleId) {
+                            console.log('[AUTH] Updating existing user with Google data')
                             await prisma.cliente.update({
                                 where: { id: cliente.id },
                                 data: {
@@ -147,41 +157,51 @@ export const authOptions: NextAuthOptions = {
                         }
                     }
 
+                    console.log('[AUTH] signIn callback returning true')
                     return true
                 } catch (error) {
-                    console.error('Error en signIn callback:', error)
+                    console.error('[AUTH] Error en signIn callback:', error)
                     return false
                 }
             }
 
+            console.log('[AUTH] signIn callback - not Google provider, returning true')
             return true
         },
 
         async jwt({ token, user, account }) {
             try {
+                console.log('[AUTH] jwt callback', { hasUser: !!user, hasAccount: !!account, provider: account?.provider })
+                
                 // Agregar datos adicionales al token JWT en el primer login
                 if (user) {
                     token.userId = user.id
                     token.phone = (user as any).phone
+                    console.log('[AUTH] jwt - user data added to token')
                 }
 
                 // Verificar el estado actual del cliente en la BD
                 // Solo en el primer login (cuando hay account) o cuando es Google OAuth
                 if (token.email && (account?.provider === 'google' || user)) {
+                    console.log('[AUTH] jwt - querying DB for:', token.email)
                     const cliente: any = await prisma.cliente.findUnique({
                         where: { email: token.email }
                     })
 
                     if (cliente) {
+                        console.log('[AUTH] jwt - cliente found, phone:', cliente.phone, 'needsPhone:', cliente.phone?.includes('TEMP'))
                         token.userId = cliente.id
                         token.phone = cliente.phone
                         token.name = cliente.nombre
                         token.picture = cliente.profileImage
                         // Solo necesita completar teléfono si es temporal (contiene TEMP)
                         token.needsPhone = cliente.phone?.includes('TEMP') || false
+                    } else {
+                        console.log('[AUTH] jwt - cliente NOT found')
                     }
                 }
 
+                console.log('[AUTH] jwt - final token.needsPhone:', token.needsPhone)
                 return token
             } catch (error) {
                 console.error('[AUTH] Error in jwt callback:', error)
