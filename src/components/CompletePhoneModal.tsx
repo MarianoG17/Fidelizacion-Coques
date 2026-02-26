@@ -40,8 +40,8 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                 throw new Error(data.error || 'Error al actualizar teléfono')
             }
 
-            // Recargar para actualizar la sesión
-            router.refresh()
+            // Recargar página completa para actualizar sesión de NextAuth
+            window.location.reload()
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Error al actualizar teléfono')
             setLoading(false)
