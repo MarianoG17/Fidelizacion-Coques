@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
 import { normalizarTelefono } from '@/lib/phone'
+import { generarSecretoOTP } from '@/lib/otp'
 import jwt from 'jsonwebtoken'
 
 /**
@@ -52,12 +53,16 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Actualizar cliente con el teléfono
+        // Generar OTP secret si no existe (usuarios de Google OAuth)
+        const otpSecret = generarSecretoOTP()
+
+        // Actualizar cliente con el teléfono y otpSecret
         const cliente = await prisma.cliente.update({
             where: { email: session.user.email },
             data: {
                 phone: normalizedPhone,
                 estado: 'ACTIVO', // Activar cuenta al completar teléfono
+                otpSecret: otpSecret, // Generar secret para QR del pass
             },
             include: {
                 nivel: true
