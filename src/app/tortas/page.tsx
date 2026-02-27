@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
+import { FrontendCache } from '@/lib/cache'
 
 interface AddOnOpcion {
   etiqueta: string
@@ -199,6 +200,22 @@ function TortasPageContent() {
   }, [productoSeleccionado])
 
   async function cargarTortas() {
+    // Estrategia: Stale-While-Revalidate
+    // 1. Intentar cargar desde cache primero (instantáneo)
+    const cached = FrontendCache.get<Producto[]>('tortas_catalogo')
+    
+    if (cached) {
+      // Mostrar datos cacheados inmediatamente
+      setProductos(cached)
+      setLoading(false)
+      console.log('🚀 [Cache] Catálogo cargado desde cache:', cached.length, 'productos')
+      
+      // Revalidar en background (sin bloquear UI)
+      revalidarTortasEnBackground()
+      return
+    }
+
+    // Si no hay cache, cargar normalmente con loading
     setLoading(true)
     setError(null)
 
@@ -210,13 +227,41 @@ function TortasPageContent() {
         throw new Error(data.error || 'Error al cargar tortas')
       }
 
-      if (data.success) {
-        setProductos(data.products || [])
+      if (data.success && data.products) {
+        setProductos(data.products)
+        // Guardar en cache por 2 horas
+        FrontendCache.set('tortas_catalogo', data.products, 120)
+        console.log('💾 [Cache] Catálogo guardado en cache:', data.products.length, 'productos')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Revalidación en background (no bloquea UI)
+  async function revalidarTortasEnBackground() {
+    try {
+      const response = await fetch('/api/woocommerce/tortas')
+      const data = await response.json()
+
+      if (response.ok && data.success && data.products) {
+        // Actualizar solo si hay cambios
+        const productosNuevos = data.products
+        const sonDiferentes = JSON.stringify(productos) !== JSON.stringify(productosNuevos)
+        
+        if (sonDiferentes) {
+          setProductos(productosNuevos)
+          FrontendCache.set('tortas_catalogo', productosNuevos, 120)
+          console.log('🔄 [Cache] Catálogo actualizado en background')
+        } else {
+          console.log('✅ [Cache] Catálogo ya está actualizado')
+        }
+      }
+    } catch (err) {
+      // Silencioso en caso de error (ya tenemos datos cacheados)
+      console.warn('⚠️ [Cache] Error revalidando en background:', err)
     }
   }
 
