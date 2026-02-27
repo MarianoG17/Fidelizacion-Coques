@@ -36,8 +36,14 @@ export async function getBeneficiosActivos(clienteId: string) {
 
       // Si requiere estado externo, verificar que al menos un auto esté en ese estado
       if (beneficio.requiereEstadoExterno) {
+        // Para beneficio de lavadero, activar cuando el auto está EN_PROCESO o LISTO
+        // (ambos estados indican que el auto está en el lavadero)
+        const estadosValidos = beneficio.id === 'beneficio-20porciento-lavadero'
+          ? ['EN_PROCESO', 'LISTO']
+          : [beneficio.estadoExternoTrigger]
+        
         const autoConEstado = cliente.autos?.find(
-          (auto: any) => auto.estadoActual?.estado === beneficio.estadoExternoTrigger
+          (auto: any) => auto.estadoActual && estadosValidos.includes(auto.estadoActual.estado)
         )
         if (!autoConEstado) return null
 
