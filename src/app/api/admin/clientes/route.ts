@@ -12,9 +12,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const clientes = await prisma.cliente.findMany({
-      include: {
-        nivel: true,
-      },
       select: {
         id: true,
         nombre: true,
@@ -22,7 +19,12 @@ export async function GET(req: NextRequest) {
         email: true,
         estado: true,
         nivelId: true,
-        nivel: true,
+        nivel: {
+          select: {
+            nombre: true,
+            orden: true,
+          },
+        },
         referidosActivados: true,
         fechaCumpleanos: true,
         fuenteConocimiento: true,
