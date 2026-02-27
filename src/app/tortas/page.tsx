@@ -604,12 +604,13 @@ function TortasPageContent() {
                 {/* Imagen */}
                 {producto.imagen ? (
                   <div className="relative h-64 bg-gray-100">
-                    <img
+                    <Image
                       src={producto.imagen}
                       alt={producto.nombre}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
                       loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
                     />
                   </div>
                 ) : (
@@ -699,12 +700,14 @@ function TortasPageContent() {
               <div className="p-6">
                 {/* Imagen principal */}
                 {productoSeleccionado.imagen && (
-                  <div className="mb-6">
-                    <img
+                  <div className="mb-6 relative h-80">
+                    <Image
                       src={varianteSeleccionada?.imagen || productoSeleccionado.imagen}
                       alt={productoSeleccionado.nombre}
-                      loading="lazy"
-                      className="w-full h-80 object-cover rounded-xl"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 672px"
+                      className="object-cover rounded-xl"
+                      priority={false}
                     />
                   </div>
                 )}
@@ -903,14 +906,14 @@ function TortasPageContent() {
 
                         // Lógica para mostrar campos de Cookies solo si se eligió "Cookies Temáticas"
                         if (campo.nombre.includes('Cantidad de Cookies') ||
-                            campo.nombre.includes('Descripción Cookies') ||
-                            campo.nombre.includes('URL Imagen Referencia Cookies')) {
+                          campo.nombre.includes('Descripción Cookies') ||
+                          campo.nombre.includes('URL Imagen Referencia Cookies')) {
                           // Buscar cualquier add-on que contenga "Cookies" en su nombre
                           const cookiesSeleccionadas = Object.keys(addOnsSeleccionados).find(key =>
                             key.toLowerCase().includes('cookies')
                           )
                           if (!cookiesSeleccionadas || !addOnsSeleccionados[cookiesSeleccionadas] ||
-                              addOnsSeleccionados[cookiesSeleccionadas].length === 0) {
+                            addOnsSeleccionados[cookiesSeleccionadas].length === 0) {
                             return null // No mostrar si no se eligieron cookies
                           }
                         }
