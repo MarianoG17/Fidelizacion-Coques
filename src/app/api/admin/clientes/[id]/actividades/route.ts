@@ -14,13 +14,18 @@ export async function GET(
   const clienteId = params.id
 
   try {
-    // Obtener datos básicos del cliente
+    // Obtener datos completos del cliente incluyendo perfil
     const cliente = await prisma.cliente.findUnique({
       where: { id: clienteId },
       select: {
         nombre: true,
         phone: true,
         email: true,
+        fechaCumpleanos: true,
+        fuenteConocimiento: true,
+        authProvider: true,
+        profileImage: true,
+        createdAt: true,
       },
     })
 

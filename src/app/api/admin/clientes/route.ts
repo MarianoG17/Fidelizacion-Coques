@@ -15,6 +15,21 @@ export async function GET(req: NextRequest) {
       include: {
         nivel: true,
       },
+      select: {
+        id: true,
+        nombre: true,
+        phone: true,
+        email: true,
+        estado: true,
+        nivelId: true,
+        nivel: true,
+        referidosActivados: true,
+        fechaCumpleanos: true,
+        fuenteConocimiento: true,
+        authProvider: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     })
 

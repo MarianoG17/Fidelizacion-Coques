@@ -18,6 +18,10 @@ export default function PerfilPage() {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [fechaCumpleanos, setFechaCumpleanos] = useState('')
+  // Estados separados para fecha de cumpleaños (formato selector)
+  const [dia, setDia] = useState('')
+  const [mes, setMes] = useState('')
+  const [anio, setAnio] = useState('')
 
   // Función para formatear teléfono de +54911... a 11...
   const formatearTelefono = (telefono: string): string => {
@@ -67,6 +71,15 @@ export default function PerfilPage() {
       setEmail(data.data.email || '')
       setFechaCumpleanos(data.data.fechaCumpleanos ?
         data.data.fechaCumpleanos.split('T')[0] : '')
+      
+      // Inicializar selectores de fecha si existe
+      if (data.data.fechaCumpleanos) {
+        const fechaSolo = data.data.fechaCumpleanos.split('T')[0]
+        const [year, month, day] = fechaSolo.split('-')
+        setDia(parseInt(day).toString())
+        setMes(parseInt(month).toString())
+        setAnio(year)
+      }
 
     } catch (err) {
       console.error('Error fetching perfil:', err)
@@ -93,6 +106,19 @@ export default function PerfilPage() {
       setNombre(perfil.nombre || '')
       setEmail(perfil.email || '')
       setFechaCumpleanos(perfil.fechaCumpleanos ? perfil.fechaCumpleanos.split('T')[0] : '')
+      
+      // Restaurar selectores
+      if (perfil.fechaCumpleanos) {
+        const fechaSolo = perfil.fechaCumpleanos.split('T')[0]
+        const [year, month, day] = fechaSolo.split('-')
+        setDia(parseInt(day).toString())
+        setMes(parseInt(month).toString())
+        setAnio(year)
+      } else {
+        setDia('')
+        setMes('')
+        setAnio('')
+      }
     }
     setError(null)
   }
@@ -115,9 +141,11 @@ export default function PerfilPage() {
         email: email.trim().toLowerCase()
       }
 
-      // Only include birthday if it was provided
-      if (fechaCumpleanos) {
-        updateData.fechaCumpleanos = fechaCumpleanos
+      // Construir fecha desde los selectores si hay datos
+      if (dia && mes && anio) {
+        const diaFormateado = dia.padStart(2, '0')
+        const mesFormateado = mes.padStart(2, '0')
+        updateData.fechaCumpleanos = `${anio}-${mesFormateado}-${diaFormateado}`
       }
 
       const response = await fetch('/api/perfil', {
@@ -395,20 +423,81 @@ export default function PerfilPage() {
                 />
               </div>
 
-              {/* Editable: Birthday */}
+              {/* Editable: Birthday con selectores separados */}
               <div>
-                <label htmlFor="fechaCumpleanos" className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha de Cumpleaños (opcional)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  📅 Fecha de Cumpleaños (opcional)
                 </label>
-                <input
-                  type="date"
-                  id="fechaCumpleanos"
-                  value={fechaCumpleanos}
-                  onChange={(e) => setFechaCumpleanos(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Día */}
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Día</label>
+                    <select
+                      value={dia}
+                      onChange={(e) => setDia(e.target.value)}
+                      className="w-full bg-white border-2 border-gray-300 rounded-lg px-2 py-2 focus:border-purple-500 focus:outline-none text-sm"
+                    >
+                      <option value="">-</option>
+                      {Array.from({ length: 31 }, (_, i) => (i + 1).toString()).map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Mes */}
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Mes</label>
+                    <select
+                      value={mes}
+                      onChange={(e) => setMes(e.target.value)}
+                      className="w-full bg-white border-2 border-gray-300 rounded-lg px-2 py-2 focus:border-purple-500 focus:outline-none text-sm"
+                    >
+                      <option value="">-</option>
+                      {[
+                        { valor: '1', nombre: 'Enero' },
+                        { valor: '2', nombre: 'Febrero' },
+                        { valor: '3', nombre: 'Marzo' },
+                        { valor: '4', nombre: 'Abril' },
+                        { valor: '5', nombre: 'Mayo' },
+                        { valor: '6', nombre: 'Junio' },
+                        { valor: '7', nombre: 'Julio' },
+                        { valor: '8', nombre: 'Agosto' },
+                        { valor: '9', nombre: 'Septiembre' },
+                        { valor: '10', nombre: 'Octubre' },
+                        { valor: '11', nombre: 'Noviembre' },
+                        { valor: '12', nombre: 'Diciembre' },
+                      ].map((m) => (
+                        <option key={m.valor} value={m.valor}>
+                          {m.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Año */}
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Año</label>
+                    <select
+                      value={anio}
+                      onChange={(e) => setAnio(e.target.value)}
+                      className="w-full bg-white border-2 border-gray-300 rounded-lg px-2 py-2 focus:border-purple-500 focus:outline-none text-sm"
+                    >
+                      <option value="">-</option>
+                      {Array.from(
+                        { length: new Date().getFullYear() - 1930 + 1 },
+                        (_, i) => (new Date().getFullYear() - i).toString()
+                      ).map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Recibí un regalo especial el día de tu cumpleaños 🎂
+                  🎂 Recibí un regalo especial el día de tu cumpleaños
                 </p>
               </div>
 

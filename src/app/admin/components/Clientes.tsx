@@ -9,6 +9,9 @@ interface Cliente {
   estado: string
   nivel: { nombre: string; orden: number } | null
   referidosActivados: number
+  fechaCumpleanos: string | null
+  fuenteConocimiento: string | null
+  authProvider: string | null
   createdAt: string
   _count: { eventos: number }
 }
@@ -30,6 +33,11 @@ interface ActividadesData {
     nombre: string | null
     phone: string
     email: string | null
+    fechaCumpleanos: string | null
+    fuenteConocimiento: string | null
+    authProvider: string | null
+    profileImage: string | null
+    createdAt: string
   }
   eventos: Actividad[]
   estadisticas: {
@@ -107,7 +115,7 @@ export function Clientes({ adminKey }: { adminKey: string }) {
 
     // Segunda confirmación - requiere escribir el nombre
     const confirmacion = prompt(`Para confirmar la eliminación permanente de ${nombre}, escribe "ELIMINAR" en mayúsculas:`);
-    
+
     if (confirmacion !== 'ELIMINAR') {
       alert('Eliminación cancelada. No se escribió "ELIMINAR" correctamente.')
       return
@@ -177,6 +185,21 @@ export function Clientes({ adminKey }: { adminKey: string }) {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  function formatearFechaCumpleanos(fecha: string): string {
+    const fechaSolo = fecha.split('T')[0]
+    const [year, month, day] = fechaSolo.split('-')
+    const fechaObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    return fechaObj.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: 'short'
+    })
+  }
+
+  function getAuthProviderIcon(provider: string | null): string {
+    if (provider === 'google') return '🔗'
+    return '📧'
   }
 
   function getTipoEventoBadge(tipo: string): { bg: string; text: string } {
@@ -291,6 +314,15 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   Referidos
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  🎂 Cumpleaños
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
+                  💡 Fuente
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
+                  Auth
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Desde
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -330,11 +362,10 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   </td>
                   <td className="p-4">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        cliente.estado === 'ACTIVO'
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${cliente.estado === 'ACTIVO'
                           ? 'bg-green-900 text-green-200'
                           : 'bg-slate-700 text-slate-300'
-                      }`}
+                        }`}
                     >
                       {cliente.estado}
                     </span>
@@ -347,6 +378,29 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   </td>
                   <td className="p-4">
                     <p className="text-white">{cliente.referidosActivados || 0}</p>
+                  </td>
+                  <td className="p-4">
+                    {cliente.fechaCumpleanos ? (
+                      <p className="text-slate-300 text-sm">
+                        {formatearFechaCumpleanos(cliente.fechaCumpleanos)}
+                      </p>
+                    ) : (
+                      <span className="text-slate-600 text-xs">-</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {cliente.fuenteConocimiento ? (
+                      <p className="text-slate-300 text-xs">
+                        {cliente.fuenteConocimiento}
+                      </p>
+                    ) : (
+                      <span className="text-slate-600 text-xs">-</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <span className="text-lg" title={cliente.authProvider === 'google' ? 'Google OAuth' : 'Email/Teléfono'}>
+                      {getAuthProviderIcon(cliente.authProvider)}
+                    </span>
                   </td>
                   <td className="p-4">
                     <p className="text-slate-400 text-sm">
@@ -427,6 +481,73 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                 </div>
               ) : actividadesData ? (
                 <>
+                  {/* Información del Perfil */}
+                  <div className="bg-slate-700 rounded-xl p-4 mb-6">
+                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <span>👤</span>
+                      Información del Perfil
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-slate-400">Email:</span>
+                        <p className="text-white mt-1">
+                          {actividadesData.cliente.email || (
+                            <span className="text-slate-500 italic">No proporcionado</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Fecha de Cumpleaños:</span>
+                        <p className="text-white mt-1">
+                          {actividadesData.cliente.fechaCumpleanos ? (
+                            <>
+                              🎂 {formatearFechaCumpleanos(actividadesData.cliente.fechaCumpleanos)}
+                            </>
+                          ) : (
+                            <span className="text-slate-500 italic">No proporcionado</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">¿Cómo nos conoció?:</span>
+                        <p className="text-white mt-1">
+                          {actividadesData.cliente.fuenteConocimiento || (
+                            <span className="text-slate-500 italic">No proporcionado</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Método de Registro:</span>
+                        <p className="text-white mt-1 flex items-center gap-2">
+                          {actividadesData.cliente.authProvider === 'google' ? (
+                            <>
+                              <span>🔗 Google OAuth</span>
+                              {actividadesData.cliente.profileImage && (
+                                <img
+                                  src={actividadesData.cliente.profileImage}
+                                  alt="Profile"
+                                  className="w-6 h-6 rounded-full"
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <span>📧 Email/Teléfono</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Miembro desde:</span>
+                        <p className="text-white mt-1">
+                          {new Date(actividadesData.cliente.createdAt).toLocaleDateString('es-AR', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Estadísticas */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-slate-700 rounded-xl p-4">
@@ -472,38 +593,38 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                               {formatearFecha(evento.timestamp)}
                             </span>
                           </div>
-                          
+
                           <div className="space-y-1 text-sm">
                             <div className="flex items-center gap-2">
                               <span className="text-slate-400">Local:</span>
                               <span className="text-white">{evento.local.nombre} ({evento.local.tipo})</span>
                             </div>
-                            
+
                             {evento.mesa && (
                               <div className="flex items-center gap-2">
                                 <span className="text-slate-400">Mesa:</span>
                                 <span className="text-white">{evento.mesa.nombre}</span>
                               </div>
                             )}
-                            
+
                             {evento.beneficio && (
                               <div className="flex items-center gap-2">
                                 <span className="text-slate-400">Beneficio:</span>
                                 <span className="text-white">{evento.beneficio.nombre}</span>
                               </div>
                             )}
-                            
+
                             <div className="flex items-center gap-2">
                               <span className="text-slate-400">Método:</span>
                               <span className="text-white">{evento.metodoValidacion}</span>
                             </div>
-                            
+
                             {evento.notas && (
                               <div className="mt-2 p-2 bg-slate-600 rounded">
                                 <span className="text-slate-300 text-xs italic">{evento.notas}</span>
                               </div>
                             )}
-                            
+
                             {!evento.contabilizada && (
                               <div className="mt-2">
                                 <span className="px-2 py-1 bg-orange-900 text-orange-200 rounded text-xs">
