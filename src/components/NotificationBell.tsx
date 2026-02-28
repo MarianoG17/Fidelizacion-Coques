@@ -42,13 +42,13 @@ export default function NotificationBell() {
     <>
       <button
         onClick={handleOpenCenter}
-        className="relative p-2 rounded-lg hover:bg-slate-700 transition-colors"
+        className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
         aria-label="Notificaciones"
       >
-        <svg 
-          className="w-6 h-6 text-white" 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className="w-6 h-6 text-gray-700"
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path 
