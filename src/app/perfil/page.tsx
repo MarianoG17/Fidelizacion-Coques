@@ -309,7 +309,7 @@ export default function PerfilPage() {
         )}
 
         {/* Notification Toggle */}
-        <NotificationToggle userId={perfil.id} />
+        <NotificationToggle />
 
         {/* Profile Information Card */}
         <div className="bg-white rounded-2xl shadow-md p-6">

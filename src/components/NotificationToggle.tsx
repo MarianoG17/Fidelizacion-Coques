@@ -1,11 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-interface NotificationToggleProps {
-  userId?: string
-}
-
-export default function NotificationToggle({ userId }: NotificationToggleProps) {
+export default function NotificationToggle() {
   const [isEnabled, setIsEnabled] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
