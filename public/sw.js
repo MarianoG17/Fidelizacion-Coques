@@ -1,5 +1,5 @@
 // Service Worker para PWA - Fidelización Zona
-const CACHE_NAME = 'fidelizacion-zona-v6' // v6: Nuevos iconos PNG (v2)
+const CACHE_NAME = 'fidelizacion-zona-v7' // v7: Fix iconos v2 en push notifications
 const urlsToCache = [
     '/',
     '/pass',
@@ -93,8 +93,8 @@ self.addEventListener('push', (event) => {
     let notificationData = {
         title: 'Coques Bakery',
         body: 'Nueva notificación',
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
+        icon: '/icon-192x192-v2.png',
+        badge: '/icon-192x192-v2.png',
         data: { url: '/pass' }
     }
 
