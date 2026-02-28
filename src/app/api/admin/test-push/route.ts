@@ -10,18 +10,19 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        // Buscar un cliente con pushSub activa (el admin normalmente)
-        const clientes = await prisma.cliente.findMany({
-            where: {
-                pushSub: { not: null }
-            },
+        // Obtener todos los clientes y filtrar los que tienen pushSub
+        const todosLosClientes = await prisma.cliente.findMany({
             select: {
                 id: true,
                 nombre: true,
                 pushSub: true
-            },
-            take: 5 // Solo los primeros 5 con suscripción activa
+            }
         })
+
+        // Filtrar solo los que tienen pushSub (no null)
+        const clientes = todosLosClientes
+            .filter(c => c.pushSub !== null)
+            .slice(0, 5) // Solo los primeros 5
 
         if (clientes.length === 0) {
             return NextResponse.json({
