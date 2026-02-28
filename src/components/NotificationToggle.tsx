@@ -145,8 +145,8 @@ export default function NotificationToggle() {
           <h3 className="text-white font-semibold">Notificaciones Push</h3>
           <p className="text-slate-400 text-sm">
             {isEnabled
-              ? 'Recibís notificaciones de tu auto, beneficios y más'
-              : 'Activate para recibir notificaciones importantes'
+              ? 'Recibís notificaciones de tu pastelería favorita 🎂'
+              : 'Recibí notificaciones de tu pastelería favorita'
             }
           </p>
         </div>
