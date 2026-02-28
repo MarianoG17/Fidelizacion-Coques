@@ -9,7 +9,7 @@ export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion'>('metricas')
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
@@ -96,13 +96,14 @@ export default function AdminPage() {
             {/* Tabs */}
             <div className="bg-slate-800 border-b border-slate-700">
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 overflow-x-auto">
                         {[
                             { key: 'metricas', label: 'Métricas' },
                             { key: 'eventos', label: 'Eventos Especiales' },
                             { key: 'clientes', label: 'Clientes' },
                             { key: 'niveles', label: '⭐ Niveles' },
                             { key: 'beneficios', label: '🎁 Beneficios' },
+                            { key: 'configuracion', label: '⚙️ Configuración' },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
@@ -150,6 +151,22 @@ export default function AdminPage() {
                             className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition inline-flex items-center gap-2"
                         >
                             <span>Ir a Gestión de Beneficios</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+                {seccionActiva === 'configuracion' && (
+                    <div className="text-center py-12">
+                        <div className="text-4xl mb-4">⚙️</div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Configuración del Sistema</h2>
+                        <p className="text-slate-400 mb-6">Feedback, notificaciones push y más</p>
+                        <button
+                            onClick={() => window.location.href = `/admin/configuracion?key=${adminKey}`}
+                            className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-8 py-4 rounded-xl font-semibold hover:from-slate-700 hover:to-slate-800 transition inline-flex items-center gap-2"
+                        >
+                            <span>Ir a Configuración</span>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
