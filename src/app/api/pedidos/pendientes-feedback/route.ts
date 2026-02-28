@@ -9,7 +9,13 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   
-  if (!session?.user?.id) {
+  if (!session?.user) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  const userId = (session.user as any).id
+  
+  if (!userId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
@@ -32,7 +38,7 @@ export async function GET(req: NextRequest) {
     // 3. Son del cliente actual
     const pedidos = await prisma.presupuesto.findMany({
       where: {
-        clienteId: session.user.id,
+        clienteId: userId,
         estado: 'CONFIRMADO',
         fechaEntrega: {
           lte: fechaLimite,
