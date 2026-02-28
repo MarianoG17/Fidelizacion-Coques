@@ -74,10 +74,12 @@ export async function evaluarLogros(clienteId: string) {
 }
 
 async function verificarPrimeraVisita(clienteId: string): Promise<boolean> {
+  // Solo contar visitas REALES, no bonus
   const visitasTotal = await prisma.eventoScan.count({
     where: {
       clienteId,
       tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
+      metodoValidacion: { in: ['QR', 'OTP_MANUAL'] }, // Excluir BONUS_CUESTIONARIO y BONUS_REFERIDO
     },
   })
 
@@ -92,7 +94,7 @@ async function verificarVisitasConsecutivas(
   if (criterios.visitas) {
     const diasVentana = criterios.diasVentana || 30
     const hace30dias = getHaceNDias(diasVentana)
-    
+
     const visitasTotal = await prisma.eventoScan.count({
       where: {
         clienteId,
