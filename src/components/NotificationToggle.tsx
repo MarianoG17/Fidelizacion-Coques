@@ -57,7 +57,7 @@ export default function NotificationToggle() {
   async function enableNotifications() {
     // Pedir permiso
     const permission = await Notification.requestPermission()
-    
+
     if (permission !== 'granted') {
       alert('Necesitamos tu permiso para enviarte notificaciones')
       return
@@ -65,7 +65,7 @@ export default function NotificationToggle() {
 
     try {
       const registration = await navigator.serviceWorker.ready
-      
+
       // Obtener VAPID public key
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidPublicKey) {
@@ -144,7 +144,7 @@ export default function NotificationToggle() {
         <div className="flex-1">
           <h3 className="text-white font-semibold">Notificaciones Push</h3>
           <p className="text-slate-400 text-sm">
-            {isEnabled 
+            {isEnabled
               ? 'Recibís notificaciones de tu auto, beneficios y más'
               : 'Activate para recibir notificaciones importantes'
             }
@@ -166,7 +166,7 @@ export default function NotificationToggle() {
 }
 
 // Helper function
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
   const base64 = (base64String + padding)
     .replace(/\-/g, '+')
@@ -179,5 +179,5 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i)
   }
 
-  return outputArray
+  return outputArray as Uint8Array<ArrayBuffer>
 }
