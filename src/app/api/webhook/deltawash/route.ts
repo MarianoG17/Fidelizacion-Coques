@@ -17,6 +17,7 @@ import { prisma } from '@/lib/prisma'
 import { triggerBeneficiosPorEstado } from '@/lib/beneficios'
 import { normalizarPatente } from '@/lib/patente'
 import { normalizarTelefono } from '@/lib/phone'
+import { sendPushNotification } from '@/lib/push'
 import { EstadoAutoEnum } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -169,7 +170,31 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Webhook DeltaWash] Estado actualizado: ${patenteNormalizada} → ${estadoNormalizado}`)
 
-        // 9. Si cambió a EN_PROCESO, disparar beneficios
+        // 9. Enviar push notification si cambió a LISTO
+        if (estadoCambio && estadoNormalizado === 'LISTO' && cliente.pushSub) {
+            // Verificar configuración
+            const config = await prisma.configuracionApp.findFirst()
+            if (config?.pushAutoListo && config.pushHabilitado) {
+                try {
+                    await sendPushNotification(cliente.pushSub, {
+                        title: '🚗 ¡Tu auto está listo!',
+                        body: `Tu ${auto.marca || 'auto'} ${patenteNormalizada} ya está terminado y listo para retirar.`,
+                        icon: '/icon-192x192.png',
+                        badge: '/icon-192x192.png',
+                        data: {
+                            url: '/pass',
+                            type: 'auto_listo',
+                            autoId: auto.id
+                        }
+                    })
+                    console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Auto listo`)
+                } catch (error) {
+                    console.error('[Webhook DeltaWash] Error enviando push:', error)
+                }
+            }
+        }
+
+        // 10. Si cambió a EN_PROCESO, disparar beneficios
         let beneficiosActivados: any[] = []
         if (estadoCambio && estadoNormalizado === 'EN_PROCESO') {
             beneficiosActivados = await triggerBeneficiosPorEstado(cliente.id, 'EN_PROCESO')
@@ -178,10 +203,33 @@ export async function POST(req: NextRequest) {
                 console.log(`[Webhook DeltaWash] ✅ Beneficio activado para ${cliente.nombre || cliente.phone}:`,
                     beneficiosActivados.map(b => b.nombre).join(', ')
                 )
+
+                // Enviar push notification de beneficio disponible
+                if (cliente.pushSub) {
+                    const config = await prisma.configuracionApp.findFirst()
+                    if (config?.pushBeneficioDisponible && config.pushHabilitado) {
+                        try {
+                            const nombresBeneficios = beneficiosActivados.map(b => b.nombre).join(', ')
+                            await sendPushNotification(cliente.pushSub, {
+                                title: '🎁 ¡Nuevo beneficio disponible!',
+                                body: `Tenés ${beneficiosActivados.length} beneficio${beneficiosActivados.length > 1 ? 's' : ''} disponible${beneficiosActivados.length > 1 ? 's' : ''}: ${nombresBeneficios}`,
+                                icon: '/icon-192x192.png',
+                                badge: '/icon-192x192.png',
+                                data: {
+                                    url: '/pass',
+                                    type: 'beneficio_disponible'
+                                }
+                            })
+                            console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Beneficio disponible`)
+                        } catch (error) {
+                            console.error('[Webhook DeltaWash] Error enviando push:', error)
+                        }
+                    }
+                }
             }
         }
 
-        // 10. Registrar evento
+        // 11. Registrar evento
         await prisma.eventoScan.create({
             data: {
                 clienteId: cliente.id,
@@ -197,7 +245,7 @@ export async function POST(req: NextRequest) {
             },
         })
 
-        // 11. Respuesta exitosa
+        // 12. Respuesta exitosa
         return NextResponse.json({
             success: true,
             mensaje: 'Estado sincronizado correctamente',

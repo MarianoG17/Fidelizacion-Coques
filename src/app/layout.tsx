@@ -3,6 +3,8 @@ import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
 import InstallPrompt from '@/components/InstallPrompt'
 import UpdateNotification from '@/components/UpdateNotification'
+import FeedbackModal from '@/components/FeedbackModal'
+import PushPermissionPrompt from '@/components/PushPermissionPrompt'
 
 export const metadata: Metadata = {
   title: 'Coques Fidelización',
@@ -35,6 +37,8 @@ export default function RootLayout({
           {children}
           <InstallPrompt />
           <UpdateNotification />
+          <FeedbackModal />
+          <PushPermissionPrompt />
         </SessionProvider>
       </body>
     </html>

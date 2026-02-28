@@ -439,3 +439,30 @@ model Presupuesto {
   @@index([estado])
   @@index([creadoEn])
 }
+
+// Sistema de Configuración de la App
+model ConfiguracionApp {
+  id                          String   @id @default(uuid())
+  
+  // Sistema de Feedback
+  feedbackHabilitado          Boolean  @default(true)
+  feedbackTiempoVisitaMinutos Int      @default(10)   // Minutos después de visita física
+  feedbackDiasPedidoTorta     Int      @default(1)    // Días después de entrega de torta
+  feedbackFrecuenciaDias      Int      @default(7)    // Mínimo entre feedbacks
+  feedbackMinEstrellas        Int      @default(4)    // Estrellas mínimas para redirect Google Maps
+  
+  // URLs
+  googleMapsUrl               String   @default("https://maps.app.goo.gl/n6q5HNELZuwDyT556")
+  
+  // Push Notifications (todos activados por defecto según requerimiento)
+  pushHabilitado              Boolean  @default(true)
+  pushAutoListo               Boolean  @default(true)
+  pushNuevoNivel              Boolean  @default(true)
+  pushBeneficioDisponible     Boolean  @default(true)
+  pushBeneficioVence          Boolean  @default(true)
+  pushCumpleanos              Boolean  @default(true)
+  
+  // Timestamps
+  updatedAt                   DateTime @updatedAt
+  createdAt                   DateTime @default(now())
+}

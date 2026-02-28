@@ -1,6 +1,7 @@
 // src/lib/beneficios.ts
 import { getHaceNDias } from '@/lib/timezone'
 import { prisma } from './prisma'
+import { sendPushNotification } from './push'
 import { EstadoAutoEnum } from '@prisma/client'
 
 /**
@@ -41,7 +42,7 @@ export async function getBeneficiosActivos(clienteId: string) {
         const estadosValidos = beneficio.id === 'beneficio-20porciento-lavadero'
           ? ['EN_PROCESO', 'LISTO']
           : [beneficio.estadoExternoTrigger]
-        
+
         const autoConEstado = cliente.autos?.find(
           (auto: any) => auto.estadoActual && estadosValidos.includes(auto.estadoActual.estado)
         )
@@ -228,6 +229,31 @@ export async function evaluarNivel(clienteId: string) {
       data: { nivelId: siguienteNivel.id },
     })
     console.log(`[evaluarNivel] 🔺 Cliente ${clienteId} SUBIÓ a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados, ${referidosActuales} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'})`)
+
+    // Enviar push notification si está habilitado
+    if (cliente.pushSub) {
+      const config = await prisma.configuracionApp.findFirst()
+      if (config?.pushNuevoNivel && config.pushHabilitado) {
+        try {
+          const nivelIcono = siguienteNivel.nombre === 'Oro' ? '🥇' : siguienteNivel.nombre === 'Plata' ? '🥈' : '🥉'
+          await sendPushNotification(cliente.pushSub, {
+            title: `${nivelIcono} ¡Subiste a nivel ${siguienteNivel.nombre}!`,
+            body: `¡Felicitaciones! Alcanzaste el nivel ${siguienteNivel.nombre} y desbloqueaste nuevos beneficios exclusivos.`,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            data: {
+              url: '/logros',
+              type: 'nuevo_nivel',
+              nivelId: siguienteNivel.id
+            }
+          })
+          console.log(`[evaluarNivel] ✅ Push notification enviada: Nuevo nivel ${siguienteNivel.nombre}`)
+        } catch (error) {
+          console.error('[evaluarNivel] Error enviando push:', error)
+        }
+      }
+    }
+
     return siguienteNivel // retorna el nuevo nivel para notificación
   } else {
     console.log(`[evaluarNivel] ➡️ Cliente ${clienteId} mantiene nivel ${nivelActual?.nombre || 'actual'} (${visitasRecientes}/${visitasRequeridasSiguiente} visitas para subir, ${usosCruzados}/${usosCruzadosRequeridosSiguiente} usos cruzados, ${referidosActuales}/${referidosRequeridosSiguiente} referidos)`)
