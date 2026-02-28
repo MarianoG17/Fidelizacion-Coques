@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
             prisma.eventoScan.findMany({
                 where: {
                     tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
+                    metodoValidacion: { in: ['QR', 'OTP_MANUAL'] }, // Excluir visitas bonus
                 },
                 include: {
                     cliente: {

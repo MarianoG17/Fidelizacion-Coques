@@ -87,7 +87,7 @@ SELECT c.nombre,
     COUNT(es.id) as visitas_reales
 FROM "Cliente" c
     LEFT JOIN "EventoScan" es ON es."clienteId" = c.id
-    AND es."metodoValidacion" NOT IN ('BONUS_CUESTIONARIO', 'BONUS_REFERIDO')
+    AND es."metodoValidacion" IN ('QR', 'OTP_MANUAL')
 GROUP BY c.id,
     c.nombre
 ORDER BY visitas_reales DESC;
@@ -110,6 +110,45 @@ GROUP BY c.id,
     c.nombre
 HAVING COUNT(es.id) > 0
 ORDER BY visitas_reales DESC;
+-- C) Verificar logros de "Primera Visita" (si la tabla existe):
+-- Contar clientes con logro de primera visita
+SELECT COUNT(*) as clientes_con_primera_visita
+FROM "LogroCliente" lc
+    JOIN "Logro" l ON l.id = lc."logroId"
+WHERE l.tipo = 'PRIMERA_VISITA';
+-- Ver detalle de logros de primera visita (CORRECTED COLUMN NAME: obtenidoEn)
+SELECT c.nombre,
+    lc."obtenidoEn",
+    (
+        SELECT COUNT(*)
+        FROM "EventoScan" es
+        WHERE es."clienteId" = c.id
+            AND es."metodoValidacion" IN ('QR', 'OTP_MANUAL')
+    ) as visitas_reales
+FROM "LogroCliente" lc
+    JOIN "Logro" l ON l.id = lc."logroId"
+    JOIN "Cliente" c ON c.id = lc."clienteId"
+WHERE l.tipo = 'PRIMERA_VISITA'
+ORDER BY lc."obtenidoEn" DESC;
+
+-- D) ELIMINAR logros incorrectos (clientes que nunca tuvieron visitas reales)
+-- IMPORTANTE: Ejecutar solo después de verificar con la consulta anterior
+/*
+DELETE FROM "LogroCliente"
+WHERE id IN (
+    SELECT lc.id
+    FROM "LogroCliente" lc
+    JOIN "Logro" l ON l.id = lc."logroId"
+    JOIN "Cliente" c ON c.id = lc."clienteId"
+    WHERE l.tipo = 'PRIMERA_VISITA'
+      AND (
+        SELECT COUNT(*)
+        FROM "EventoScan" es
+        WHERE es."clienteId" = c.id
+          AND es."metodoValidacion" IN ('QR', 'OTP_MANUAL')
+      ) = 0
+);
+*/
 -- ============================================
 -- 7. ROLLBACK (si es necesario)
 -- ============================================
@@ -148,4 +187,7 @@ ORDER BY visitas_reales DESC;
  
  ✅ prisma/migrations/20260228_add_bonus_metodos_validacion.sql
  - Migración creada y ejecutada para actualizar el enum en la base de datos
+ 
+ TABLA CORREGIDA:
+ - LogroCliente (no "ClienteLogro") - nombre correcto de la tabla
  */
