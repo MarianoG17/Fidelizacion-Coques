@@ -10,7 +10,10 @@ export default function PushPermissionPrompt() {
 
     useEffect(() => {
         // Solo mostrar si el usuario está autenticado
-        if (status !== 'authenticated' || !session?.user?.id) return
+        if (status !== 'authenticated' || !session?.user) return
+
+        const userId = (session.user as any).id
+        if (!userId) return
 
         // Verificar si el navegador soporta push notifications
         if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
