@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
                 // Solo se considera "expirado" si el cliente tiene/tuvo el estado necesario
                 let expirado = false
                 let tieneEstadoRequerido = false
-                
+
                 if (beneficio.requiereEstadoExterno) {
                     // Verificar si el cliente tiene el estado requerido actualmente
                     const clienteConAutos = await prisma.cliente.findUnique({
@@ -115,11 +115,11 @@ export async function GET(req: NextRequest) {
                             }
                         }
                     })
-                    
+
                     tieneEstadoRequerido = clienteConAutos?.autos?.some(
                         (auto: any) => auto.estadoActual?.estado === beneficio.estadoExternoTrigger
                     ) || false
-                    
+
                     // Solo verificar expiración si tiene el estado requerido pero no está disponible
                     if (tieneEstadoRequerido && !estaDisponible && cantidadUsosHoy === 0) {
                         // Verificar específicamente el beneficio del lavadero
@@ -153,19 +153,20 @@ export async function GET(req: NextRequest) {
 
         // Separar beneficios disponibles y usados
         const disponibles = beneficiosConUso.filter((b) => b.disponible)
-        
-        // Mostrar en "usados" si:
-        // 1. Es de uso único y ya se usó (yaUsado === true), o
-        // 2. Se usó hoy (usosHoy > 0), o
-        // 3. Está expirado después de haber estado disponible (expirado === true), o
-        // 4. No requiere estado externo (beneficios normales con límite diario alcanzado)
+
+        // Mostrar en "usados" SOLO si:
+        // 1. Se usó HOY (usosHoy > 0) - incluye beneficios de uso único usados hoy
+        // 2. Está expirado HOY por tiempo (expirado === true)
+        // 3. Alcanzó límite diario HOY (!requiereEstadoExterno && usosHoy >= maxPorDia)
+        //
+        // IMPORTANTE: Beneficios de uso único solo aparecen el DÍA que se usaron,
+        // no en días posteriores (eliminamos b.yaUsado de la condición)
         const usados = beneficiosConUso.filter((b) =>
             !b.disponible &&
             (
-                b.yaUsado ||
-                b.usosHoy > 0 ||
-                b.expirado ||
-                (!b.requiereEstadoExterno && b.maxPorDia > 0)
+                b.usosHoy > 0 ||  // Se usó hoy (cubre uso único y recurrentes)
+                b.expirado ||     // Expiró hoy por tiempo
+                (!b.requiereEstadoExterno && b.maxPorDia > 0 && b.usosHoy >= b.maxPorDia)
             )
         )
 
@@ -183,9 +184,9 @@ export async function GET(req: NextRequest) {
                 mensaje:
                     disponibles.length > 0
                         ? 'Mostrá tu QR al staff para aplicar tus beneficios'
-                        : usados.some(b => b.yaUsado)
-                            ? 'Ya usaste los beneficios de uso único disponibles.'
-                            : 'Ya usaste todos tus beneficios de hoy. ¡Volvé mañana!',
+                        : usados.length > 0
+                            ? 'Ya usaste todos tus beneficios de hoy. ¡Volvé mañana!'
+                            : 'No hay beneficios disponibles en este momento.',
             },
         })
     } catch (error) {
