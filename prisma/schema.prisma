@@ -36,6 +36,8 @@ enum TipoEvento {
 enum MetodoValidacion {
   QR
   OTP_MANUAL
+  BONUS_CUESTIONARIO
+  BONUS_REFERIDO
 }
 
 enum EstadoAutoEnum {
