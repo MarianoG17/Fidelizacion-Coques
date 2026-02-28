@@ -64,6 +64,13 @@ export async function POST(req: NextRequest) {
     // Obtener beneficios activos
     const beneficios = await getBeneficiosActivos(cliente.id)
 
+    // Filtrar beneficios canjeables en mostrador (excluir los de "solo-app")
+    const beneficiosCanjeables = beneficios.filter((b: any) => {
+      const condiciones = b.condiciones as any
+      // Excluir beneficios marcados como soloApp (ej: descuentos de tortas que se aplican automáticamente)
+      return !condiciones?.soloApp
+    })
+
     // Retornar información del cliente
     return NextResponse.json({
       data: {
@@ -76,7 +83,7 @@ export async function POST(req: NextRequest) {
               orden: cliente.nivel.orden
             }
           : null,
-        beneficiosActivos: beneficios.map((b: any) => ({
+        beneficiosActivos: beneficiosCanjeables.map((b: any) => ({
           id: b!.id,
           nombre: b!.nombre,
           descripcionCaja: b!.descripcionCaja,
