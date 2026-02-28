@@ -10,7 +10,50 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        // Obtener todos los clientes y filtrar los que tienen pushSub
+        const body = await req.json()
+        const { telefono } = body
+
+        // Si se especifica un teléfono, buscar solo ese cliente
+        if (telefono) {
+            const cliente = await prisma.cliente.findUnique({
+                where: { phone: telefono },
+                select: {
+                    id: true,
+                    nombre: true,
+                    pushSub: true
+                }
+            })
+
+            if (!cliente) {
+                return NextResponse.json({
+                    success: false,
+                    message: `No se encontró cliente con teléfono ${telefono}`
+                })
+            }
+
+            if (!cliente.pushSub) {
+                return NextResponse.json({
+                    success: false,
+                    message: `El cliente ${cliente.nombre} no tiene notificaciones activadas`
+                })
+            }
+
+            const success = await sendPushNotification(cliente.pushSub, {
+                title: '🧪 Prueba de Notificación',
+                body: `Hola ${cliente.nombre}! Esta es una notificación de prueba. ¡Todo funciona correctamente!`,
+                url: '/pass',
+                icon: '/icon-192x192.png'
+            })
+
+            return NextResponse.json({
+                success,
+                message: success
+                    ? `✅ Notificación enviada a ${cliente.nombre}`
+                    : `❌ Error al enviar a ${cliente.nombre}`
+            })
+        }
+
+        // Si no se especifica teléfono, enviar a los primeros 5 (comportamiento original)
         const todosLosClientes = await prisma.cliente.findMany({
             select: {
                 id: true,
@@ -19,10 +62,9 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        // Filtrar solo los que tienen pushSub (no null)
         const clientes = todosLosClientes
             .filter(c => c.pushSub !== null)
-            .slice(0, 5) // Solo los primeros 5
+            .slice(0, 5)
 
         if (clientes.length === 0) {
             return NextResponse.json({
@@ -31,7 +73,6 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        // Enviar notificación de prueba a todos ellos
         let sent = 0
         for (const cliente of clientes) {
             const success = await sendPushNotification(cliente.pushSub, {

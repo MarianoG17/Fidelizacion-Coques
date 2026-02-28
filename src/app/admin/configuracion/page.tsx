@@ -27,6 +27,7 @@ function ConfiguracionContent() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
+  const [telefonoTest, setTelefonoTest] = useState('')
 
   useEffect(() => {
     if (!adminKey) {
@@ -90,7 +91,12 @@ function ConfiguracionContent() {
   }
 
   async function handleTestPush() {
-    if (!confirm('¿Enviar notificación de prueba a tu dispositivo?\n\nAsegurate de tener la PWA instalada y permisos activados.')) {
+    if (!telefonoTest) {
+      alert('⚠️ Por favor ingresá tu número de teléfono (mismo que usás en la app)')
+      return
+    }
+
+    if (!confirm(`¿Enviar notificación de prueba al teléfono ${telefonoTest}?\n\nAsegurate de tener la PWA instalada y permisos activados en ese dispositivo.`)) {
       return
     }
 
@@ -100,13 +106,14 @@ function ConfiguracionContent() {
         headers: {
           'x-admin-key': adminKey,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ telefono: telefonoTest })
       })
 
       const data = await res.json()
       
       if (data.success) {
-        alert('✅ Notificación enviada! Revisa tu dispositivo.')
+        alert('✅ ' + data.message)
       } else {
         alert('❌ ' + data.message)
       }
@@ -137,17 +144,41 @@ function ConfiguracionContent() {
   return (
     <div className="min-h-screen bg-slate-900 p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">⚙️ Configuración</h1>
-            <p className="text-slate-400 mt-2">Sistema de feedback y notificaciones push</p>
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white">⚙️ Configuración</h1>
+              <p className="text-slate-400 mt-2">Sistema de feedback y notificaciones push</p>
+            </div>
           </div>
-          <button
-            onClick={handleTestPush}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-          >
-            🔔 Test Push
-          </button>
+          
+          {/* Test Push Section */}
+          <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+            <h3 className="text-white font-semibold mb-3">🔔 Probar Notificación Push</h3>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <label className="block text-slate-400 text-sm mb-2">
+                  Tu número de teléfono
+                </label>
+                <input
+                  type="tel"
+                  value={telefonoTest}
+                  onChange={(e) => setTelefonoTest(e.target.value)}
+                  placeholder="Ej: 5493516789012"
+                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={handleTestPush}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                Enviar Test
+              </button>
+            </div>
+            <p className="text-slate-500 text-xs mt-2">
+              💡 Ingresá el teléfono con el que te registraste en la app (debe tener notificaciones activadas)
+            </p>
+          </div>
         </div>
 
         {exito && (
