@@ -6,32 +6,32 @@ import Link from 'next/link'
 import { LogroData, NIVEL_COLORS } from '@/types'
 
 interface NivelData {
-  id: string
-  nombre: string
-  orden: number
-  descripcionBeneficios: string | null
-  descuentoTortas: number
-  visitasRequeridas: number
-  esNivelActual: boolean
-  beneficios: Array<{
     id: string
     nombre: string
-    descripcion: string
-    tipo: string
-    descuento: number | null
-  }>
+    orden: number
+    descripcionBeneficios: string | null
+    descuentoTortas: number
+    visitasRequeridas: number
+    esNivelActual: boolean
+    beneficios: Array<{
+        id: string
+        nombre: string
+        descripcion: string
+        tipo: string
+        descuento: number | null
+    }>
 }
 
 interface NivelesResponse {
-  niveles: NivelData[]
-  nivelActual: string
-  totalVisitas: number
-  progreso: {
-    proximoNivel: string
-    visitasActuales: number
-    visitasRequeridas: number
-    visitasFaltantes: number
-  } | null
+    niveles: NivelData[]
+    nivelActual: string
+    totalVisitas: number
+    progreso: {
+        proximoNivel: string
+        visitasActuales: number
+        visitasRequeridas: number
+        visitasFaltantes: number
+    } | null
 }
 
 export default function LogrosPage() {
@@ -47,7 +47,6 @@ export default function LogrosPage() {
             'Bronce': '🥉',
             'Plata': '🥈',
             'Oro': '🥇',
-            'Platino': '💎',
         }
         return iconos[nombreNivel] || '⭐'
     }
@@ -165,7 +164,7 @@ export default function LogrosPage() {
                             <span>🏅</span>
                             Niveles de Membresía
                         </h2>
-                        
+
                         {/* Progreso al próximo nivel */}
                         {nivelesData.progreso && (
                             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-4 mb-4 border border-purple-100">
@@ -207,15 +206,14 @@ export default function LogrosPage() {
                                 {nivelesData.niveles.map((nivel) => {
                                     const color = NIVEL_COLORS[nivel.nombre] || '#6b7280'
                                     const esActual = nivel.esNivelActual
-                                    
+
                                     return (
                                         <div
                                             key={nivel.id}
-                                            className={`flex-shrink-0 w-72 rounded-2xl p-4 snap-center transition-all ${
-                                                esActual
-                                                    ? 'bg-white border-2 shadow-lg'
-                                                    : 'bg-white border border-gray-200 shadow-sm'
-                                            }`}
+                                            className={`flex-shrink-0 w-72 rounded-2xl p-4 snap-center transition-all ${esActual
+                                                ? 'bg-white border-2 shadow-lg'
+                                                : 'bg-white border border-gray-200 shadow-sm'
+                                                }`}
                                             style={esActual ? { borderColor: color } : {}}
                                         >
                                             {/* Header del nivel */}
@@ -247,14 +245,6 @@ export default function LogrosPage() {
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-600 mb-2">Beneficios:</p>
                                                 <ul className="space-y-1.5 max-h-48 overflow-y-auto">
-                                                    {/* Descuento en tortas (si existe) */}
-                                                    {nivel.descuentoTortas > 0 && (
-                                                        <li className="flex items-start gap-2 text-xs text-gray-600">
-                                                            <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
-                                                            <span className="flex-1">🎂 {nivel.descuentoTortas}% de descuento en tortas</span>
-                                                        </li>
-                                                    )}
-                                                    
                                                     {/* Beneficios del nivel */}
                                                     {nivel.beneficios.length > 0 ? (
                                                         nivel.beneficios.map((beneficio) => (
@@ -264,9 +254,7 @@ export default function LogrosPage() {
                                                             </li>
                                                         ))
                                                     ) : (
-                                                        !nivel.descuentoTortas && (
-                                                            <li className="text-xs text-gray-400 italic">Beneficios básicos</li>
-                                                        )
+                                                        <li className="text-xs text-gray-400 italic">Beneficios básicos</li>
                                                     )}
                                                 </ul>
                                             </div>
@@ -274,15 +262,14 @@ export default function LogrosPage() {
                                     )
                                 })}
                             </div>
-                            
+
                             {/* Indicador de scroll */}
                             <div className="flex justify-center gap-1.5 mt-2">
                                 {nivelesData.niveles.map((nivel) => (
                                     <div
                                         key={nivel.id}
-                                        className={`h-1.5 rounded-full transition-all ${
-                                            nivel.esNivelActual ? 'w-6 bg-purple-500' : 'w-1.5 bg-gray-300'
-                                        }`}
+                                        className={`h-1.5 rounded-full transition-all ${nivel.esNivelActual ? 'w-6 bg-purple-500' : 'w-1.5 bg-gray-300'
+                                            }`}
                                     />
                                 ))}
                             </div>

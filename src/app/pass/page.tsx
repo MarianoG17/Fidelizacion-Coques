@@ -225,7 +225,7 @@ export default function PassPage() {
   useEffect(() => {
     // NO ejecutar hasta que la sesión esté completamente resuelta
     if (sessionStatus === 'loading') return
-    
+
     const token = localStorage.getItem('fidelizacion_token')
     if (!token || showPhoneModal) return
 
@@ -290,13 +290,12 @@ export default function PassPage() {
       'Bronce': '🥉',
       'Plata': '🥈',
       'Oro': '🥇',
-      'Platino': '💎',
     }
     return iconos[nombreNivel] || '⭐'
   }
 
   if (loading) return <LoadingScreen />
-  
+
   // IMPORTANTE: Verificar modal ANTES de error para usuarios OAuth
   if (showPhoneModal) {
     return (
@@ -314,7 +313,7 @@ export default function PassPage() {
       </>
     )
   }
-  
+
   if (error === 'no_auth') return <NoAuthScreen />
   if (error) return <ErrorScreen message={error} />
 

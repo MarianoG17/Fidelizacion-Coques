@@ -256,7 +256,6 @@ export function Clientes({ adminKey }: { adminKey: string }) {
           <option>Bronce</option>
           <option>Plata</option>
           <option>Oro</option>
-          <option>Platino</option>
         </select>
       </div>
 
@@ -363,8 +362,8 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   <td className="p-4">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${cliente.estado === 'ACTIVO'
-                          ? 'bg-green-900 text-green-200'
-                          : 'bg-slate-700 text-slate-300'
+                        ? 'bg-green-900 text-green-200'
+                        : 'bg-slate-700 text-slate-300'
                         }`}
                     >
                       {cliente.estado}

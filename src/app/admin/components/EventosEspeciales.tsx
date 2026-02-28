@@ -147,13 +147,12 @@ function EventoCard({
           </p>
         </div>
         <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            evento.estado === 'PUBLICADO'
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${evento.estado === 'PUBLICADO'
               ? 'bg-green-900 text-green-200'
               : evento.estado === 'CANCELADO'
-              ? 'bg-red-900 text-red-200'
-              : 'bg-slate-700 text-slate-300'
-          }`}
+                ? 'bg-red-900 text-red-200'
+                : 'bg-slate-700 text-slate-300'
+            }`}
         >
           {evento.estado}
         </span>
@@ -173,9 +172,8 @@ function EventoCard({
         <div className="flex items-center gap-2">
           <span className="text-slate-400 text-sm">Cupo:</span>
           <span
-            className={`text-sm font-semibold ${
-              cupoLleno ? 'text-red-400' : 'text-white'
-            }`}
+            className={`text-sm font-semibold ${cupoLleno ? 'text-red-400' : 'text-white'
+              }`}
           >
             {evento.inscriptosCount}/{evento.cupoMaximo}
           </span>
@@ -302,7 +300,6 @@ function ModalCrearEvento({
               <option>Bronce</option>
               <option>Plata</option>
               <option>Oro</option>
-              <option>Platino</option>
             </select>
           </div>
 
@@ -374,13 +371,12 @@ function ModalVerEvento({
                     </p>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      inscripcion.estado === 'CONFIRMADA'
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${inscripcion.estado === 'CONFIRMADA'
                         ? 'bg-green-900 text-green-200'
                         : inscripcion.estado === 'ASISTIO'
-                        ? 'bg-blue-900 text-blue-200'
-                        : 'bg-red-900 text-red-200'
-                    }`}
+                          ? 'bg-blue-900 text-blue-200'
+                          : 'bg-red-900 text-red-200'
+                      }`}
                   >
                     {inscripcion.estado}
                   </span>
