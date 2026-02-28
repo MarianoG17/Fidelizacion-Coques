@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
                 body: `Hola ${cliente.nombre}! Esta es una notificación de prueba. ¡Todo funciona correctamente!`,
                 url: '/pass',
                 icon: '/icon-192x192.png'
+            }, {
+                clienteId: cliente.id,
+                tipo: 'TEST'
             })
 
             return NextResponse.json({
@@ -80,6 +83,9 @@ export async function POST(req: NextRequest) {
                 body: 'Esta es una notificación de prueba desde el panel admin. ¡Todo funciona correctamente!',
                 url: '/pass',
                 icon: '/icon-192x192.png'
+            }, {
+                clienteId: cliente.id,
+                tipo: 'TEST'
             })
 
             if (success) sent++

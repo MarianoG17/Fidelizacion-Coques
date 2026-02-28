@@ -1,5 +1,6 @@
 // src/lib/push.ts
 import webPush from 'web-push'
+import { prisma } from './prisma'
 
 // Configurar VAPID keys (se configuran al inicio del servidor)
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_EMAIL) {
@@ -23,19 +24,53 @@ export interface PushNotification {
   }>
 }
 
+export interface PushNotificationOptions {
+  clienteId?: string  // ID del cliente para guardar en historial
+  tipo?: string       // Tipo de notificación: AUTO_LISTO, NUEVO_NIVEL, etc.
+  metadata?: any      // Metadata adicional a guardar
+  saveToHistory?: boolean  // Si guardar en BD (default: true si hay clienteId)
+}
+
 /**
  * Envía una notificación push a un cliente específico
  * @param subscription - Objeto de suscripción del cliente (pushSub en BD)
  * @param notification - Datos de la notificación
+ * @param options - Opciones adicionales (clienteId, tipo, metadata)
  * @returns Promise<boolean> - true si se envió correctamente
  */
 export async function sendPushNotification(
   subscription: any,
-  notification: PushNotification
+  notification: PushNotification,
+  options?: PushNotificationOptions
 ): Promise<boolean> {
   if (!subscription) {
     console.warn('No hay suscripción push para este cliente')
     return false
+  }
+
+  const { clienteId, tipo, metadata, saveToHistory = !!clienteId } = options || {}
+  let notificacionId: string | undefined
+
+  // Guardar en BD antes de enviar (si se especificó clienteId)
+  if (saveToHistory && clienteId) {
+    try {
+      const notificacion = await prisma.notificacion.create({
+        data: {
+          clienteId,
+          titulo: notification.title,
+          cuerpo: notification.body,
+          url: notification.url,
+          icono: notification.icon,
+          tipo,
+          metadata: metadata || null,
+          enviada: false
+        }
+      })
+      notificacionId = notificacion.id
+    } catch (error) {
+      console.error('Error al guardar notificación en BD:', error)
+      // Continuamos aunque falle el guardado
+    }
   }
 
   try {
@@ -50,6 +85,19 @@ export async function sendPushNotification(
 
     await webPush.sendNotification(subscription, payload)
     console.log('✅ Push notification enviada:', notification.title)
+
+    // Marcar como enviada en BD
+    if (notificacionId) {
+      try {
+        await prisma.notificacion.update({
+          where: { id: notificacionId },
+          data: { enviada: true }
+        })
+      } catch (error) {
+        console.error('Error al actualizar estado de notificación:', error)
+      }
+    }
+
     return true
   } catch (error: any) {
     console.error('❌ Error al enviar push notification:', error)
@@ -69,15 +117,20 @@ export async function sendPushNotification(
  * Envía notificaciones push a múltiples clientes
  * @param subscriptions - Array de objetos { clienteId, pushSub }
  * @param notification - Datos de la notificación
+ * @param options - Opciones para todas las notificaciones (tipo, metadata)
  * @returns Promise con estadísticas de envío
  */
 export async function sendPushToMultiple(
   subscriptions: Array<{ clienteId: string; pushSub: any }>,
-  notification: PushNotification
+  notification: PushNotification,
+  options?: Omit<PushNotificationOptions, 'clienteId'>
 ): Promise<{ sent: number; failed: number; expired: string[] }> {
   const results = await Promise.allSettled(
     subscriptions.map(async ({ clienteId, pushSub }) => {
-      const success = await sendPushNotification(pushSub, notification)
+      const success = await sendPushNotification(pushSub, notification, {
+        ...options,
+        clienteId
+      })
       return { clienteId, success }
     })
   )

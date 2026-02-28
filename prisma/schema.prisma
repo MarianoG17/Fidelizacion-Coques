@@ -112,6 +112,7 @@ model Cliente {
   logros                LogroCliente[]
   sesionesMesa          SesionMesa[]  // sesiones en mesas del salón
   presupuestos          Presupuesto[]
+  notificaciones        Notificacion[] // historial de notificaciones push
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
@@ -465,4 +466,29 @@ model ConfiguracionApp {
   // Timestamps
   updatedAt                   DateTime @updatedAt
   createdAt                   DateTime @default(now())
+}
+
+// Historial de Notificaciones Push
+model Notificacion {
+  id          String    @id @default(uuid())
+  clienteId   String
+  cliente     Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  titulo      String    // Título de la notificación
+  cuerpo      String    // Cuerpo del mensaje
+  url         String?   // URL opcional para abrir al hacer click
+  icono       String?   // URL del ícono
+  
+  leida       Boolean   @default(false)  // Si el usuario la marcó como leída
+  enviada     Boolean   @default(false)  // Si se envió exitosamente
+  
+  tipo        String?   // AUTO_LISTO, NUEVO_NIVEL, BENEFICIO, CUMPLEANOS, etc.
+  metadata    Json?     // datos adicionales (autoId, beneficioId, etc.)
+  
+  creadoEn    DateTime  @default(now())
+  leidaEn     DateTime? // cuándo se marcó como leída
+  
+  @@index([clienteId])
+  @@index([clienteId, leida])
+  @@index([creadoEn])
 }

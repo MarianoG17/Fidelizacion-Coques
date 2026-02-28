@@ -8,6 +8,8 @@ import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '
 import { formatearPatenteDisplay } from '@/lib/patente'
 import CuestionarioOptional from './components/CuestionarioOptional'
 import CompletePhoneModal from '@/components/CompletePhoneModal'
+import NotificationBell from '@/components/NotificationBell'
+import NotificationToggle from '@/components/NotificationToggle'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
@@ -325,8 +327,13 @@ export default function PassPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
       {/* Header */}
       <div className="w-full max-w-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl font-bold text-slate-800">Hola, {pass.nombre} 👋</h1>
+          </div>
+          {session && <NotificationBell />}
+        </div>
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-800">Hola, {pass.nombre} 👋</h1>
           {pass.nivel && (
             <div className="mt-2">
               <span

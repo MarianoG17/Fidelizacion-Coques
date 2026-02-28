@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PerfilData } from '@/types'
+import NotificationToggle from '@/components/NotificationToggle'
 
 export default function PerfilPage() {
   const router = useRouter()
@@ -306,6 +307,9 @@ export default function PerfilPage() {
             </div>
           </div>
         )}
+
+        {/* Notification Toggle */}
+        <NotificationToggle userId={perfil.id} />
 
         {/* Profile Information Card */}
         <div className="bg-white rounded-2xl shadow-md p-6">

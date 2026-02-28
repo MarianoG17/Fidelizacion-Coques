@@ -186,6 +186,10 @@ export async function POST(req: NextRequest) {
                             type: 'auto_listo',
                             autoId: auto.id
                         }
+                    }, {
+                        clienteId: cliente.id,
+                        tipo: 'AUTO_LISTO',
+                        metadata: { autoId: auto.id, patente: patenteNormalizada }
                     })
                     console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Auto listo`)
                 } catch (error) {
@@ -219,6 +223,10 @@ export async function POST(req: NextRequest) {
                                     url: '/pass',
                                     type: 'beneficio_disponible'
                                 }
+                            }, {
+                                clienteId: cliente.id,
+                                tipo: 'BENEFICIO',
+                                metadata: { beneficios: beneficiosActivados.map(b => ({ id: b.id, nombre: b.nombre })) }
                             })
                             console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Beneficio disponible`)
                         } catch (error) {
