@@ -2,10 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/presupuestos - Listar todos los presupuestos para admin
 export async function GET(req: NextRequest) {
     try {
-        const { searchParams } = new URL(req.url)
+        const searchParams = req.nextUrl.searchParams
         const estado = searchParams.get('estado')
         const busqueda = searchParams.get('busqueda')
         const desde = searchParams.get('desde')

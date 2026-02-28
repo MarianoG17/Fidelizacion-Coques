@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 interface ConfiguracionApp {
@@ -18,7 +18,7 @@ interface ConfiguracionApp {
   pushCumpleanos: boolean
 }
 
-export default function ConfiguracionPage() {
+function ConfiguracionContent() {
   const searchParams = useSearchParams()
   const adminKey = searchParams.get('key') || ''
 
@@ -366,5 +366,17 @@ export default function ConfiguracionPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function ConfiguracionPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Cargando configuración...</div>
+      </div>
+    }>
+      <ConfiguracionContent />
+    </Suspense>
   )
 }
