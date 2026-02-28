@@ -187,8 +187,21 @@ export default function NotificationCenter({ onClose, onNotificationsRead }: Not
                   }`}
                 >
                   <div className="flex gap-3">
-                    <div className="text-2xl flex-shrink-0">
-                      {notif.icono || getIconoTipo(notif.tipo)}
+                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
+                      {notif.icono && (notif.icono.startsWith('http') || notif.icono.startsWith('/')) ? (
+                        <img
+                          src={notif.icono}
+                          alt=""
+                          className="w-8 h-8 rounded-lg"
+                          onError={(e) => {
+                            // Si falla la carga de la imagen, mostrar emoji por defecto
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.parentElement!.innerHTML = getIconoTipo(notif.tipo)
+                          }}
+                        />
+                      ) : (
+                        <span className="text-2xl">{notif.icono || getIconoTipo(notif.tipo)}</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

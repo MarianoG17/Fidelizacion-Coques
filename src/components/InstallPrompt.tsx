@@ -138,9 +138,9 @@ export default function InstallPrompt() {
     if (showIOSInstructions) {
         return (
             <div
-                className="fixed bottom-0 left-0 right-0 z-50 p-4 shadow-2xl"
+                className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4 shadow-2xl"
                 style={{
-                    background: 'linear-gradient(to right, rgb(59, 130, 246), rgb(147, 51, 234))',
+                    background: 'linear-gradient(135deg, rgb(59, 130, 246), rgb(99, 102, 241))',
                     animation: 'slideUp 0.3s ease-out forwards'
                 }}
             >
@@ -156,43 +156,48 @@ export default function InstallPrompt() {
             }
           }
         `}</style>
-                <div className="max-w-4xl mx-auto text-white">
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="max-w-lg mx-auto text-white">
+                    <div className="flex items-center justify-between gap-3 mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                            <div className="text-3xl">📱</div>
+                            <div className="text-2xl sm:text-3xl">📱</div>
                             <div>
-                                <p className="font-bold text-base sm:text-lg">¡Instalá Coques Bakery en tu iPhone!</p>
-                                <p className="text-sm opacity-90">Acceso rápido desde tu pantalla de inicio</p>
+                                <p className="font-bold text-sm sm:text-base leading-tight">Instalá la App de Coques</p>
+                                <p className="text-xs sm:text-sm opacity-90 mt-0.5">Tus puntos y beneficios siempre a mano</p>
                             </div>
                         </div>
                         <button
                             onClick={handleDismiss}
-                            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors flex-shrink-0"
+                            className="p-1.5 sm:p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors flex-shrink-0 text-lg sm:text-xl"
                             aria-label="Cerrar"
                         >
                             ✕
                         </button>
                     </div>
 
-                    <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
-                        <p className="font-semibold mb-2 text-sm sm:text-base">Seguí estos pasos:</p>
-                        <ol className="space-y-2 text-sm sm:text-base">
-                            <li className="flex items-start gap-2">
-                                <span className="font-bold text-yellow-300 flex-shrink-0">1.</span>
-                                <span>Tocá el botón <strong className="inline-flex items-center px-1.5 py-0.5 bg-white bg-opacity-20 rounded text-yellow-300">Compartir <span className="ml-1">□↑</span></strong> en la barra inferior</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="font-bold text-yellow-300 flex-shrink-0">2.</span>
-                                <span>Deslizá hacia abajo y tocá <strong className="text-yellow-300">"Agregar a pantalla de inicio"</strong></span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="font-bold text-yellow-300 flex-shrink-0">3.</span>
-                                <span>Confirmá tocando <strong className="text-yellow-300">"Agregar"</strong> arriba a la derecha</span>
-                            </li>
-                        </ol>
-                        <p className="mt-3 text-xs sm:text-sm opacity-90 italic">
-                            💡 La app aparecerá en tu pantalla de inicio como cualquier otra app
-                        </p>
+                    <div className="bg-white bg-opacity-15 backdrop-blur-sm rounded-xl p-3 sm:p-4 space-y-2.5">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 bg-white bg-opacity-25 rounded-lg flex items-center justify-center font-bold text-sm sm:text-base">
+                                1
+                            </div>
+                            <p className="text-xs sm:text-sm leading-relaxed">
+                                Tocá <span className="inline-flex items-center px-2 py-0.5 bg-white bg-opacity-20 rounded-md font-medium mx-1">□↑</span> abajo
+                            </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 bg-white bg-opacity-25 rounded-lg flex items-center justify-center font-bold text-sm sm:text-base">
+                                2
+                            </div>
+                            <p className="text-xs sm:text-sm leading-relaxed">
+                                Seleccioná <span className="font-semibold">"Agregar a Inicio"</span>
+                            </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-white border-opacity-20">
+                            <p className="text-xs opacity-90 text-center">
+                                ✨ Acceso rápido como app nativa
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

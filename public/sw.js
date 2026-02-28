@@ -1,5 +1,5 @@
 // Service Worker para PWA - Fidelización Zona
-const CACHE_NAME = 'fidelizacion-zona-v5' // v5: Iconos PNG actualizados
+const CACHE_NAME = 'fidelizacion-zona-v6' // v6: Nuevos iconos PNG (v2)
 const urlsToCache = [
     '/',
     '/pass',
@@ -7,8 +7,8 @@ const urlsToCache = [
     '/activar',
     '/local',
     '/manifest.json',
-    '/icon-192x192.png',
-    '/icon-512x512.png'
+    '/icon-192x192-v2.png',
+    '/icon-512x512-v2.png'
 ]
 
 // Instalación del Service Worker
@@ -121,8 +121,8 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(notificationData.title, {
             body: notificationData.body,
-            icon: notificationData.icon,
-            badge: notificationData.badge,
+            icon: '/icon-192x192-v2.png',
+            badge: '/icon-192x192-v2.png',
             tag: notificationData.tag,
             data: notificationData.data,
             requireInteraction: notificationData.requireInteraction,

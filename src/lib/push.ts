@@ -77,8 +77,8 @@ export async function sendPushNotification(
     const payload = JSON.stringify({
       title: notification.title,
       body: notification.body,
-      icon: notification.icon || '/icon-192x192.png',
-      badge: notification.badge || '/icon-192x192.png',
+      icon: notification.icon || '/icon-192x192-v2.png',
+      badge: notification.badge || '/icon-192x192-v2.png',
       data: notification.data || { url: notification.url || '/pass' },
       actions: notification.actions || []
     })
