@@ -16,6 +16,7 @@ export interface PushNotification {
   url?: string
   icon?: string
   badge?: string
+  data?: Record<string, any>  // Datos adicionales para el Service Worker
   actions?: Array<{
     action: string
     title: string
@@ -43,7 +44,7 @@ export async function sendPushNotification(
       body: notification.body,
       icon: notification.icon || '/icon-192x192.png',
       badge: notification.badge || '/icon-192x192.png',
-      url: notification.url || '/pass',
+      data: notification.data || { url: notification.url || '/pass' },
       actions: notification.actions || []
     })
 
@@ -52,14 +53,14 @@ export async function sendPushNotification(
     return true
   } catch (error: any) {
     console.error('❌ Error al enviar push notification:', error)
-    
+
     // Si la suscripción está expirada o es inválida, retornar false
     // para que el llamador pueda limpiarla de la BD
     if (error.statusCode === 410) {
       console.warn('⚠️ Suscripción expirada o inválida')
       return false
     }
-    
+
     return false
   }
 }
@@ -116,6 +117,6 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData[i]
   }
-  
+
   return outputArray
 }
