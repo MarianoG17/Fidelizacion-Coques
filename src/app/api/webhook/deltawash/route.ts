@@ -179,8 +179,8 @@ export async function POST(req: NextRequest) {
                     await sendPushNotification(cliente.pushSub, {
                         title: '🚗 ¡Tu auto está listo!',
                         body: `Tu ${auto.marca || 'auto'} ${patenteNormalizada} ya está terminado y listo para retirar.`,
-                        icon: '/icon-192x192.png',
-                        badge: '/icon-192x192.png',
+                        icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
+                        badge: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
                         data: {
                             url: '/pass',
                             type: 'auto_listo',
@@ -217,8 +217,8 @@ export async function POST(req: NextRequest) {
                             await sendPushNotification(cliente.pushSub, {
                                 title: '🎁 ¡Nuevo beneficio disponible!',
                                 body: `Tenés ${beneficiosActivados.length} beneficio${beneficiosActivados.length > 1 ? 's' : ''} disponible${beneficiosActivados.length > 1 ? 's' : ''}: ${nombresBeneficios}`,
-                                icon: '/icon-192x192.png',
-                                badge: '/icon-192x192.png',
+                                icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
+                                badge: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
                                 data: {
                                     url: '/pass',
                                     type: 'beneficio_disponible'

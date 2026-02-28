@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
                 title: '🧪 Prueba de Notificación',
                 body: `Hola ${cliente.nombre}! Esta es una notificación de prueba. ¡Todo funciona correctamente!`,
                 url: '/pass',
-                icon: '/icon-192x192.png'
+                icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
+                badge: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`
             }, {
                 clienteId: cliente.id,
                 tipo: 'TEST'
@@ -82,7 +83,8 @@ export async function POST(req: NextRequest) {
                 title: '🧪 Prueba de Notificación',
                 body: 'Esta es una notificación de prueba desde el panel admin. ¡Todo funciona correctamente!',
                 url: '/pass',
-                icon: '/icon-192x192.png'
+                icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
+                badge: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`
             }, {
                 clienteId: cliente.id,
                 tipo: 'TEST'
