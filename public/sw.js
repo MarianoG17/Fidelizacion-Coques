@@ -1,5 +1,6 @@
 // Service Worker para PWA - Fidelización Zona
-const CACHE_NAME = 'fidelizacion-zona-v7' // v7: Fix iconos v2 en push notifications
+const CACHE_NAME = 'fidelizacion-zona-v8' // v8: Cache busting forzado para iconos pavlova
+const ICON_VERSION = 'v8' // Cambiar esta versión para forzar actualización de iconos
 const urlsToCache = [
     '/',
     '/pass',
@@ -7,8 +8,8 @@ const urlsToCache = [
     '/activar',
     '/local',
     '/manifest.json',
-    '/icon-192x192-v2.png',
-    '/icon-512x512-v2.png'
+    `/icon-192x192-v2.png?v=${ICON_VERSION}`,
+    `/icon-512x512-v2.png?v=${ICON_VERSION}`
 ]
 
 // Instalación del Service Worker
@@ -93,8 +94,8 @@ self.addEventListener('push', (event) => {
     let notificationData = {
         title: 'Coques Bakery',
         body: 'Nueva notificación',
-        icon: '/icon-192x192-v2.png',
-        badge: '/icon-192x192-v2.png',
+        icon: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
+        badge: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
         data: { url: '/pass' }
     }
 
@@ -121,8 +122,8 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(notificationData.title, {
             body: notificationData.body,
-            icon: '/icon-192x192-v2.png',
-            badge: '/icon-192x192-v2.png',
+            icon: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
+            badge: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
             tag: notificationData.tag,
             data: notificationData.data,
             requireInteraction: notificationData.requireInteraction,
