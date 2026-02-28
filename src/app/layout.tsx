@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
+import InstallPrompt from '@/components/InstallPrompt'
+import UpdateNotification from '@/components/UpdateNotification'
 
 export const metadata: Metadata = {
   title: 'Coques Fidelización',
@@ -31,6 +33,8 @@ export default function RootLayout({
       <body>
         <SessionProvider>
           {children}
+          <InstallPrompt />
+          <UpdateNotification />
         </SessionProvider>
       </body>
     </html>
