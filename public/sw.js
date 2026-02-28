@@ -1,12 +1,14 @@
 // Service Worker para PWA - Fidelización Zona
-const CACHE_NAME = 'fidelizacion-zona-v4' // v4: Push notifications implementadas
+const CACHE_NAME = 'fidelizacion-zona-v5' // v5: Iconos PNG actualizados
 const urlsToCache = [
     '/',
     '/pass',
     '/login',
     '/activar',
     '/local',
-    '/manifest.json'
+    '/manifest.json',
+    '/icon-192x192.png',
+    '/icon-512x512.png'
 ]
 
 // Instalación del Service Worker
