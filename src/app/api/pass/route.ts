@@ -51,6 +51,20 @@ export async function GET(req: NextRequest) {
     // Obtener beneficios activos
     const beneficios = await getBeneficiosActivos(cliente.id)
 
+    // Obtener último scan/visita para feedback modal
+    const ultimaVisita = await prisma.eventoScan.findFirst({
+      where: {
+        clienteId: cliente.id,
+        tipoEvento: 'VISITA',
+      },
+      orderBy: {
+        timestamp: 'desc',
+      },
+      select: {
+        timestamp: true,
+      },
+    })
+
     return NextResponse.json({
       data: {
         clienteId: cliente.id,
@@ -97,6 +111,7 @@ export async function GET(req: NextRequest) {
           tiempoRestante: tiempoRestante(),
           step: Number(process.env.OTP_STEP) || 30,
         },
+        ultimaVisita: ultimaVisita ? ultimaVisita.timestamp.getTime() : null,
       },
     })
   } catch (error) {

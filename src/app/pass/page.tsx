@@ -87,6 +87,17 @@ export default function PassPage() {
       const json = await res.json()
       setPass(json.data)
       setCountdown(json.data.otp.tiempoRestante)
+
+      // Guardar timestamp de última visita para feedback modal
+      const ultimaVisita = json.data.ultimaVisita
+      if (ultimaVisita) {
+        const guardado = localStorage.getItem('ultimo_scan')
+        if (!guardado || parseInt(guardado) !== ultimaVisita) {
+          localStorage.setItem('ultimo_scan', ultimaVisita.toString())
+          localStorage.removeItem('feedback_scan_visto')
+          console.log('[PASS] Nuevo scan detectado:', new Date(ultimaVisita))
+        }
+      }
     } catch {
       setError('Error de conexión')
     } finally {
@@ -109,33 +120,6 @@ export default function PassPage() {
       }
     } catch (err) {
       console.error('Error al cargar beneficios:', err)
-    }
-  }, [])
-
-  const checkUltimoScan = useCallback(async () => {
-    const token = localStorage.getItem('fidelizacion_token')
-    if (!token) return
-
-    try {
-      const res = await fetch('/api/eventos/ultimo-scan', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const json = await res.json()
-        const ultimoScan = json.data.ultimoScan
-
-        if (ultimoScan) {
-          const guardado = localStorage.getItem('ultimo_scan')
-          // Si hay un nuevo scan que no habíamos guardado, guardarlo
-          if (!guardado || parseInt(guardado) !== ultimoScan) {
-            localStorage.setItem('ultimo_scan', ultimoScan.toString())
-            localStorage.removeItem('feedback_scan_visto')
-            console.log('[PASS] Nuevo scan detectado:', new Date(ultimoScan))
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error al verificar último scan:', err)
     }
   }, [])
 
@@ -261,22 +245,13 @@ export default function PassPage() {
     fetchPass()
     fetchBeneficios()
     fetchNiveles()
-    checkUltimoScan() // Verificar inmediatamente
-
+    
     const interval = setInterval(() => {
       fetchPass()
       fetchBeneficios()
     }, REFRESH_INTERVAL)
-
-    // Polling cada 30 segundos para detectar scans nuevos
-    const scanInterval = setInterval(() => {
-      checkUltimoScan()
-    }, 30000) // 30 segundos
-
-    return () => {
-      clearInterval(interval)
-      clearInterval(scanInterval)
-    }
+    
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPhoneModal, sessionStatus])
 
