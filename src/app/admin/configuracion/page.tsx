@@ -1,413 +1,235 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface ConfiguracionApp {
-  id: string
-  feedbackHabilitado: boolean
-  feedbackTiempoVisitaMinutos: number
-  feedbackDiasPedidoTorta: number
-  feedbackFrecuenciaDias: number
-  feedbackMinEstrellas: number
-  googleMapsUrl: string
-  pushHabilitado: boolean
-  pushAutoListo: boolean
-  pushNuevoNivel: boolean
-  pushBeneficioDisponible: boolean
-  pushBeneficioVence: boolean
-  pushCumpleanos: boolean
-}
-
-function ConfiguracionContent() {
-  const searchParams = useSearchParams()
-  const adminKey = searchParams.get('key') || ''
-
-  const [config, setConfig] = useState<ConfiguracionApp | null>(null)
-  const [cargando, setCargando] = useState(true)
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
-  const [exito, setExito] = useState(false)
-  const [telefonoTest, setTelefonoTest] = useState('')
-
-  useEffect(() => {
-    if (!adminKey) {
-      setError('Falta admin key')
-      setCargando(false)
-      return
-    }
-    fetchConfig()
-  }, [adminKey])
-
-  async function fetchConfig() {
-    try {
-      const res = await fetch('/api/admin/configuracion', {
-        headers: { 'x-admin-key': adminKey }
-      })
-      
-      if (!res.ok) {
-        throw new Error('Error al cargar configuración')
-      }
-
-      const data = await res.json()
-      setConfig(data.config)
-    } catch (err) {
-      setError('Error al cargar la configuración')
-      console.error(err)
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!config) return
-
-    setGuardando(true)
-    setError('')
-    setExito(false)
-
-    try {
-      const res = await fetch('/api/admin/configuracion', {
-        method: 'PATCH',
-        headers: {
-          'x-admin-key': adminKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(config)
-      })
-
-      if (!res.ok) {
-        throw new Error('Error al guardar')
-      }
-
-      setExito(true)
-      setTimeout(() => setExito(false), 3000)
-    } catch (err) {
-      setError('Error al guardar la configuración')
-      console.error(err)
-    } finally {
-      setGuardando(false)
-    }
-  }
-
-  async function handleTestPush() {
-    if (!telefonoTest) {
-      alert('⚠️ Por favor ingresá tu número de teléfono (mismo que usás en la app)')
-      return
-    }
-
-    if (!confirm(`¿Enviar notificación de prueba al teléfono ${telefonoTest}?\n\nAsegurate de tener la PWA instalada y permisos activados en ese dispositivo.`)) {
-      return
-    }
-
-    try {
-      const res = await fetch('/api/admin/test-push', {
-        method: 'POST',
-        headers: {
-          'x-admin-key': adminKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ telefono: telefonoTest })
-      })
-
-      const data = await res.json()
-      
-      if (data.success) {
-        alert('✅ ' + data.message)
-      } else {
-        alert('❌ ' + data.message)
-      }
-    } catch (err) {
-      alert('Error al enviar notificación de prueba')
-      console.error(err)
-    }
-  }
-
-  if (cargando) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Cargando configuración...</div>
-      </div>
-    )
-  }
-
-  if (error && !config) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-red-400 text-xl">{error}</div>
-      </div>
-    )
-  }
-
-  if (!config) return null
-
-  return (
-    <div className="min-h-screen bg-slate-900 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white">⚙️ Configuración</h1>
-              <p className="text-slate-400 mt-2">Sistema de feedback y notificaciones push</p>
-            </div>
-          </div>
-          
-          {/* Test Push Section */}
-          <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-            <h3 className="text-white font-semibold mb-3">🔔 Probar Notificación Push</h3>
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <label className="block text-slate-400 text-sm mb-2">
-                  Tu número de teléfono
-                </label>
-                <input
-                  type="tel"
-                  value={telefonoTest}
-                  onChange={(e) => setTelefonoTest(e.target.value)}
-                  placeholder="Ej: 5493516789012"
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <button
-                onClick={handleTestPush}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
-              >
-                Enviar Test
-              </button>
-            </div>
-            <p className="text-slate-500 text-xs mt-2">
-              💡 Ingresá el teléfono con el que te registraste en la app (debe tener notificaciones activadas)
-            </p>
-          </div>
-        </div>
-
-        {exito && (
-          <div className="bg-green-500/20 border border-green-500 text-green-300 px-4 py-3 rounded-lg mb-6">
-            ✅ Configuración guardada exitosamente
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-6">
-            ❌ {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Sistema de Feedback */}
-          <div className="bg-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">📊 Sistema de Feedback</h2>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.feedbackHabilitado}
-                  onChange={(e) => setConfig({...config, feedbackHabilitado: e.target.checked})}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-slate-300">Habilitado</span>
-              </label>
-            </div>
-            
-            <div className="space-y-4 opacity-100">
-              <div>
-                <label className="block text-slate-300 mb-2">
-                  ⏰ Tiempo después de visita física (minutos)
-                </label>
-                <input
-                  type="number"
-                  value={config.feedbackTiempoVisitaMinutos}
-                  onChange={(e) => setConfig({...config, feedbackTiempoVisitaMinutos: parseInt(e.target.value)})}
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-purple-500 focus:outline-none"
-                  min="1"
-                  max="60"
-                />
-                <p className="text-slate-400 text-sm mt-1">
-                  Cuántos minutos esperar después del escaneo QR para mostrar el modal
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 mb-2">
-                  🎂 Días después de entrega de torta
-                </label>
-                <input
-                  type="number"
-                  value={config.feedbackDiasPedidoTorta}
-                  onChange={(e) => setConfig({...config, feedbackDiasPedidoTorta: parseInt(e.target.value)})}
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-purple-500 focus:outline-none"
-                  min="0"
-                  max="7"
-                />
-                <p className="text-slate-400 text-sm mt-1">
-                  Cuántos días esperar después de la fecha de entrega
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 mb-2">
-                  🔄 Frecuencia mínima entre feedbacks (días)
-                </label>
-                <input
-                  type="number"
-                  value={config.feedbackFrecuenciaDias}
-                  onChange={(e) => setConfig({...config, feedbackFrecuenciaDias: parseInt(e.target.value)})}
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-purple-500 focus:outline-none"
-                  min="1"
-                  max="30"
-                />
-                <p className="text-slate-400 text-sm mt-1">
-                  Mínimo de días entre solicitudes de feedback para no molestar
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 mb-2">
-                  ⭐ Estrellas mínimas para redirect a Google Maps
-                </label>
-                <input
-                  type="number"
-                  value={config.feedbackMinEstrellas}
-                  onChange={(e) => setConfig({...config, feedbackMinEstrellas: parseInt(e.target.value)})}
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-purple-500 focus:outline-none"
-                  min="1"
-                  max="5"
-                />
-                <p className="text-slate-400 text-sm mt-1">
-                  Si el cliente da este puntaje o más, redirigir a Google Maps
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 mb-2">
-                  🗺️ URL de Google Maps
-                </label>
-                <input
-                  type="url"
-                  value={config.googleMapsUrl}
-                  onChange={(e) => setConfig({...config, googleMapsUrl: e.target.value})}
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded-lg border border-slate-600 focus:border-purple-500 focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Push Notifications */}
-          <div className="bg-slate-800 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">🔔 Notificaciones Push</h2>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={config.pushHabilitado}
-                  onChange={(e) => setConfig({...config, pushHabilitado: e.target.checked})}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-slate-300">Sistema Habilitado</span>
-              </label>
-            </div>
-            
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-3 rounded-lg transition-colors">
-                <input
-                  type="checkbox"
-                  checked={config.pushAutoListo}
-                  onChange={(e) => setConfig({...config, pushAutoListo: e.target.checked})}
-                  className="w-5 h-5"
-                  disabled={!config.pushHabilitado}
-                />
-                <div className="flex-1">
-                  <span className="text-slate-300 block">🚗 Auto listo en el lavadero</span>
-                  <span className="text-slate-500 text-sm">Se envía cuando el estado cambia a "LISTO"</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-3 rounded-lg transition-colors">
-                <input
-                  type="checkbox"
-                  checked={config.pushNuevoNivel}
-                  onChange={(e) => setConfig({...config, pushNuevoNivel: e.target.checked})}
-                  className="w-5 h-5"
-                  disabled={!config.pushHabilitado}
-                />
-                <div className="flex-1">
-                  <span className="text-slate-300 block">🎉 Sube de nivel</span>
-                  <span className="text-slate-500 text-sm">Se envía cuando el cliente alcanza un nuevo nivel</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-3 rounded-lg transition-colors">
-                <input
-                  type="checkbox"
-                  checked={config.pushBeneficioDisponible}
-                  onChange={(e) => setConfig({...config, pushBeneficioDisponible: e.target.checked})}
-                  className="w-5 h-5"
-                  disabled={!config.pushHabilitado}
-                />
-                <div className="flex-1">
-                  <span className="text-slate-300 block">🎁 Beneficio nuevo disponible</span>
-                  <span className="text-slate-500 text-sm">Se envía cuando hay un beneficio de uso único disponible hoy</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-3 rounded-lg transition-colors">
-                <input
-                  type="checkbox"
-                  checked={config.pushBeneficioVence}
-                  onChange={(e) => setConfig({...config, pushBeneficioVence: e.target.checked})}
-                  className="w-5 h-5"
-                  disabled={!config.pushHabilitado}
-                />
-                <div className="flex-1">
-                  <span className="text-slate-300 block">⏰ Beneficio está por vencer</span>
-                  <span className="text-slate-500 text-sm">Se envía el día que vence un beneficio de uso único</span>
-                </div>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer hover:bg-slate-700/50 p-3 rounded-lg transition-colors">
-                <input
-                  type="checkbox"
-                  checked={config.pushCumpleanos}
-                  onChange={(e) => setConfig({...config, pushCumpleanos: e.target.checked})}
-                  className="w-5 h-5"
-                  disabled={!config.pushHabilitado}
-                />
-                <div className="flex-1">
-                  <span className="text-slate-300 block">🎂 Cumpleaños del cliente</span>
-                  <span className="text-slate-500 text-sm">Se envía a las 9 AM del día de cumpleaños</span>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={guardando}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {guardando ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Guardando...
-              </>
-            ) : (
-              <>💾 Guardar Configuración</>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
+    nivelesPeriodoDias: number
+    feedbackHabilitado: boolean
+    feedbackTiempoVisitaMinutos: number
+    feedbackFrecuenciaDias: number
+    feedbackMinEstrellas: number
+    googleMapsUrl: string
 }
 
 export default function ConfiguracionPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Cargando configuración...</div>
-      </div>
-    }>
-      <ConfiguracionContent />
-    </Suspense>
-  )
+    const router = useRouter()
+    const [config, setConfig] = useState<ConfiguracionApp | null>(null)
+    const [guardando, setGuardando] = useState(false)
+    const [mensaje, setMensaje] = useState('')
+
+    useEffect(() => {
+        const adminKey = localStorage.getItem('admin_key')
+        if (!adminKey) {
+            router.push('/admin')
+            return
+        }
+        cargarConfiguracion()
+    }, [router])
+
+    async function cargarConfiguracion() {
+        try {
+            const adminKey = localStorage.getItem('admin_key')
+            const res = await fetch('/api/admin/configuracion', {
+                headers: { 'x-admin-key': adminKey || '' }
+            })
+            
+            if (!res.ok) throw new Error('Error al cargar configuración')
+            
+            const data = await res.json()
+            setConfig(data.config)
+        } catch (error) {
+            console.error('Error:', error)
+            setMensaje('Error al cargar configuración')
+        }
+    }
+
+    async function guardarConfiguracion(e: React.FormEvent) {
+        e.preventDefault()
+        if (!config) return
+
+        setGuardando(true)
+        setMensaje('')
+
+        try {
+            const adminKey = localStorage.getItem('admin_key')
+            const res = await fetch('/api/admin/configuracion', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-key': adminKey || ''
+                },
+                body: JSON.stringify(config)
+            })
+
+            if (!res.ok) throw new Error('Error al guardar')
+
+            setMensaje('✅ Configuración guardada correctamente')
+            setTimeout(() => setMensaje(''), 3000)
+        } catch (error) {
+            console.error('Error:', error)
+            setMensaje('❌ Error al guardar configuración')
+        } finally {
+            setGuardando(false)
+        }
+    }
+
+    if (!config) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-gray-600">Cargando...</div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 py-8 px-4">
+            <div className="max-w-3xl mx-auto">
+                <div className="flex items-center gap-3 mb-6">
+                    <button
+                        onClick={() => router.push('/admin')}
+                        className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        ← Volver
+                    </button>
+                    <h1 className="text-2xl font-bold text-gray-900">⚙️ Configuración</h1>
+                </div>
+
+                {mensaje && (
+                    <div className={`mb-4 p-4 rounded-lg ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {mensaje}
+                    </div>
+                )}
+
+                <form onSubmit={guardarConfiguracion} className="bg-white rounded-xl shadow-sm p-6 space-y-6">
+                    {/* Sistema de Niveles */}
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Sistema de Niveles</h2>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Período de evaluación (días)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="365"
+                                    value={config.nivelesPeriodoDias}
+                                    onChange={(e) => setConfig({ ...config, nivelesPeriodoDias: parseInt(e.target.value) })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Período de tiempo en días para contar visitas y evaluar cambios de nivel
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Sistema de Feedback */}
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">⭐ Sistema de Feedback</h2>
+                        
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    id="feedbackHabilitado"
+                                    checked={config.feedbackHabilitado}
+                                    onChange={(e) => setConfig({ ...config, feedbackHabilitado: e.target.checked })}
+                                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                />
+                                <label htmlFor="feedbackHabilitado" className="text-sm font-medium text-gray-700">
+                                    Habilitar solicitud de feedback
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Tiempo después de visita (minutos)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="60"
+                                    value={config.feedbackTiempoVisitaMinutos}
+                                    onChange={(e) => setConfig({ ...config, feedbackTiempoVisitaMinutos: parseInt(e.target.value) })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Minutos después de una visita para solicitar feedback
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Frecuencia mínima (días)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="90"
+                                    value={config.feedbackFrecuenciaDias}
+                                    onChange={(e) => setConfig({ ...config, feedbackFrecuenciaDias: parseInt(e.target.value) })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Días mínimos entre solicitudes de feedback al mismo cliente
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Estrellas mínimas para Google Maps
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="5"
+                                    value={config.feedbackMinEstrellas}
+                                    onChange={(e) => setConfig({ ...config, feedbackMinEstrellas: parseInt(e.target.value) })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Calificación mínima para sugerir reseña en Google Maps
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    URL de Google Maps
+                                </label>
+                                <input
+                                    type="url"
+                                    value={config.googleMapsUrl}
+                                    onChange={(e) => setConfig({ ...config, googleMapsUrl: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="https://maps.app.goo.gl/..."
+                                />
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Enlace para dejar reseña en Google Maps
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="submit"
+                            disabled={guardando}
+                            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {guardando ? 'Guardando...' : 'Guardar Cambios'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.push('/admin')}
+                            className="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
 }
