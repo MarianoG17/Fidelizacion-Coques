@@ -17,9 +17,10 @@ interface Notificacion {
 interface NotificationCenterProps {
   onClose: () => void
   onNotificationsRead?: () => void
+  onOpenFeedback?: () => void
 }
 
-export default function NotificationCenter({ onClose, onNotificationsRead }: NotificationCenterProps) {
+export default function NotificationCenter({ onClose, onNotificationsRead, onOpenFeedback }: NotificationCenterProps) {
   const router = useRouter()
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -93,6 +94,13 @@ export default function NotificationCenter({ onClose, onNotificationsRead }: Not
       marcarComoLeida(notif.id)
     }
 
+    // Si es feedback pendiente, abrir modal de feedback
+    if (notif.tipo === 'FEEDBACK_PENDIENTE') {
+      onOpenFeedback?.()
+      onClose()
+      return
+    }
+
     // Si tiene URL, navegar
     if (notif.url) {
       router.push(notif.url)
@@ -110,6 +118,8 @@ export default function NotificationCenter({ onClose, onNotificationsRead }: Not
         return '🎁'
       case 'CUMPLEANOS':
         return '🎂'
+      case 'FEEDBACK_PENDIENTE':
+        return '📊'
       default:
         return '🔔'
     }
@@ -182,9 +192,8 @@ export default function NotificationCenter({ onClose, onNotificationsRead }: Not
                 <button
                   key={notif.id}
                   onClick={() => handleNotificacionClick(notif)}
-                  className={`w-full text-left p-4 hover:bg-slate-700 transition-colors ${
-                    !notif.leida ? 'bg-slate-750' : ''
-                  }`}
+                  className={`w-full text-left p-4 hover:bg-slate-700 transition-colors ${!notif.leida ? 'bg-slate-750' : ''
+                    }`}
                 >
                   <div className="flex gap-3">
                     <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">

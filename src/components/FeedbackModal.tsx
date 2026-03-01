@@ -45,24 +45,24 @@ export default function FeedbackModal() {
     // Verificar inmediatamente
     checkVisitaFisica()
     checkPedidosTortas()
-    
+
     // Timer para verificar cada minuto
     const interval = setInterval(() => {
       checkVisitaFisica()
       checkPedidosTortas()
     }, 60000) // 1 minuto
-    
+
     return () => clearInterval(interval)
   }
 
   async function checkVisitaFisica() {
     if (!config) return
-    
+
     const ultimoScan = localStorage.getItem('ultimo_scan')
     const feedbackVisto = localStorage.getItem('feedback_scan_visto')
-    
+
     if (!ultimoScan || feedbackVisto) return
-    
+
     // Verificar frecuencia mínima
     const ultimoFeedbackStr = localStorage.getItem('ultimo_feedback_timestamp')
     if (ultimoFeedbackStr) {
@@ -71,11 +71,11 @@ export default function FeedbackModal() {
         return // Muy pronto para otro feedback
       }
     }
-    
+
     const tiempoTranscurrido = Date.now() - parseInt(ultimoScan)
     const tiempoEspera = config.feedbackTiempoVisitaMinutos * 60 * 1000
     const unaHora = 60 * 60 * 1000
-    
+
     // Mostrar después del tiempo configurado pero antes de 1 hora
     if (tiempoTranscurrido > tiempoEspera && tiempoTranscurrido < unaHora) {
       setTrigger({
@@ -90,16 +90,16 @@ export default function FeedbackModal() {
 
   async function checkPedidosTortas() {
     if (!config) return
-    
+
     try {
       const res = await fetch('/api/pedidos/pendientes-feedback')
       if (!res.ok) return
-      
+
       const data = await res.json()
-      
+
       if (data.pedidos && data.pedidos.length > 0) {
         const pedido = data.pedidos[0]
-        
+
         // Verificar frecuencia mínima
         const ultimoFeedbackStr = localStorage.getItem('ultimo_feedback_timestamp')
         if (ultimoFeedbackStr) {
@@ -108,7 +108,7 @@ export default function FeedbackModal() {
             return
           }
         }
-        
+
         setTrigger({
           type: 'PEDIDO_TORTA',
           timestamp: Date.now(),
@@ -123,33 +123,32 @@ export default function FeedbackModal() {
 
   async function handleSubmit() {
     if (rating === 0 || !trigger || !config) return
-    
+
     setEnviando(true)
-    
+
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           calificacion: rating,
-          comentario,
-          tipo: trigger.type,
-          presupuestoId: trigger.pedidoId
+          comentario: comentario || null,
+          eventoScanId: null, // Por ahora null, se asignará al primer local
         })
       })
-      
+
       if (!res.ok) {
         throw new Error('Error al enviar feedback')
       }
-      
+
       // Guardar timestamp del último feedback
       localStorage.setItem('ultimo_feedback_timestamp', Date.now().toString())
-      
+
       // Si es rating alto, redirigir a Google Maps
       if (rating >= config.feedbackMinEstrellas) {
         window.open(config.googleMapsUrl, '_blank')
       }
-      
+
       setShow(false)
       setRating(0)
       setComentario('')
@@ -166,21 +165,21 @@ export default function FeedbackModal() {
     setShow(false)
     setRating(0)
     setComentario('')
-    
+
     // Si era feedback de scan, marcarlo como visto para no volver a mostrar
     if (trigger?.type === 'VISITA_FISICA') {
       localStorage.setItem('feedback_scan_visto', 'true')
     }
-    
+
     setTrigger(null)
   }
 
   if (!show || !trigger || !config) return null
 
-  const titulo = trigger.type === 'VISITA_FISICA' 
-    ? '¿Cómo fue tu experiencia en Coques?' 
+  const titulo = trigger.type === 'VISITA_FISICA'
+    ? '¿Cómo fue tu experiencia en Coques?'
     : '¿Cómo estuvo tu torta? 🎂'
-  
+
   const subtitulo = trigger.type === 'VISITA_FISICA'
     ? 'Contanos cómo estuvo todo hoy'
     : 'Tu opinión nos ayuda a mejorar'
@@ -207,9 +206,8 @@ export default function FeedbackModal() {
               className="transition-transform hover:scale-110 active:scale-95"
             >
               <svg
-                className={`w-12 h-12 ${
-                  star <= rating ? 'fill-yellow-400' : 'fill-gray-300'
-                }`}
+                className={`w-12 h-12 ${star <= rating ? 'fill-yellow-400' : 'fill-gray-300'
+                  }`}
                 viewBox="0 0 24 24"
               >
                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
