@@ -9,7 +9,7 @@ export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback'>('metricas')
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
@@ -103,6 +103,7 @@ export default function AdminPage() {
                             { key: 'clientes', label: 'Clientes' },
                             { key: 'niveles', label: '⭐ Niveles' },
                             { key: 'beneficios', label: '🎁 Beneficios' },
+                            { key: 'feedback', label: '📊 Feedbacks' },
                             { key: 'configuracion', label: '⚙️ Configuración' },
                         ].map((tab) => (
                             <button
@@ -151,6 +152,22 @@ export default function AdminPage() {
                             className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition inline-flex items-center gap-2"
                         >
                             <span>Ir a Gestión de Beneficios</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+                {seccionActiva === 'feedback' && (
+                    <div className="text-center py-12">
+                        <div className="text-4xl mb-4">📊</div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Encuestas de Satisfacción</h2>
+                        <p className="text-slate-400 mb-6">Visualiza todas las calificaciones y comentarios de clientes</p>
+                        <button
+                            onClick={() => window.location.href = '/admin/feedback'}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition inline-flex items-center gap-2"
+                        >
+                            <span>Ver Feedbacks</span>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
