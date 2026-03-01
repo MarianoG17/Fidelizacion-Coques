@@ -176,6 +176,10 @@ export default function FeedbackModal() {
       // Guardar timestamp del último feedback
       localStorage.setItem('ultimo_feedback_timestamp', Date.now().toString())
 
+      // Limpiar ultimo_scan para que no se pueda enviar otra vez desde la misma notificación
+      localStorage.removeItem('ultimo_scan')
+      console.log('[FEEDBACK] Limpiando ultimo_scan - feedback ya enviado')
+
       // Si es rating alto, redirigir a Google Maps
       if (rating >= config.feedbackMinEstrellas && config.googleMapsUrl) {
         window.open(config.googleMapsUrl, '_blank')
