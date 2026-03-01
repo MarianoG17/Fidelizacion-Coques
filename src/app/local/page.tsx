@@ -24,7 +24,7 @@ export default function LocalPage() {
   const [validacion, setValidacion] = useState<ValidacionResult | null>(null)
   const [ubicacion, setUbicacion] = useState<'mostrador' | 'salon' | null>(null)
   const [mesaSeleccionada, setMesaSeleccionada] = useState<MesaLayout | null>(null)
-  const [beneficioSeleccionado, setBeneficioSeleccionado] = useState<string | null>(null)
+  const [beneficiosSeleccionados, setBeneficiosSeleccionados] = useState<string[]>([])
   const [cargando, setCargando] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [eventoRegistrado, setEventoRegistrado] = useState(false)
@@ -378,34 +378,36 @@ export default function LocalPage() {
       const dataVisita = await resVisita.json()
       console.log('Visita registrada:', dataVisita)
 
-      // Si hay beneficio seleccionado, registrarlo como evento adicional
-      if (beneficioSeleccionado) {
-        const beneficioPayload = {
-          clienteId: validacion.cliente.id,
-          mesaId: mesaSeleccionada?.id || null,
-          tipoEvento: 'BENEFICIO_APLICADO' as const,
-          beneficioId: beneficioSeleccionado,
-          metodoValidacion: metodoInput === 'qr' ? 'QR' as const : 'OTP_MANUAL' as const,
-        }
+      // Si hay beneficios seleccionados, registrarlos como eventos adicionales
+      if (beneficiosSeleccionados.length > 0) {
+        for (const beneficioId of beneficiosSeleccionados) {
+          const beneficioPayload = {
+            clienteId: validacion.cliente.id,
+            mesaId: mesaSeleccionada?.id || null,
+            tipoEvento: 'BENEFICIO_APLICADO' as const,
+            beneficioId: beneficioId,
+            metodoValidacion: metodoInput === 'qr' ? 'QR' as const : 'OTP_MANUAL' as const,
+          }
 
-        console.log('Aplicando beneficio:', beneficioPayload)
+          console.log('Aplicando beneficio:', beneficioPayload)
 
-        const resBeneficio = await fetch('/api/eventos', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-local-api-key': LOCAL_API_KEY,
-          },
-          body: JSON.stringify(beneficioPayload),
-        })
+          const resBeneficio = await fetch('/api/eventos', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-local-api-key': LOCAL_API_KEY,
+            },
+            body: JSON.stringify(beneficioPayload),
+          })
 
-        if (!resBeneficio.ok) {
-          const errorData = await resBeneficio.json().catch(() => ({}))
-          console.warn('Error al aplicar beneficio:', resBeneficio.status, errorData)
-          // No retornar aquí, la visita ya se registró correctamente
-        } else {
-          const dataBeneficio = await resBeneficio.json()
-          console.log('Beneficio aplicado:', dataBeneficio)
+          if (!resBeneficio.ok) {
+            const errorData = await resBeneficio.json().catch(() => ({}))
+            console.warn('Error al aplicar beneficio:', resBeneficio.status, errorData)
+            // No retornar aquí, la visita ya se registró correctamente
+          } else {
+            const dataBeneficio = await resBeneficio.json()
+            console.log('Beneficio aplicado:', dataBeneficio)
+          }
         }
       }
 
@@ -435,7 +437,7 @@ export default function LocalPage() {
     setValidacion(null)
     setUbicacion(null)
     setMesaSeleccionada(null)
-    setBeneficioSeleccionado(null)
+    setBeneficiosSeleccionados([])
     setErrorMsg('')
     setEventoRegistrado(false)
     setScannerActivo(true)
@@ -626,78 +628,6 @@ export default function LocalPage() {
               </button>
             </div>
           </div>
-
-          {/* Clientes activos en mostrador */}
-          {!vistaSalon && (
-            <div className="w-full max-w-2xl mb-4">
-              <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                <h3 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
-                  <span>🪑</span>
-                  Clientes en mostrador (últimos 3)
-                  {cargandoHistorial && (
-                    <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin ml-2" />
-                  )}
-                </h3>
-                {clientesMostrador.length > 0 ? (
-                  <div className="space-y-3">
-                    {clientesMostrador.map((cliente) => (
-                      <div
-                        key={cliente.id}
-                        className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
-                      >
-                        {/* Header del cliente */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-bold">{cliente.nombre}</span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
-                              {cliente.nivel}
-                            </span>
-                          </div>
-                          <span className="text-slate-400 text-xs">
-                            {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-
-                        {/* Beneficios aplicados */}
-                        {cliente.beneficiosAplicados.length > 0 && (
-                          <div className="mb-2">
-                            <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
-                            {cliente.beneficiosAplicados.map((b) => (
-                              <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
-                                <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Beneficios disponibles */}
-                        {cliente.beneficiosDisponibles.length > 0 ? (
-                          <div>
-                            <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
-                            {cliente.beneficiosDisponibles.map((b) => (
-                              <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
-                                <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
-                                <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : cliente.beneficiosAplicados.length === 0 ? (
-                          <p className="text-slate-500 text-xs">Sin beneficios</p>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : !cargandoHistorial ? (
-                  <p className="text-slate-500 text-sm text-center py-4">
-                    No hay clientes recientes en mostrador hoy
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          )}
 
           {vistaSalon ? (
             // ─── Vista de Salón ───
@@ -938,6 +868,78 @@ export default function LocalPage() {
                       }
                     </p>
                   </div>
+
+                  {/* Historial de últimos clientes en mostrador - ABAJO DEL SCANNER */}
+                  {ubicacion === 'mostrador' && (
+                    <div className="w-full mt-6">
+                      <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                        <h3 className="text-white text-sm font-bold mb-3 flex items-center gap-2">
+                          <span>📋</span>
+                          Últimos clientes atendidos
+                          {cargandoHistorial && (
+                            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin ml-2" />
+                          )}
+                        </h3>
+                        {clientesMostrador.length > 0 ? (
+                          <div className="space-y-3">
+                            {clientesMostrador.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                              >
+                                {/* Header del cliente */}
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white font-bold">{cliente.nombre}</span>
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                                      {cliente.nivel}
+                                    </span>
+                                  </div>
+                                  <span className="text-slate-400 text-xs">
+                                    {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+
+                                {/* Beneficios aplicados */}
+                                {cliente.beneficiosAplicados.length > 0 && (
+                                  <div className="mb-2">
+                                    <p className="text-xs text-slate-400 mb-1">✓ Beneficios aplicados:</p>
+                                    {cliente.beneficiosAplicados.map((b) => (
+                                      <div key={b.id} className="bg-orange-500/10 border border-orange-500/30 rounded px-2 py-1 mb-1">
+                                        <p className="text-orange-300 text-xs font-semibold">{b.nombre}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Beneficios disponibles */}
+                                {cliente.beneficiosDisponibles.length > 0 ? (
+                                  <div>
+                                    <p className="text-xs text-slate-400 mb-1">Disponibles para aplicar:</p>
+                                    {cliente.beneficiosDisponibles.map((b) => (
+                                      <div key={b.id} className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-1">
+                                        <p className="text-green-300 text-xs font-semibold">{b.nombre}</p>
+                                        <p className="text-green-400/70 text-xs mt-0.5">→ {b.descripcionCaja}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : cliente.beneficiosAplicados.length === 0 ? (
+                                  <p className="text-slate-500 text-xs">Sin beneficios</p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : !cargandoHistorial ? (
+                          <p className="text-slate-500 text-sm text-center py-4">
+                            No hay clientes recientes en mostrador hoy
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </>
@@ -1033,46 +1035,59 @@ export default function LocalPage() {
           )}
 
           {/* Beneficios activos - seleccionables */}
-          {c.beneficiosActivos.length > 0 ? (
+          {c.beneficiosActivos.filter((b) => !b.condiciones?.soloApp).length > 0 ? (
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                ¿Desea canjear algún beneficio?
+                ¿Desea canjear algún beneficio? (puede seleccionar varios)
               </h3>
               <div className="space-y-2 mb-3">
-                {c.beneficiosActivos.map((b) => (
-                  <button
-                    key={b.id}
-                    onClick={() => setBeneficioSeleccionado(beneficioSeleccionado === b.id ? null : b.id)}
-                    className={`w-full text-left rounded-xl p-4 border-2 transition-all ${beneficioSeleccionado === b.id
-                      ? 'bg-green-100 border-green-500 shadow-md'
-                      : 'bg-green-50 border-green-200 hover:border-green-400'
-                      }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${beneficioSeleccionado === b.id
-                        ? 'bg-green-500 border-green-500'
-                        : 'border-gray-300'
-                        }`}>
-                        {beneficioSeleccionado === b.id && (
-                          <span className="text-white text-xs">✓</span>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-green-800">{b.nombre}</p>
-                        <p className="text-sm text-green-700 mt-1 font-mono bg-white/50 rounded p-2">
-                          → Cargar en Aires: {b.descripcionCaja}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                {c.beneficiosActivos
+                  .filter((b) => !b.condiciones?.soloApp)
+                  .map((b) => {
+                    const isSelected = beneficiosSeleccionados.includes(b.id)
+                    return (
+                      <button
+                        key={b.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setBeneficiosSeleccionados(beneficiosSeleccionados.filter(id => id !== b.id))
+                          } else {
+                            setBeneficiosSeleccionados([...beneficiosSeleccionados, b.id])
+                          }
+                        }}
+                        className={`w-full text-left rounded-xl p-4 border-2 transition-all ${isSelected
+                          ? 'bg-green-100 border-green-500 shadow-md'
+                          : 'bg-green-50 border-green-200 hover:border-green-400'
+                          }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-gray-300'
+                            }`}>
+                            {isSelected && (
+                              <span className="text-white text-xs">✓</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-green-800">{b.nombre}</p>
+                            <p className="text-sm text-green-700 mt-1 font-mono bg-white/50 rounded p-2">
+                              → Cargar en Aires: {b.descripcionCaja}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
               </div>
-              <button
-                onClick={() => setBeneficioSeleccionado(null)}
-                className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2"
-              >
-                No canjear beneficio en esta visita
-              </button>
+              {beneficiosSeleccionados.length > 0 && (
+                <button
+                  onClick={() => setBeneficiosSeleccionados([])}
+                  className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2"
+                >
+                  Limpiar selección ({beneficiosSeleccionados.length} seleccionado{beneficiosSeleccionados.length > 1 ? 's' : ''})
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-gray-100 rounded-xl p-4 mb-4 text-center">
