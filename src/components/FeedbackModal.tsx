@@ -63,12 +63,10 @@ export default function FeedbackModal() {
   function startChecking() {
     // Verificar inmediatamente
     checkVisitaFisica()
-    checkPedidosTortas()
 
     // Timer para verificar cada minuto
     const interval = setInterval(() => {
       checkVisitaFisica()
-      checkPedidosTortas()
     }, 60000) // 1 minuto
 
     return () => clearInterval(interval)
@@ -104,39 +102,6 @@ export default function FeedbackModal() {
       setShow(true)
       localStorage.setItem('feedback_scan_visto', 'true')
       localStorage.removeItem('ultimo_scan')
-    }
-  }
-
-  async function checkPedidosTortas() {
-    if (!config) return
-
-    try {
-      const res = await fetch('/api/pedidos/pendientes-feedback')
-      if (!res.ok) return
-
-      const data = await res.json()
-
-      if (data.pedidos && data.pedidos.length > 0) {
-        const pedido = data.pedidos[0]
-
-        // Verificar frecuencia mínima
-        const ultimoFeedbackStr = localStorage.getItem('ultimo_feedback_timestamp')
-        if (ultimoFeedbackStr) {
-          const diasDesde = (Date.now() - parseInt(ultimoFeedbackStr)) / (1000 * 60 * 60 * 24)
-          if (diasDesde < config.feedbackFrecuenciaDias) {
-            return
-          }
-        }
-
-        setTrigger({
-          type: 'PEDIDO_TORTA',
-          timestamp: Date.now(),
-          pedidoId: pedido.id
-        })
-        setShow(true)
-      }
-    } catch (err) {
-      console.error('Error al verificar pedidos:', err)
     }
   }
 
