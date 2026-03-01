@@ -157,14 +157,19 @@ export default function FeedbackModal() {
       })
 
       if (!res.ok) {
-        throw new Error('Error al enviar feedback')
+        const errorData = await res.json()
+        console.error('[FEEDBACK] Error del servidor:', errorData)
+        throw new Error(errorData.error || 'Error al enviar feedback')
       }
+
+      const data = await res.json()
+      console.log('[FEEDBACK] Respuesta exitosa:', data)
 
       // Guardar timestamp del último feedback
       localStorage.setItem('ultimo_feedback_timestamp', Date.now().toString())
 
       // Si es rating alto, redirigir a Google Maps
-      if (rating >= config.feedbackMinEstrellas) {
+      if (rating >= config.feedbackMinEstrellas && config.googleMapsUrl) {
         window.open(config.googleMapsUrl, '_blank')
       }
 
@@ -172,9 +177,9 @@ export default function FeedbackModal() {
       setRating(0)
       setComentario('')
       setTrigger(null)
-    } catch (err) {
-      console.error('Error al enviar feedback:', err)
-      alert('Error al enviar tu opinión. Por favor intentá de nuevo.')
+    } catch (err: any) {
+      console.error('[FEEDBACK] Error al enviar feedback:', err)
+      alert(`Error al enviar tu opinión: ${err.message}`)
     } finally {
       setEnviando(false)
     }
