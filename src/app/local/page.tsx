@@ -421,6 +421,12 @@ export default function LocalPage() {
         await cargarHistorialMostrador()
       }
 
+      // Guardar timestamp para feedback modal (solo para clientes que usan el scanner desde su cuenta)
+      // Nota: No guardar para /local porque es el staff escaneando a clientes
+      // El feedback se mostrará al CLIENTE en su app después de X minutos
+      // localStorage.setItem('ultimo_scan', Date.now().toString())
+      // localStorage.removeItem('feedback_scan_visto')
+
       setEventoRegistrado(true)
     } catch (error) {
       console.error('Error en fetch:', error)

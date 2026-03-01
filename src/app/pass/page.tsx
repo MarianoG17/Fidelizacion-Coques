@@ -112,6 +112,33 @@ export default function PassPage() {
     }
   }, [])
 
+  const checkUltimoScan = useCallback(async () => {
+    const token = localStorage.getItem('fidelizacion_token')
+    if (!token) return
+
+    try {
+      const res = await fetch('/api/eventos/ultimo-scan', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        const ultimoScan = json.data.ultimoScan
+
+        if (ultimoScan) {
+          const guardado = localStorage.getItem('ultimo_scan')
+          // Si hay un nuevo scan que no habíamos guardado, guardarlo
+          if (!guardado || parseInt(guardado) !== ultimoScan) {
+            localStorage.setItem('ultimo_scan', ultimoScan.toString())
+            localStorage.removeItem('feedback_scan_visto')
+            console.log('[PASS] Nuevo scan detectado:', new Date(ultimoScan))
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error al verificar último scan:', err)
+    }
+  }, [])
+
   const fetchNiveles = useCallback(async () => {
     const token = localStorage.getItem('fidelizacion_token')
     if (!token) return
@@ -234,11 +261,22 @@ export default function PassPage() {
     fetchPass()
     fetchBeneficios()
     fetchNiveles()
+    checkUltimoScan() // Verificar inmediatamente
+
     const interval = setInterval(() => {
       fetchPass()
       fetchBeneficios()
     }, REFRESH_INTERVAL)
-    return () => clearInterval(interval)
+
+    // Polling cada 30 segundos para detectar scans nuevos
+    const scanInterval = setInterval(() => {
+      checkUltimoScan()
+    }, 30000) // 30 segundos
+
+    return () => {
+      clearInterval(interval)
+      clearInterval(scanInterval)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPhoneModal, sessionStatus])
 
