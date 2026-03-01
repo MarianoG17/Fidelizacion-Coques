@@ -41,6 +41,25 @@ export default function FeedbackModal() {
       .catch(err => console.error('Error al cargar config feedback:', err))
   }, [session])
 
+  // Listener para abrir desde notificaciones
+  useEffect(() => {
+    function handleOpenFeedback() {
+      console.log('[FEEDBACK] Abriendo modal desde notificación')
+      const ultimoScan = localStorage.getItem('ultimo_scan')
+      if (ultimoScan) {
+        setTrigger({
+          type: 'VISITA_FISICA',
+          timestamp: parseInt(ultimoScan)
+        })
+        setShow(true)
+        localStorage.setItem('feedback_scan_visto', 'true')
+      }
+    }
+
+    window.addEventListener('openFeedbackModal', handleOpenFeedback)
+    return () => window.removeEventListener('openFeedbackModal', handleOpenFeedback)
+  }, [])
+
   function startChecking() {
     // Verificar inmediatamente
     checkVisitaFisica()

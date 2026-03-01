@@ -17,10 +17,9 @@ interface Notificacion {
 interface NotificationCenterProps {
   onClose: () => void
   onNotificationsRead?: () => void
-  onOpenFeedback?: () => void
 }
 
-export default function NotificationCenter({ onClose, onNotificationsRead, onOpenFeedback }: NotificationCenterProps) {
+export default function NotificationCenter({ onClose, onNotificationsRead }: NotificationCenterProps) {
   const router = useRouter()
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -94,9 +93,10 @@ export default function NotificationCenter({ onClose, onNotificationsRead, onOpe
       marcarComoLeida(notif.id)
     }
 
-    // Si es feedback pendiente, abrir modal de feedback
+    // Si es feedback pendiente, disparar evento para abrir modal
     if (notif.tipo === 'FEEDBACK_PENDIENTE') {
-      onOpenFeedback?.()
+      console.log('[NOTIF] Disparando evento openFeedbackModal')
+      window.dispatchEvent(new CustomEvent('openFeedbackModal'))
       onClose()
       return
     }
