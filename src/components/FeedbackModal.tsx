@@ -146,9 +146,17 @@ export default function FeedbackModal() {
     setEnviando(true)
 
     try {
+      const token = localStorage.getItem('fidelizacion_token')
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación')
+      }
+
       const res = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           calificacion: rating,
           comentario: comentario || null,
