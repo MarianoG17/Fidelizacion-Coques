@@ -171,6 +171,14 @@ export async function GET(req: NextRequest) {
 
               // Si no existe, crear el evento
               if (!eventoExistente) {
+                // Parsear el timestamp correctamente
+                let timestampPedido = new Date()
+                if (order.date_completed) {
+                  timestampPedido = new Date(order.date_completed)
+                } else if (order.date_modified) {
+                  timestampPedido = new Date(order.date_modified)
+                }
+
                 await prisma.eventoScan.create({
                   data: {
                     clienteId: cliente.id,
@@ -179,7 +187,7 @@ export async function GET(req: NextRequest) {
                     metodoValidacion: 'QR',
                     contabilizada: true,
                     notas: `Pedido WooCommerce #${order.id}`,
-                    timestamp: order.date_completed || order.date_modified || new Date(),
+                    timestamp: timestampPedido,
                   }
                 })
 

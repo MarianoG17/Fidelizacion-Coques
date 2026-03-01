@@ -1,6 +1,7 @@
 // src/app/api/presupuestos/[codigo]/confirmar/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { evaluarNivel } from '@/lib/beneficios'
 
 // POST /api/presupuestos/:codigo/confirmar - Confirmar presupuesto y crear pedido WooCommerce
 export async function POST(
@@ -220,6 +221,44 @@ export async function POST(
         }
       }
     })
+
+    // ✨ CREAR EVENTO PEDIDO_TORTA AUTOMÁTICAMENTE
+    // Cuando se confirma un presupuesto, el pedido se crea en WooCommerce
+    // y registramos el evento PEDIDO_TORTA para que cuente como 3 visitas
+    try {
+      if (presupuestoActualizado.clienteId) {
+        // Obtener local de cafetería
+        const local = await prisma.local.findFirst({
+          where: { tipo: 'cafeteria' }
+        })
+
+        if (local) {
+          // Crear evento PEDIDO_TORTA
+          await prisma.eventoScan.create({
+            data: {
+              clienteId: presupuestoActualizado.clienteId,
+              localId: local.id,
+              tipoEvento: 'PEDIDO_TORTA',
+              metodoValidacion: 'QR',
+              contabilizada: true,
+              notas: `Pedido WooCommerce #${wooOrder.id} (Presupuesto ${codigo})`,
+              timestamp: new Date(),
+            }
+          })
+
+          console.log(`[Confirmar Presupuesto] ✅ Evento PEDIDO_TORTA creado para cliente ${presupuestoActualizado.clienteId}`)
+
+          // Evaluar si el cliente sube de nivel
+          const resultado = await evaluarNivel(presupuestoActualizado.clienteId)
+          if (resultado) {
+            console.log(`[Confirmar Presupuesto] 🎉 Cliente subió de nivel: ${resultado.nombre}`)
+          }
+        }
+      }
+    } catch (error) {
+      // No bloqueamos la confirmación si hay error al crear el evento
+      console.error('[Confirmar Presupuesto] Error creando evento PEDIDO_TORTA:', error)
+    }
 
     return NextResponse.json({
       success: true,
