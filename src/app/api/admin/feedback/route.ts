@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic'
 // GET /api/admin/feedback - Obtener todos los feedbacks (admin)
 export async function GET(req: NextRequest) {
     try {
-        // Verificar API key de local/admin
-        const apiKey = req.headers.get('x-local-api-key')
-        if (apiKey !== process.env.LOCAL_API_KEY) {
+        // Verificar API key de admin
+        const apiKey = req.headers.get('x-admin-key')
+        if (apiKey !== process.env.ADMIN_KEY) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
 

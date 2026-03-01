@@ -39,18 +39,18 @@ export default function AdminFeedbackPage() {
 
     async function cargarFeedbacks() {
         try {
-            const localKey = localStorage.getItem('local_api_key')
-            if (!localKey) {
-                router.push('/local/login')
+            const adminKey = localStorage.getItem('admin_key')
+            if (!adminKey) {
+                router.push('/admin')
                 return
             }
 
             const res = await fetch('/api/admin/feedback', {
-                headers: { 'x-local-api-key': localKey },
+                headers: { 'x-admin-key': adminKey },
             })
 
             if (res.status === 401) {
-                router.push('/local/login')
+                router.push('/admin')
                 return
             }
 
