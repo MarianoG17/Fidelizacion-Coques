@@ -1,4 +1,4 @@
-ya // src/app/api/woocommerce/webhook/route.ts
+// src/app/api/woocommerce/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
