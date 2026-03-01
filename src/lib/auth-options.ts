@@ -171,37 +171,36 @@ export const authOptions: NextAuthOptions = {
 
         async jwt({ token, user, account }) {
             try {
-                console.log('[AUTH] jwt callback', { hasUser: !!user, hasAccount: !!account, provider: account?.provider })
+                // Solo loguear en primer login o errores importantes
+                const isFirstLogin = !!user
                 
                 // Agregar datos adicionales al token JWT en el primer login
                 if (user) {
                     token.userId = user.id
                     token.phone = (user as any).phone
-                    console.log('[AUTH] jwt - user data added to token')
                 }
 
-                // SIEMPRE verificar el estado actual en la BD para obtener datos actualizados
-                // Esto es necesario para detectar cambios como completar el teléfono
-                if (token.email) {
-                    console.log('[AUTH] jwt - querying DB for:', token.email)
+                // Solo consultar BD si:
+                // 1. Es el primer login (user existe), o
+                // 2. El token no tiene userId (necesita refrescarse), o
+                // 3. Es un login con OAuth (account existe)
+                const needsDbQuery = isFirstLogin || !token.userId || !!account
+                
+                if (needsDbQuery && token.email) {
                     const cliente: any = await prisma.cliente.findUnique({
                         where: { email: token.email }
                     })
 
                     if (cliente) {
-                        console.log('[AUTH] jwt - cliente found, phone:', cliente.phone, 'needsPhone:', cliente.phone?.includes('TEMP'))
                         token.userId = cliente.id
                         token.phone = cliente.phone
                         token.name = cliente.nombre
                         token.picture = cliente.profileImage
                         // Solo necesita completar teléfono si es temporal (contiene TEMP)
                         token.needsPhone = cliente.phone?.includes('TEMP') || false
-                    } else {
-                        console.log('[AUTH] jwt - cliente NOT found')
                     }
                 }
 
-                console.log('[AUTH] jwt - final token.needsPhone:', token.needsPhone)
                 return token
             } catch (error) {
                 console.error('[AUTH] Error in jwt callback:', error)
