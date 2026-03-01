@@ -111,28 +111,32 @@ export async function evaluarNivel(clienteId: string) {
   })
   if (!cliente) return
 
+  // Obtener configuración para el período de evaluación
+  const config = await prisma.configuracionApp.findFirst()
+  const periodoDias = config?.nivelesPeriodoDias || 30
+
   const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' } }) // Orden ascendente: Bronce -> Plata -> Oro
 
   // Usar timezone Argentina — el servidor corre en UTC (ver APRENDIZAJES.md)
-  const hace30dias = getHaceNDias(30)
+  const hacePeriodo = getHaceNDias(periodoDias)
 
-  // Contar DÍAS ÚNICOS con visitas contabilizadas en los últimos 30 días
+  // Contar DÍAS ÚNICOS con visitas contabilizadas en el período configurado
   // Un cliente puede venir varias veces en un día, pero solo cuenta como 1 visita
   const visitasRecientesResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
     SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
     FROM "EventoScan"
     WHERE "clienteId" = ${clienteId}
       AND "contabilizada" = true
-      AND "timestamp" >= ${hace30dias}
+      AND "timestamp" >= ${hacePeriodo}
       AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
   `
   const visitasRecientes = Number(visitasRecientesResult[0]?.count || 0)
 
-  // Contar usos cruzados (distintos locales en últimos 30 días)
+  // Contar usos cruzados (distintos locales en el período)
   const localesDistintos = await prisma.eventoScan.findMany({
     where: {
       clienteId,
-      timestamp: { gte: hace30dias },
+      timestamp: { gte: hacePeriodo },
     },
     select: { localId: true },
     distinct: ['localId'],
@@ -184,7 +188,7 @@ export async function evaluarNivel(clienteId: string) {
           data: {
             clienteId,
             titulo: `Tu nivel cambió a ${nivelInferior.nombre}`,
-            cuerpo: `Para mantener ${nivelActual.nombre} necesitás ${visitasRequeridasActual} visitas en los últimos 30 días. Actualmente tenés ${visitasRecientes}. ¡Volvé pronto para recuperar tu nivel!`,
+            cuerpo: `Para mantener ${nivelActual.nombre} necesitás ${visitasRequeridasActual} visitas en los últimos ${periodoDias} días. Actualmente tenés ${visitasRecientes}. ¡Volvé pronto para recuperar tu nivel!`,
             tipo: 'NIVEL',
           },
         })
