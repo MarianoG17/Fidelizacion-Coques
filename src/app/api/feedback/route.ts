@@ -18,6 +18,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Calificación inválida (1-5)' }, { status: 400 })
         }
 
+        // Prevenir duplicados: verificar si ya envió feedback en los últimos 5 minutos
+        const hace5Minutos = new Date(Date.now() - 5 * 60 * 1000)
+        const feedbackReciente = await prisma.feedback.findFirst({
+            where: {
+                clienteId,
+                createdAt: {
+                    gte: hace5Minutos
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        })
+
+        if (feedbackReciente) {
+            return NextResponse.json({
+                error: 'Ya enviaste un feedback recientemente. Por favor esperá unos minutos.'
+            }, { status: 429 })
+        }
+
         // Obtener el local desde eventoScanId si existe
         let localId = null
         if (eventoScanId) {
