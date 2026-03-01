@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireClienteAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { evaluarNivel } from '@/lib/beneficios'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
   // Reducir caché a 30 segundos para mostrar estados actualizados más rápido
   // Los pedidos cambian de estado frecuentemente (processing → completed)
   const cacheTime = 30 // 30 segundos
-  
+
   try {
     // Verificar autenticación del cliente
     const clientePayload = await requireClienteAuth(req)
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         email: true,
+        nombre: true,
       }
     })
 
@@ -93,18 +95,18 @@ export async function GET(req: NextRequest) {
 
     console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}`)
     console.log(`[Mis Pedidos] Total orders fetched: ${orders.length}`)
-    
+
     // Filtrar solo pedidos con el cliente_app_id correcto o email coincidente
     const pedidosFiltrados = orders.filter((order: any) => {
       const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
       const emailMatch = order.billing.email === cliente.email
       const idMatch = clienteAppId === cliente.id
-      
+
       console.log(`[Mis Pedidos] Order #${order.number}: email=${order.billing.email} (match: ${emailMatch}), cliente_app_id=${clienteAppId} (match: ${idMatch})`)
-      
+
       return emailMatch || idMatch
     })
-    
+
     console.log(`[Mis Pedidos] Filtered orders: ${pedidosFiltrados.length}`)
 
     // Formatear respuesta
@@ -112,7 +114,7 @@ export async function GET(req: NextRequest) {
       // Extraer fecha y hora de entrega de los metadatos
       const fechaEntregaMeta = order.meta_data?.find((m: any) => m.key === '¿Para que fecha querés el pedido?')
       const horaEntregaMeta = order.meta_data?.find((m: any) => m.key === '¿En que horario?')
-      
+
       return {
         id: order.id,
         numero: order.number,
@@ -129,7 +131,7 @@ export async function GET(req: NextRequest) {
           // Calcular precio con IVA incluido
           const precioConIva = parseFloat(item.price) + (parseFloat(item.total_tax) / item.quantity)
           const totalConIva = parseFloat(item.total) + parseFloat(item.total_tax)
-          
+
           return {
             nombre: item.name,
             cantidad: item.quantity,
@@ -141,6 +143,65 @@ export async function GET(req: NextRequest) {
         urlAdmin: `${wooUrl}/wp-admin/post.php?post=${order.id}&action=edit`,
       }
     })
+
+    // ✨ REGISTRO AUTOMÁTICO DE PEDIDOS DE TORTAS COMPLETADOS
+    // Crear eventos PEDIDO_TORTA para pedidos completados que no tengan evento registrado
+    try {
+      // Obtener local de cafetería
+      const local = await prisma.local.findFirst({
+        where: { tipo: 'cafeteria' }
+      })
+
+      if (local) {
+        // Filtrar solo pedidos completados
+        const pedidosCompletados = pedidosFiltrados.filter((order: any) => order.status === 'completed')
+
+        // Procesar cada pedido completado
+        await Promise.all(
+          pedidosCompletados.map(async (order: any) => {
+            try {
+              // Verificar si ya existe un evento PEDIDO_TORTA para este pedido
+              const eventoExistente = await prisma.eventoScan.findFirst({
+                where: {
+                  clienteId: cliente.id,
+                  tipoEvento: 'PEDIDO_TORTA',
+                  notas: `Pedido WooCommerce #${order.id}`,
+                }
+              })
+
+              // Si no existe, crear el evento
+              if (!eventoExistente) {
+                await prisma.eventoScan.create({
+                  data: {
+                    clienteId: cliente.id,
+                    localId: local.id,
+                    tipoEvento: 'PEDIDO_TORTA',
+                    metodoValidacion: 'QR',
+                    contabilizada: true,
+                    notas: `Pedido WooCommerce #${order.id}`,
+                    timestamp: order.date_completed || order.date_modified || new Date(),
+                  }
+                })
+
+                console.log(`[Mis Pedidos] ✅ Evento PEDIDO_TORTA creado automáticamente para pedido #${order.id}`)
+
+                // Evaluar si el cliente sube de nivel
+                const resultado = await evaluarNivel(cliente.id)
+                if (resultado) {
+                  console.log(`[Mis Pedidos] 🎉 Cliente ${cliente.nombre || cliente.id} subió de nivel: ${resultado.nombre}`)
+                }
+              }
+            } catch (error) {
+              // No bloqueamos la respuesta si hay error al crear el evento
+              console.error(`[Mis Pedidos] Error creando evento para pedido #${order.id}:`, error)
+            }
+          })
+        )
+      }
+    } catch (error) {
+      // No bloqueamos la respuesta si hay error en el registro automático
+      console.error('[Mis Pedidos] Error en registro automático de pedidos:', error)
+    }
 
     return NextResponse.json({
       success: true,
