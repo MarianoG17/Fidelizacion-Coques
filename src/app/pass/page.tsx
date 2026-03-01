@@ -47,6 +47,12 @@ interface NivelesResponse {
   niveles: NivelData[]
   nivelActual: string
   totalVisitas: number
+  desglose?: {
+    visitasNormales: number
+    pedidosTortas: number
+    tortasMultiplicador: number
+    periodoDias: number
+  }
   progreso: {
     proximoNivel: string
     visitasActuales: number
@@ -391,6 +397,32 @@ export default function PassPage() {
             <p className="text-xs text-center text-gray-500 mt-1">
               {nivelesData.progreso.visitasActuales} / {nivelesData.progreso.visitasRequeridas} visitas
             </p>
+            
+            {/* Desglose de visitas */}
+            {nivelesData.desglose && nivelesData.desglose.pedidosTortas > 0 && (
+              <div className="mt-3 pt-3 border-t border-purple-200">
+                <p className="text-xs text-gray-600 font-medium mb-2">📊 Desglose (últimos {nivelesData.desglose.periodoDias} días)</p>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">🏪 Visitas al local:</span>
+                    <span className="font-semibold text-gray-800">{nivelesData.desglose.visitasNormales}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">🍰 Pedidos de tortas:</span>
+                    <span className="font-semibold text-gray-800">
+                      {nivelesData.desglose.pedidosTortas} × {nivelesData.desglose.tortasMultiplicador} = {nivelesData.desglose.pedidosTortas * nivelesData.desglose.tortasMultiplicador}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-purple-100">
+                    <span className="text-purple-700 font-semibold">Total:</span>
+                    <span className="font-bold text-purple-700">{nivelesData.totalVisitas}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 italic">
+                  💡 Cada pedido de torta cuenta como {nivelesData.desglose.tortasMultiplicador} visitas
+                </p>
+              </div>
+            )}
           </div>
         )}
 

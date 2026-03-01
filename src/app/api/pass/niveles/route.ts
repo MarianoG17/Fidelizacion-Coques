@@ -47,23 +47,41 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Contar DÍAS ÚNICOS con visitas (no eventos individuales)
+    // Obtener configuración del multiplicador de tortas
+    const config = await prisma.configuracionApp.findFirst()
+    const tortasMultiplicador = config?.tortasMultiplicador || 3
+    const periodoDias = config?.nivelesPeriodoDias || 30
+
+    // Contar DÍAS ÚNICOS con visitas normales (no eventos individuales)
     // Un cliente puede venir varias veces en un día, pero solo cuenta como 1 visita
-    const totalVisitasResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+    const visitasNormalesResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
       FROM "EventoScan"
       WHERE "clienteId" = ${cliente.id}
         AND "contabilizada" = true
         AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
     `
-    const totalVisitas = Number(totalVisitasResult[0]?.count || 0)
+    const visitasNormales = Number(visitasNormalesResult[0]?.count || 0)
+
+    // Contar pedidos de tortas completados (cada uno cuenta como múltiples visitas)
+    const pedidosTortasResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::bigint as count
+      FROM "EventoScan"
+      WHERE "clienteId" = ${cliente.id}
+        AND "contabilizada" = true
+        AND "tipoEvento" = 'PEDIDO_TORTA'
+    `
+    const pedidosTortas = Number(pedidosTortasResult[0]?.count || 0)
+
+    // Total de visitas = visitas normales + (pedidos tortas × multiplicador)
+    const totalVisitas = visitasNormales + (pedidosTortas * tortasMultiplicador)
 
     // Mapear niveles con información de progreso
     const nivelesData = niveles.map((nivel) => {
       const esNivelActual = cliente.nivel?.id === nivel.id
       const criterio = nivel.criterios as any
       const visitasRequeridas = criterio?.visitas || criterio?.visitasMinimas || 0
-      
+
       return {
         id: nivel.id,
         nombre: nivel.nombre,
@@ -102,6 +120,12 @@ export async function GET(req: NextRequest) {
         niveles: nivelesData,
         nivelActual: cliente.nivel?.nombre || 'Sin nivel',
         totalVisitas,
+        desglose: {
+          visitasNormales,
+          pedidosTortas,
+          tortasMultiplicador,
+          periodoDias,
+        },
         progreso,
       },
     })

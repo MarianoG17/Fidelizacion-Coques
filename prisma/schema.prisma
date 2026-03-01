@@ -31,6 +31,7 @@ enum TipoEvento {
   ESTADO_EXTERNO
   ACTIVACION
   ASISTENCIA_EVENTO
+  PEDIDO_TORTA
 }
 
 enum MetodoValidacion {
@@ -454,6 +455,7 @@ model ConfiguracionApp {
   
   // Sistema de Niveles
   nivelesPeriodoDias          Int      @default(30)   // Período de días para evaluar visitas en niveles
+  tortasMultiplicador         Int      @default(3)    // Multiplicador de pedidos de tortas (1 pedido = X visitas)
   
   // URLs
   googleMapsUrl               String   @default("https://maps.app.goo.gl/n6q5HNELZuwDyT556")

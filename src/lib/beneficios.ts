@@ -114,6 +114,7 @@ export async function evaluarNivel(clienteId: string) {
   // Obtener configuración para el período de evaluación
   const config = await prisma.configuracionApp.findFirst()
   const periodoDias = config?.nivelesPeriodoDias || 30
+  const tortasMultiplicador = config?.tortasMultiplicador || 3
 
   const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' } }) // Orden ascendente: Bronce -> Plata -> Oro
 
@@ -130,7 +131,23 @@ export async function evaluarNivel(clienteId: string) {
       AND "timestamp" >= ${hacePeriodo}
       AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
   `
-  const visitasRecientes = Number(visitasRecientesResult[0]?.count || 0)
+  const visitasNormales = Number(visitasRecientesResult[0]?.count || 0)
+
+  // Contar pedidos de tortas en el período (cada pedido cuenta como múltiples visitas)
+  const pedidosTortasResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+    SELECT COUNT(*)::bigint as count
+    FROM "EventoScan"
+    WHERE "clienteId" = ${clienteId}
+      AND "contabilizada" = true
+      AND "timestamp" >= ${hacePeriodo}
+      AND "tipoEvento" = 'PEDIDO_TORTA'
+  `
+  const pedidosTortas = Number(pedidosTortasResult[0]?.count || 0)
+
+  // Total de días = visitas normales + (pedidos tortas × multiplicador)
+  const visitasRecientes = visitasNormales + (pedidosTortas * tortasMultiplicador)
+  
+  console.log(`[evaluarNivel] Cliente ${clienteId}: ${visitasNormales} visitas normales + ${pedidosTortas} pedidos tortas (×${tortasMultiplicador}) = ${visitasRecientes} visitas totales`)
 
   // Contar usos cruzados (distintos locales en el período)
   const localesDistintos = await prisma.eventoScan.findMany({

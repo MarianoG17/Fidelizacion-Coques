@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       success: true,
       config: {
         nivelesPeriodoDias: config.nivelesPeriodoDias,
+        tortasMultiplicador: config.tortasMultiplicador,
         feedbackHabilitado: config.feedbackHabilitado,
         feedbackTiempoVisitaMinutos: config.feedbackTiempoVisitaMinutos,
         feedbackFrecuenciaDias: config.feedbackFrecuenciaDias,
@@ -46,6 +47,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const {
       nivelesPeriodoDias,
+      tortasMultiplicador,
       feedbackHabilitado,
       feedbackTiempoVisitaMinutos,
       feedbackFrecuenciaDias,
@@ -56,6 +58,10 @@ export async function PUT(req: NextRequest) {
     // Validaciones
     if (nivelesPeriodoDias && (nivelesPeriodoDias < 1 || nivelesPeriodoDias > 365)) {
       return NextResponse.json({ error: 'Período de días debe estar entre 1 y 365' }, { status: 400 })
+    }
+
+    if (tortasMultiplicador && (tortasMultiplicador < 1 || tortasMultiplicador > 10)) {
+      return NextResponse.json({ error: 'Multiplicador de tortas debe estar entre 1 y 10' }, { status: 400 })
     }
 
     if (feedbackTiempoVisitaMinutos && (feedbackTiempoVisitaMinutos < 1 || feedbackTiempoVisitaMinutos > 60)) {
@@ -82,6 +88,7 @@ export async function PUT(req: NextRequest) {
       where: { id: configActual.id },
       data: {
         nivelesPeriodoDias,
+        tortasMultiplicador,
         feedbackHabilitado,
         feedbackTiempoVisitaMinutos,
         feedbackFrecuenciaDias,
@@ -92,6 +99,7 @@ export async function PUT(req: NextRequest) {
 
     console.log(`[Admin] Configuración actualizada:`, {
       nivelesPeriodoDias: configActualizada.nivelesPeriodoDias,
+      tortasMultiplicador: configActualizada.tortasMultiplicador,
       feedbackHabilitado: configActualizada.feedbackHabilitado,
     })
 
@@ -100,6 +108,7 @@ export async function PUT(req: NextRequest) {
       message: 'Configuración actualizada correctamente',
       config: {
         nivelesPeriodoDias: configActualizada.nivelesPeriodoDias,
+        tortasMultiplicador: configActualizada.tortasMultiplicador,
         feedbackHabilitado: configActualizada.feedbackHabilitado,
         feedbackTiempoVisitaMinutos: configActualizada.feedbackTiempoVisitaMinutos,
         feedbackFrecuenciaDias: configActualizada.feedbackFrecuenciaDias,
