@@ -10,8 +10,9 @@ export const dynamic = 'force-dynamic'
  * Obtener pedidos del cliente logueado desde WooCommerce
  */
 export async function GET(req: NextRequest) {
-  // Configurar caché de 2 minutos para pedidos (se actualizan frecuentemente)
-  const cacheTime = 120 // 2 minutos en segundos
+  // Reducir caché a 30 segundos para mostrar estados actualizados más rápido
+  // Los pedidos cambian de estado frecuentemente (processing → completed)
+  const cacheTime = 30 // 30 segundos
   
   try {
     // Verificar autenticación del cliente
