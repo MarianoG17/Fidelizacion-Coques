@@ -4,13 +4,17 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
     try {
-        // Verificar admin key
-        const adminKey = req.headers.get('x-admin-key')
+        const { searchParams } = req.nextUrl
+
+        // Verificar admin key (header o query param)
+        const adminKeyHeader = req.headers.get('x-admin-key')
+        const adminKeyQuery = searchParams.get('key')
+        const adminKey = adminKeyHeader || adminKeyQuery
+
         if (adminKey !== process.env.ADMIN_KEY) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
 
-        const { searchParams } = req.nextUrl
         const phone = searchParams.get('phone')
 
         if (!phone) {
