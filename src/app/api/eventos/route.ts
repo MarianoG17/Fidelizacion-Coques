@@ -6,6 +6,7 @@ import { requireLocalAuth, unauthorized, badRequest, serverError } from '@/lib/a
 import { evaluarNivel } from '@/lib/beneficios'
 import { evaluarLogros } from '@/lib/logros'
 import { getInicioHoyArgentina, getInicioMananaArgentina } from '@/lib/timezone'
+import { verificarYEnviarFeedbacksPendientes } from '@/lib/feedback-scheduler'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,14 +52,14 @@ export async function POST(req: NextRequest) {
 
     const visitaHoy = tipoEvento !== 'ESTADO_EXTERNO'
       ? await prisma.eventoScan.findFirst({
-          where: {
-            clienteId,
-            localId: local.id,
-            contabilizada: true,
-            tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
-            timestamp: { gte: inicioHoy, lt: inicioManana },
-          },
-        })
+        where: {
+          clienteId,
+          localId: local.id,
+          contabilizada: true,
+          tipoEvento: { in: ['VISITA', 'BENEFICIO_APLICADO'] },
+          timestamp: { gte: inicioHoy, lt: inicioManana },
+        },
+      })
       : null
 
     const contabilizada = visitaHoy === null
@@ -75,12 +76,12 @@ export async function POST(req: NextRequest) {
         contabilizada,
         ...(cliente.autos && cliente.autos.length > 0 && cliente.autos[0].estadoActual
           ? {
-              estadoExternoSnap: {
-                estado: cliente.autos[0].estadoActual.estado,
-                updatedAt: cliente.autos[0].estadoActual.updatedAt.toISOString(),
-                patente: cliente.autos[0].patente,
-              },
-            }
+            estadoExternoSnap: {
+              estado: cliente.autos[0].estadoActual.estado,
+              updatedAt: cliente.autos[0].estadoActual.updatedAt.toISOString(),
+              patente: cliente.autos[0].patente,
+            },
+          }
           : {}),
       },
     })
@@ -90,6 +91,11 @@ export async function POST(req: NextRequest) {
       evaluarNivel(clienteId)
         .then(() => evaluarLogros(clienteId))
         .catch(console.error)
+
+      // Verificar feedbacks pendientes de forma oportunística (en background)
+      verificarYEnviarFeedbacksPendientes().catch(err =>
+        console.error('[Eventos] Error verificando feedbacks:', err)
+      )
     }
 
     return NextResponse.json({

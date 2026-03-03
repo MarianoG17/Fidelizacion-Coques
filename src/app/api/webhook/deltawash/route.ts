@@ -18,6 +18,7 @@ import { triggerBeneficiosPorEstado } from '@/lib/beneficios'
 import { normalizarPatente } from '@/lib/patente'
 import { normalizarTelefono } from '@/lib/phone'
 import { sendPushNotification } from '@/lib/push'
+import { verificarYEnviarFeedbacksPendientes } from '@/lib/feedback-scheduler'
 import { EstadoAutoEnum } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
@@ -253,7 +254,13 @@ export async function POST(req: NextRequest) {
             },
         })
 
-        // 12. Respuesta exitosa
+        // 12. Verificar feedbacks pendientes de forma oportunística
+        // Esto se ejecuta en background sin bloquear la respuesta
+        verificarYEnviarFeedbacksPendientes().catch(err =>
+            console.error('[Webhook DeltaWash] Error verificando feedbacks:', err)
+        )
+
+        // 13. Respuesta exitosa
         return NextResponse.json({
             success: true,
             mensaje: 'Estado sincronizado correctamente',
