@@ -24,9 +24,16 @@ export async function GET(req: NextRequest) {
         tortasMultiplicador: config.tortasMultiplicador,
         feedbackHabilitado: config.feedbackHabilitado,
         feedbackTiempoVisitaMinutos: config.feedbackTiempoVisitaMinutos,
+        feedbackDiasPedidoTorta: config.feedbackDiasPedidoTorta,
         feedbackFrecuenciaDias: config.feedbackFrecuenciaDias,
         feedbackMinEstrellas: config.feedbackMinEstrellas,
         googleMapsUrl: config.googleMapsUrl,
+        pushHabilitado: config.pushHabilitado,
+        pushAutoListo: config.pushAutoListo,
+        pushNuevoNivel: config.pushNuevoNivel,
+        pushBeneficioDisponible: config.pushBeneficioDisponible,
+        pushBeneficioVence: config.pushBeneficioVence,
+        pushCumpleanos: config.pushCumpleanos,
       }
     })
   } catch (error) {
@@ -50,9 +57,16 @@ export async function PUT(req: NextRequest) {
       tortasMultiplicador,
       feedbackHabilitado,
       feedbackTiempoVisitaMinutos,
+      feedbackDiasPedidoTorta,
       feedbackFrecuenciaDias,
       feedbackMinEstrellas,
       googleMapsUrl,
+      pushHabilitado,
+      pushAutoListo,
+      pushNuevoNivel,
+      pushBeneficioDisponible,
+      pushBeneficioVence,
+      pushCumpleanos,
     } = body
 
     // Validaciones
@@ -66,6 +80,10 @@ export async function PUT(req: NextRequest) {
 
     if (feedbackTiempoVisitaMinutos && (feedbackTiempoVisitaMinutos < 1 || feedbackTiempoVisitaMinutos > 60)) {
       return NextResponse.json({ error: 'Tiempo de visita debe estar entre 1 y 60 minutos' }, { status: 400 })
+    }
+
+    if (feedbackDiasPedidoTorta !== undefined && (feedbackDiasPedidoTorta < 0 || feedbackDiasPedidoTorta > 30)) {
+      return NextResponse.json({ error: 'Días después de torta debe estar entre 0 y 30' }, { status: 400 })
     }
 
     if (feedbackFrecuenciaDias && (feedbackFrecuenciaDias < 1 || feedbackFrecuenciaDias > 90)) {
@@ -91,9 +109,16 @@ export async function PUT(req: NextRequest) {
         tortasMultiplicador,
         feedbackHabilitado,
         feedbackTiempoVisitaMinutos,
+        feedbackDiasPedidoTorta,
         feedbackFrecuenciaDias,
         feedbackMinEstrellas,
         googleMapsUrl,
+        pushHabilitado,
+        pushAutoListo,
+        pushNuevoNivel,
+        pushBeneficioDisponible,
+        pushBeneficioVence,
+        pushCumpleanos,
       }
     })
 
@@ -111,9 +136,16 @@ export async function PUT(req: NextRequest) {
         tortasMultiplicador: configActualizada.tortasMultiplicador,
         feedbackHabilitado: configActualizada.feedbackHabilitado,
         feedbackTiempoVisitaMinutos: configActualizada.feedbackTiempoVisitaMinutos,
+        feedbackDiasPedidoTorta: configActualizada.feedbackDiasPedidoTorta,
         feedbackFrecuenciaDias: configActualizada.feedbackFrecuenciaDias,
         feedbackMinEstrellas: configActualizada.feedbackMinEstrellas,
         googleMapsUrl: configActualizada.googleMapsUrl,
+        pushHabilitado: configActualizada.pushHabilitado,
+        pushAutoListo: configActualizada.pushAutoListo,
+        pushNuevoNivel: configActualizada.pushNuevoNivel,
+        pushBeneficioDisponible: configActualizada.pushBeneficioDisponible,
+        pushBeneficioVence: configActualizada.pushBeneficioVence,
+        pushCumpleanos: configActualizada.pushCumpleanos,
       }
     })
   } catch (error) {

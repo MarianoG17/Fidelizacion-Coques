@@ -3,16 +3,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
+import { sendPushNotification } from '@/lib/push'
 
 // Función para generar notificaciones de feedback pendientes
 async function generarNotificacionesFeedbackPendientes(clienteId: string) {
   try {
-    // Obtener configuración de feedback
+    // Obtener configuración de feedback y push
     const config = await prisma.configuracionApp.findFirst({
       select: {
         feedbackHabilitado: true,
         feedbackTiempoVisitaMinutos: true,
         feedbackFrecuenciaDias: true,
+        pushHabilitado: true,
       },
     })
 
@@ -92,8 +94,8 @@ async function generarNotificacionesFeedbackPendientes(clienteId: string) {
       }
     }
 
-    // Crear notificación de feedback pendiente
-    await prisma.notificacion.create({
+    // Crear notificación de feedback pendiente en BD
+    const notificacion = await prisma.notificacion.create({
       data: {
         clienteId,
         titulo: '¿Cómo estuvo tu experiencia?',
@@ -102,7 +104,7 @@ async function generarNotificacionesFeedbackPendientes(clienteId: string) {
         tipo: 'FEEDBACK_PENDIENTE',
         url: null, // Se manejará en el cliente
         leida: false,
-        enviada: true,
+        enviada: false, // Se marcará como enviada después del push
         metadata: {
           visitaId: ultimaVisita.id,
           timestamp: ultimaVisita.timestamp.toISOString(),
@@ -111,6 +113,36 @@ async function generarNotificacionesFeedbackPendientes(clienteId: string) {
     })
 
     console.log(`[Notificación] Feedback pendiente creada para cliente ${clienteId}`)
+
+    // Enviar notificación push si está habilitado
+    if (config.pushHabilitado) {
+      const cliente = await prisma.cliente.findUnique({
+        where: { id: clienteId },
+        select: { pushSub: true }
+      })
+
+      if (cliente?.pushSub) {
+        const pushEnviado = await sendPushNotification(cliente.pushSub, {
+          title: '¿Cómo estuvo tu experiencia?',
+          body: 'Contanos qué te pareció tu visita a Coques. Tu opinión nos ayuda a mejorar 😊',
+          icon: '📊',
+          url: '/pass'
+        })
+
+        if (pushEnviado) {
+          // Marcar como enviada
+          await prisma.notificacion.update({
+            where: { id: notificacion.id },
+            data: { enviada: true }
+          })
+          console.log(`[Notificación] Push de feedback enviado para cliente ${clienteId}`)
+        } else {
+          console.log(`[Notificación] No se pudo enviar push de feedback para cliente ${clienteId}`)
+        }
+      } else {
+        console.log(`[Notificación] Cliente ${clienteId} no tiene suscripción push`)
+      }
+    }
   } catch (error) {
     console.error('Error al generar notificaciones de feedback:', error)
     // No lanzar error para no bloquear la consulta de notificaciones
