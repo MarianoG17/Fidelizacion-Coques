@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = req.nextUrl
@@ -11,8 +13,17 @@ export async function GET(req: NextRequest) {
         const adminKeyQuery = searchParams.get('key')
         const adminKey = adminKeyHeader || adminKeyQuery
 
+        console.log('[Debug Auto] Admin key recibida:', adminKey ? 'presente' : 'ausente')
+        console.log('[Debug Auto] Admin key esperada:', process.env.ADMIN_KEY ? 'configurada' : 'NO configurada')
+
         if (adminKey !== process.env.ADMIN_KEY) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+            return NextResponse.json({
+                error: 'No autorizado',
+                debug: {
+                    keyRecibida: !!adminKey,
+                    keyEsperada: !!process.env.ADMIN_KEY
+                }
+            }, { status: 401 })
         }
 
         const phone = searchParams.get('phone')
