@@ -95,7 +95,9 @@ export default function ConciliacionPage() {
       // Obtener datos de la app
       const fechaMin = ayresRecords[0].fecha
       const fechaMax = ayresRecords[ayresRecords.length - 1].fecha
-
+      
+      console.log('Obteniendo datos de la app:', { fechaMin, fechaMax })
+      
       const res = await fetch(
         `/api/admin/reportes/descuentos?fechaDesde=${fechaMin}&fechaHasta=${fechaMax}&formato=json`,
         {
@@ -104,10 +106,13 @@ export default function ConciliacionPage() {
       )
 
       if (!res.ok) {
-        throw new Error('Error al obtener datos de la app')
+        const errorText = await res.text()
+        console.error('Error de API:', res.status, errorText)
+        throw new Error(`Error al obtener datos de la app (${res.status}): ${errorText}`)
       }
 
       const appData = await res.json()
+      console.log('Datos recibidos:', appData)
       const appRecords: AppRecord[] = appData.data || []
 
       // Realizar conciliación
