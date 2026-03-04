@@ -79,13 +79,13 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            placeholder="+54 9 11 1234-5678"
+                            placeholder="1112345678"
                             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                             autoFocus
                             disabled={loading}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Formato: +54 9 11 1234-5678 o 11 1234-5678
+                            Formato: 1112345678
                         </p>
                     </div>
 
