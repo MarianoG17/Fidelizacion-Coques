@@ -295,6 +295,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   Cliente
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  Email
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Teléfono
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -336,14 +339,18 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   className="border-t border-slate-700 hover:bg-slate-750 transition"
                 >
                   <td className="p-4">
-                    <div>
-                      <p className="text-white font-semibold">
-                        {cliente.nombre || 'Sin nombre'}
+                    <p className="text-white font-semibold">
+                      {cliente.nombre || 'Sin nombre'}
+                    </p>
+                  </td>
+                  <td className="p-4">
+                    {cliente.email ? (
+                      <p className="text-slate-300 text-sm break-all">
+                        {cliente.email}
                       </p>
-                      {cliente.email && (
-                        <p className="text-slate-400 text-sm">{cliente.email}</p>
-                      )}
-                    </div>
+                    ) : (
+                      <span className="text-slate-600 text-sm italic">No registrado</span>
+                    )}
                   </td>
                   <td className="p-4">
                     <p className="text-slate-300 font-mono text-sm">
