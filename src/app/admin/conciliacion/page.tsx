@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import * as XLSX from 'xlsx'
 
 interface AyresRecord {
   fecha: string
@@ -74,9 +75,16 @@ export default function ConciliacionPage() {
 
     setCargando(true)
     try {
-      // Leer el archivo CSV
-      const text = await archivo.text()
-      const ayresRecords = parsearCSVAyres(text)
+      // Detectar tipo de archivo y parsear
+      let ayresRecords: AyresRecord[] = []
+
+      if (archivo.name.endsWith('.xlsx') || archivo.name.endsWith('.xls')) {
+        ayresRecords = await parsearExcelAyres(archivo)
+      } else {
+        // CSV
+        const text = await archivo.text()
+        ayresRecords = parsearCSVAyres(text)
+      }
 
       if (ayresRecords.length === 0) {
         alert('No se encontraron registros válidos en el archivo')
@@ -87,7 +95,7 @@ export default function ConciliacionPage() {
       // Obtener datos de la app
       const fechaMin = ayresRecords[0].fecha
       const fechaMax = ayresRecords[ayresRecords.length - 1].fecha
-      
+
       const res = await fetch(
         `/api/admin/reportes/descuentos?fechaDesde=${fechaMin}&fechaHasta=${fechaMax}&formato=json`,
         {
@@ -122,6 +130,66 @@ export default function ConciliacionPage() {
     } finally {
       setCargando(false)
     }
+  }
+
+  async function parsearExcelAyres(file: File): Promise<AyresRecord[]> {
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array' })
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][]
+
+    const records: AyresRecord[] = []
+
+    // Saltar encabezado (fila 0)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i]
+      if (!row || row.length < 11) continue
+
+      try {
+        // Formato esperado: FECHA, DÍA, VENTA, N° FAC, SECTOR, VENDEDOR, CAJERO, CÓDIGO, DESCUENTO, TIPO, A, MONTO
+        const fechaHoraRaw = row[0] ? String(row[0]) : ''
+        let fecha = ''
+        let hora = '00:00'
+
+        // Si la celda de Excel es una fecha numérica, convertirla
+        if (typeof row[0] === 'number') {
+          const excelDate = XLSX.SSF.parse_date_code(row[0])
+          fecha = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`
+          hora = `${String(excelDate.H || 0).padStart(2, '0')}:${String(excelDate.M || 0).padStart(2, '0')}`
+        } else {
+          // Es texto, parsearlo
+          const fechaHora = fechaHoraRaw.split(' ')
+          fecha = convertirFecha(fechaHora[0])
+          hora = fechaHora[1] || '00:00'
+        }
+
+        const montoRaw = String(row[11] || '0')
+        const monto = parseFloat(
+          montoRaw
+            .replace('$', '')
+            .replace(/\./g, '') // Quitar separadores de miles
+            .replace(',', '.') // Convertir decimal
+        ) || 0
+
+        records.push({
+          fecha,
+          hora,
+          dia: String(row[1] || ''),
+          numeroVenta: String(row[2] || ''),
+          sector: String(row[4] || ''),
+          vendedor: String(row[5] || ''),
+          cajero: String(row[6] || ''),
+          codigo: String(row[7] || ''),
+          descuento: String(row[8] || ''),
+          tipo: String(row[9] || ''),
+          monto,
+        })
+      } catch (e) {
+        console.warn('Error parseando fila Excel:', row, e)
+      }
+    }
+
+    return records
   }
 
   function parsearCSVAyres(text: string): AyresRecord[] {
@@ -170,12 +238,12 @@ export default function ConciliacionPage() {
       const day = parts[0].padStart(2, '0')
       const month = parts[1].padStart(2, '0')
       let year = parts[2]
-      
+
       // Si el año es de 2 dígitos, agregar "20"
       if (year.length === 2) {
         year = '20' + year
       }
-      
+
       return `${year}-${month}-${day}`
     }
     return fecha
@@ -187,7 +255,7 @@ export default function ConciliacionPage() {
       const matches = appRecords.filter((appRec) => {
         const mismaFecha = appRec.fecha === ayresRec.fecha
         const codigoCoincide = appRec.codigoAyresIT === ayresRec.codigo
-        
+
         return mismaFecha && codigoCoincide
       })
 
@@ -329,12 +397,12 @@ export default function ConciliacionPage() {
 
         {/* Subir archivo */}
         <div className="bg-slate-800 rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold text-white mb-4">1. Subir archivo CSV de AyresIT</h2>
+          <h2 className="text-xl font-bold text-white mb-4">1. Subir archivo de AyresIT (CSV o Excel)</h2>
           <div className="space-y-4">
             <div>
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={handleFileChange}
                 className="block w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
               />
@@ -343,6 +411,9 @@ export default function ConciliacionPage() {
                   Archivo seleccionado: {archivo.name} ({(archivo.size / 1024).toFixed(1)} KB)
                 </p>
               )}
+              <p className="text-slate-500 text-xs mt-2">
+                Formatos aceptados: CSV (.csv), Excel (.xlsx, .xls)
+              </p>
             </div>
             <button
               onClick={procesarConciliacion}
@@ -412,29 +483,27 @@ export default function ConciliacionPage() {
                   {resultado.map((r, i) => (
                     <tr
                       key={i}
-                      className={`border-t border-slate-700 ${
-                        r.estado === 'COINCIDE'
-                          ? 'bg-green-900/20'
-                          : r.estado === 'POSIBLE_MATCH'
+                      className={`border-t border-slate-700 ${r.estado === 'COINCIDE'
+                        ? 'bg-green-900/20'
+                        : r.estado === 'POSIBLE_MATCH'
                           ? 'bg-yellow-900/20'
                           : 'bg-red-900/20'
-                      }`}
+                        }`}
                     >
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            r.estado === 'COINCIDE'
-                              ? 'bg-green-900 text-green-200'
-                              : r.estado === 'POSIBLE_MATCH'
+                          className={`px-2 py-1 rounded-full text-xs font-semibold ${r.estado === 'COINCIDE'
+                            ? 'bg-green-900 text-green-200'
+                            : r.estado === 'POSIBLE_MATCH'
                               ? 'bg-yellow-900 text-yellow-200'
                               : 'bg-red-900 text-red-200'
-                          }`}
+                            }`}
                         >
                           {r.estado === 'COINCIDE'
                             ? '✓ OK'
                             : r.estado === 'POSIBLE_MATCH'
-                            ? '? Posible'
-                            : '✗ No encontrado'}
+                              ? '? Posible'
+                              : '✗ No encontrado'}
                         </span>
                       </td>
                       <td className="p-3 text-slate-300 text-sm">
