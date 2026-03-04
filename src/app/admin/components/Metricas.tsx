@@ -248,6 +248,29 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                         <li>• <strong>Hoja 3:</strong> Totales del período seleccionado</li>
                     </ul>
                 </div>
+
+                {/* Botón para Conciliación con AyresIT */}
+                <div className="mt-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-white font-semibold mb-1">
+                                🔄 Conciliar con AyresIT
+                            </p>
+                            <p className="text-slate-400 text-sm">
+                                Sube el CSV de AyresIT para cruzarlo automáticamente con los datos de la app
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => window.location.href = '/admin/conciliacion'}
+                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all flex items-center gap-2"
+                        >
+                            <span>Abrir Conciliación</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Resumen de Beneficios Canjeados */}
