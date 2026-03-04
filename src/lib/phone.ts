@@ -31,17 +31,25 @@ export function normalizarTelefono(phone: string): string | null {
     // Quitar todos los caracteres que no sean dígitos
     let cleaned = phone.replace(/\D/g, '')
 
-    // Si empieza con 549 (código de país), quitarlo
+    // Si empieza con 549 (código de país con 9 de celular), quitarlo
     if (cleaned.startsWith('549')) {
         cleaned = cleaned.substring(3)
     }
-
-    // Si empieza con 54 (código de país sin el 9), quitarlo
-    if (cleaned.startsWith('54')) {
+    // Si empieza con 54 pero NO con 549 (formato +5411... sin el 9)
+    else if (cleaned.startsWith('54')) {
         cleaned = cleaned.substring(2)
     }
 
     // Ahora deberíamos tener 10 dígitos empezando con 11 o 15
+    // O 11 dígitos si pusieron +5411 (falta quitar un 1)
+    if (cleaned.length === 11 && cleaned.startsWith('11')) {
+        // Caso: +5411XXXXXXXX → después de quitar 54 quedan 11 dígitos
+        // Esto es redundante, el primer 1 es parte del +54
+        // Quedamos con 11XXXXXXXX (10 dígitos)
+        // No hacemos nada, ya está bien
+        cleaned = cleaned.substring(0, 10)
+    }
+
     if (cleaned.length !== 10) {
         console.warn(`[normalizarTelefono] Longitud inválida: ${cleaned} (${cleaned.length} dígitos)`)
         return null
