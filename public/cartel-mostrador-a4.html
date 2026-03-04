@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartel Fidelización Coques - A4</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            width: 210mm;
+            height: 297mm;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20mm;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            width: 100%;
+            max-width: 170mm;
+        }
+        
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+        
+        h1 {
+            font-size: 42px;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #718096;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .qr-section {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 30px 0;
+        }
+        
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        #qrcode canvas {
+            border-radius: 10px;
+        }
+        
+        .qr-text {
+            font-size: 18px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        
+        .benefits {
+            text-align: left;
+            margin: 30px 0;
+        }
+        
+        .benefits-title {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .benefit-icon {
+            font-size: 32px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .benefit-text {
+            flex: 1;
+        }
+        
+        .benefit-text strong {
+            font-size: 18px;
+            color: #2d3748;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .benefit-text span {
+            font-size: 14px;
+            color: #718096;
+        }
+        
+        .cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 30px;
+            display: inline-block;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #a0aec0;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎂</div>
+        
+        <h1>¡Súmate a Coques!</h1>
+        <div class="subtitle">Programa de Fidelización</div>
+        
+        <div class="qr-section">
+            <div id="qrcode"></div>
+            <div class="qr-text">Escaneá el QR con tu celular</div>
+        </div>
+        
+        <div class="benefits">
+            <div class="benefits-title">✨ Beneficios Exclusivos</div>
+            
+            <div class="benefit-item">
+                <div class="benefit-icon">🎁</div>
+                <div class="benefit-text">
+                    <strong>Torta de Regalo</strong>
+                    <span>En tu cumpleaños recibís una torta gratis</span>
+                </div>
+            </div>
+            
+            <div class="benefit-item">
+                <div class="benefit-icon">🏆</div>
+                <div class="benefit-text">
+                    <strong>Niveles y Descuentos</strong>
+                    <span>Subí de nivel y obtené hasta 15% OFF en tortas</span>
+                </div>
+            </div>
+            
+            <div class="benefit-item">
+                <div class="benefit-icon">☕</div>
+                <div class="benefit-text">
+                    <strong>20% OFF en Cafetería</strong>
+                    <span>Mientras esperás tu auto en el lavadero</span>
+                </div>
+            </div>
+            
+            <div class="benefit-item">
+                <div class="benefit-icon">🎯</div>
+                <div class="benefit-text">
+                    <strong>Beneficios Especiales</strong>
+                    <span>Promociones exclusivas y sorpresas cada mes</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="cta">¡Registrate Gratis!</div>
+        
+        <div class="footer">
+            app.coques.com.ar
+        </div>
+    </div>
+    
+    <script>
+        // Generar QR code
+        new QRCode(document.getElementById("qrcode"), {
+            text: "https://app.coques.com.ar",
+            width: 200,
+            height: 200,
+            colorDark: "#2d3748",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    </script>
+</body>
+</html>
