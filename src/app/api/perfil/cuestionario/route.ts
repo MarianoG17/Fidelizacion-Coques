@@ -29,6 +29,19 @@ export async function POST(req: NextRequest) {
                     { status: 400 }
                 )
             }
+
+            // Verificar si el cliente ya tiene una fecha de cumpleaños establecida
+            const clienteActual = await prisma.cliente.findUnique({
+                where: { id: clienteId },
+                select: { fechaCumpleanos: true }
+            })
+
+            if (clienteActual?.fechaCumpleanos) {
+                return NextResponse.json(
+                    { error: 'La fecha de cumpleaños no puede ser modificada una vez establecida' },
+                    { status: 403 }
+                )
+            }
         }
 
         if (fuenteConocimiento && !FUENTES_VALIDAS.includes(fuenteConocimiento)) {

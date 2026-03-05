@@ -157,6 +157,20 @@ export async function PATCH(req: NextRequest) {
                 console.log('[API /api/perfil PATCH] Fecha de cumpleaños inválida')
                 return NextResponse.json({ error: 'Fecha de cumpleaños inválida' }, { status: 400 })
             }
+
+            // Verificar si el cliente ya tiene una fecha de cumpleaños establecida
+            const clienteActual: any = await prisma.$queryRaw`
+                SELECT "fechaCumpleanos" FROM "Cliente"
+                WHERE id = ${clienteId}::text
+                LIMIT 1
+            `
+
+            if (clienteActual && clienteActual.length > 0 && clienteActual[0].fechaCumpleanos) {
+                console.log('[API /api/perfil PATCH] Intento de modificar fecha de cumpleaños existente bloqueado')
+                return NextResponse.json({
+                    error: 'La fecha de cumpleaños no puede ser modificada una vez establecida'
+                }, { status: 403 })
+            }
         }
 
         // Build update query dynamically
