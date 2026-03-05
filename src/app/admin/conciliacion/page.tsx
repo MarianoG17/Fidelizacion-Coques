@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 
@@ -45,8 +45,18 @@ export default function ConciliacionPage() {
   const [resultado, setResultado] = useState<ConciliacionResult[] | null>(null)
   const [estadisticas, setEstadisticas] = useState<any>(null)
 
+  // Intentar cargar la admin key del localStorage al montar
+  useEffect(() => {
+    const storedKey = localStorage.getItem('admin_key')
+    if (storedKey) {
+      setAdminKey(storedKey)
+      setAutenticado(true)
+    }
+  }, [])
+
   async function login() {
     if (adminKey === process.env.NEXT_PUBLIC_ADMIN_KEY || adminKey.length > 10) {
+      localStorage.setItem('admin_key', adminKey)
       setAutenticado(true)
     } else {
       alert('Clave incorrecta')
@@ -54,6 +64,7 @@ export default function ConciliacionPage() {
   }
 
   function logout() {
+    localStorage.removeItem('admin_key')
     setAutenticado(false)
     setAdminKey('')
     setResultado(null)
