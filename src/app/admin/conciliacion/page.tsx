@@ -88,7 +88,7 @@ export default function ConciliacionPage() {
     try {
       // Detectar tipo de archivo y parsear
       let ayresRecords: AyresRecord[] = []
-
+      
       if (archivo.name.endsWith('.xlsx') || archivo.name.endsWith('.xls')) {
         ayresRecords = await parsearExcelAyres(archivo)
       } else {
@@ -97,8 +97,22 @@ export default function ConciliacionPage() {
         ayresRecords = parsearCSVAyres(text)
       }
 
+      // Filtrar descuentos que no son parte del programa de fidelización
+      const descuentosExcluidos = [
+        'Descuento Generico Integracion Woo',
+        'Promo mini tortas 4x3',
+        'Descuento 20%',
+        'Promo macarons 7x6'
+      ]
+      
+      ayresRecords = ayresRecords.filter(record =>
+        !descuentosExcluidos.some(excluido =>
+          record.descuento.toLowerCase().includes(excluido.toLowerCase())
+        )
+      )
+
       if (ayresRecords.length === 0) {
-        alert('No se encontraron registros válidos en el archivo')
+        alert('No se encontraron registros válidos en el archivo (todos fueron filtrados)')
         setCargando(false)
         return
       }
