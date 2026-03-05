@@ -23,6 +23,14 @@ export async function GET(req: NextRequest) {
             ? new Date(fechaHasta + 'T23:59:59-03:00')
             : new Date()
 
+        // Beneficios a excluir (no son parte del programa de fidelización)
+        const beneficiosExcluidos = [
+            'Descuento Generico Integracion Woo',
+            'Promo mini tortas 4x3',
+            'Descuento 20%',
+            'Promo macarons 7x6'
+        ]
+
         // Obtener todos los eventos de beneficios aplicados
         const eventos = await prisma.eventoScan.findMany({
             where: {
@@ -31,6 +39,11 @@ export async function GET(req: NextRequest) {
                     gte: desde,
                     lte: hasta,
                 },
+                beneficio: {
+                    nombre: {
+                        notIn: beneficiosExcluidos
+                    }
+                }
             },
             include: {
                 cliente: {
