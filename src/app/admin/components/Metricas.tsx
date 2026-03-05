@@ -34,70 +34,58 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     const [fechaHasta, setFechaHasta] = useState('')
     const [resumenBeneficios, setResumenBeneficios] = useState<Array<{ beneficio: string; cantidad: number; mostrador: number; salon: number }>>([])
     const [cargandoResumen, setCargandoResumen] = useState(false)
-
+    
     // DEBUG: Estado para mostrar logs en pantalla
-    const [debugLogs, setDebugLogs] = useState<string[]>([])
-
-    // Helper para agregar logs
-    const addLog = (mensaje: string) => {
-        const timestamp = new Date().toLocaleTimeString('es-AR')
-        setDebugLogs(prev => [...prev, `[${timestamp}] ${mensaje}`])
-        console.log(`[DEBUG] ${mensaje}`)
-    }
+    const [debugLogs, setDebugLogs] = useState<string[]>(['[INIT] Componente inicializado'])
 
     useEffect(() => {
-        addLog('🚀 Componente Metricas montado - useEffect ejecutado')
-        addLog(`📱 User Agent: ${navigator.userAgent.substring(0, 50)}`)
-        addLog(`🌐 Window size: ${window.innerWidth}x${window.innerHeight}`)
-        
-        fetchMetricas()
+        try {
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] useEffect ejecutado`])
+            fetchMetricas()
 
-        // Setear fechas por defecto (últimos 30 días)
-        const hoy = new Date()
-        const hace30Dias = new Date()
-        hace30Dias.setDate(hoy.getDate() - 30)
+            // Setear fechas por defecto (últimos 30 días)
+            const hoy = new Date()
+            const hace30Dias = new Date()
+            hace30Dias.setDate(hoy.getDate() - 30)
 
-        setFechaHasta(hoy.toISOString().split('T')[0])
-        setFechaDesde(hace30Dias.toISOString().split('T')[0])
+            setFechaHasta(hoy.toISOString().split('T')[0])
+            setFechaDesde(hace30Dias.toISOString().split('T')[0])
+        } catch (error: any) {
+            setDebugLogs(prev => [...prev, `[ERROR] useEffect: ${error.message}`])
+        }
     }, [])
 
     async function fetchMetricas() {
-        addLog('🔍 Iniciando fetchMetricas')
-
-        // Leer admin_key directamente de localStorage para evitar timing issues en mobile
-        const key = localStorage.getItem('admin_key')
-        addLog(`📦 localStorage.admin_key: ${key ? `EXISTS (${key.length} chars)` : 'NULL'}`)
-
-        if (!key) {
-            addLog('❌ ERROR: No hay admin_key en localStorage')
-            setCargando(false)
-            return
-        }
-
         try {
-            addLog('🌐 Enviando fetch a /api/admin/metricas')
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Iniciando fetch`])
+            
+            // Leer admin_key directamente de localStorage para evitar timing issues en mobile
+            const key = localStorage.getItem('admin_key')
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Key: ${key ? 'EXISTS' : 'NULL'}`])
+            
+            if (!key) {
+                setCargando(false)
+                return
+            }
+
             const res = await fetch('/api/admin/metricas', {
                 headers: { 'x-admin-key': key },
             })
-
-            addLog(`📡 Response: ${res.status} ${res.statusText} (ok: ${res.ok})`)
-
+            
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Response: ${res.status}`])
+            
             if (res.ok) {
                 const json = await res.json()
-                addLog(`✅ JSON recibido - totalClientes: ${json.data?.totalClientes || 'N/A'}`)
                 setData(json.data)
-                addLog('✅ Métricas cargadas exitosamente')
+                setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ OK`])
             } else {
-                const errorText = await res.text()
-                addLog(`❌ Error en response: ${errorText.substring(0, 100)}`)
+                setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ Error ${res.status}`])
             }
         } catch (e: any) {
-            addLog(`❌ EXCEPTION: ${e.message || String(e)}`)
-            addLog(`Stack: ${e.stack?.substring(0, 200) || 'N/A'}`)
+            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] EXCEPTION: ${e.message}`])
             console.error('Error al cargar métricas:', e)
         } finally {
             setCargando(false)
-            addLog('🏁 fetchMetricas finalizado')
         }
     }
 
@@ -204,35 +192,18 @@ export function Metricas({ adminKey }: { adminKey: string }) {
 
     return (
         <div className="space-y-6">
-            {/* DEBUG PANEL - SIEMPRE VISIBLE */}
+            {/* DEBUG PANEL */}
             <div className="bg-yellow-900/20 border-2 border-yellow-500 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-yellow-400 font-bold flex items-center gap-2 text-sm">
-                        🔍 Debug Console (Mobile) - {debugLogs.length} logs
-                    </h3>
-                    <button
-                        onClick={() => setDebugLogs([])}
-                        className="text-yellow-400 text-xs hover:text-yellow-300 bg-yellow-900/50 px-3 py-1 rounded"
-                    >
-                        Limpiar
-                    </button>
-                </div>
-                <div className="bg-slate-950 rounded-lg p-3 max-h-96 overflow-y-auto">
-                    {debugLogs.length === 0 ? (
-                        <div className="text-slate-500 text-xs italic">
-                            Esperando logs... Si ves esto pero no aparecen logs, hay un problema de ejecución.
+                <h3 className="text-yellow-400 font-bold text-sm mb-2">
+                    🔍 Debug ({debugLogs.length})
+                </h3>
+                <div className="bg-slate-950 rounded p-2 max-h-64 overflow-y-auto">
+                    {debugLogs.map((log, idx) => (
+                        <div key={idx} className="text-green-400 text-xs font-mono mb-1">
+                            {log}
                         </div>
-                    ) : (
-                        debugLogs.map((log, idx) => (
-                            <div key={idx} className="text-green-400 text-xs font-mono mb-1 break-all">
-                                {log}
-                            </div>
-                        ))
-                    )}
+                    ))}
                 </div>
-                <p className="text-yellow-300 text-xs mt-2">
-                    💡 Este panel está SIEMPRE visible para debugging en mobile
-                </p>
             </div>
 
             <h2 className="text-2xl font-bold text-white">Métricas del Sistema</h2>
