@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
 
         const { phone } = await req.json()
 
+        console.log('[COMPLETE-PHONE] Request from user:', session.user.email, 'phone:', phone)
+
         if (!phone) {
             return NextResponse.json(
                 { error: 'El teléfono es requerido' },
@@ -33,10 +35,11 @@ export async function POST(req: NextRequest) {
 
         // Normalizar teléfono
         const normalizedPhone = normalizarTelefono(phone)
+        console.log('[COMPLETE-PHONE] Normalized phone:', normalizedPhone)
 
         if (!normalizedPhone) {
             return NextResponse.json(
-                { error: 'Formato de teléfono inválido' },
+                { error: 'Formato de teléfono inválido. Debe tener 10 dígitos y empezar con 11 o 15. Ejemplo: 1112345678' },
                 { status: 400 }
             )
         }
@@ -46,6 +49,8 @@ export async function POST(req: NextRequest) {
             where: { phone: normalizedPhone }
         })
 
+        console.log('[COMPLETE-PHONE] Existing client with this phone:', existingClient ? 'YES' : 'NO')
+
         if (existingClient && existingClient.email !== session.user.email) {
             return NextResponse.json(
                 { error: 'Este teléfono ya está registrado en otra cuenta' },
@@ -53,8 +58,23 @@ export async function POST(req: NextRequest) {
             )
         }
 
+        // Buscar el cliente actual
+        const currentClient = await prisma.cliente.findUnique({
+            where: { email: session.user.email }
+        })
+
+        if (!currentClient) {
+            console.error('[COMPLETE-PHONE] Cliente no encontrado:', session.user.email)
+            return NextResponse.json(
+                { error: 'Usuario no encontrado' },
+                { status: 404 }
+            )
+        }
+
+        console.log('[COMPLETE-PHONE] Current client estado:', currentClient.estado, 'phone:', currentClient.phone)
+
         // Generar OTP secret si no existe (usuarios de Google OAuth)
-        const otpSecret = generarSecretoOTP()
+        const otpSecret = currentClient.otpSecret || generarSecretoOTP()
 
         // Actualizar cliente con el teléfono y otpSecret
         const cliente = await prisma.cliente.update({
@@ -67,6 +87,14 @@ export async function POST(req: NextRequest) {
             include: {
                 nivel: true
             }
+        })
+
+        console.log('[COMPLETE-PHONE] Cliente actualizado exitosamente:', {
+            id: cliente.id,
+            email: cliente.email,
+            phone: cliente.phone,
+            estado: cliente.estado,
+            hasOtpSecret: !!cliente.otpSecret
         })
 
         // Generar nuevo token JWT con el estado actualizado
@@ -94,9 +122,16 @@ export async function POST(req: NextRequest) {
             }
         })
     } catch (error) {
-        console.error('Error completando teléfono:', error)
+        console.error('[COMPLETE-PHONE] Error completando teléfono:', error)
+
+        // Proveer mensaje de error más específico
+        let errorMessage = 'Error al actualizar teléfono'
+        if (error instanceof Error) {
+            errorMessage = error.message
+        }
+
         return NextResponse.json(
-            { error: 'Error al actualizar teléfono' },
+            { error: errorMessage },
             { status: 500 }
         )
     }

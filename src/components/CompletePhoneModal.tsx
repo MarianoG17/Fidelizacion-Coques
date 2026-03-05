@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 
 interface CompletePhoneModalProps {
     isOpen: boolean
@@ -24,6 +25,40 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
             return
         }
 
+        // Validar formato de teléfono
+        const cleanPhone = phone.replace(/\D/g, '')
+
+        // Validar longitud mínima
+        if (cleanPhone.length < 8) {
+            setError('El teléfono debe tener al menos 8 dígitos')
+            return
+        }
+
+        // Para números argentinos de celular, verificar formato
+        // Aceptamos: 1112345678 (10 dígitos), 541112345678 (12 dígitos), +5491112345678 (13 dígitos)
+        if (cleanPhone.length === 10) {
+            // Debe empezar con 11 o 15
+            if (!cleanPhone.startsWith('11') && !cleanPhone.startsWith('15')) {
+                setError('Número celular argentino debe empezar con 11 o 15. Ej: 1112345678')
+                return
+            }
+        } else if (cleanPhone.length === 12) {
+            // Formato 541112345678
+            if (!cleanPhone.startsWith('5411') && !cleanPhone.startsWith('5415')) {
+                setError('Número con código de país debe ser +54 11 o +54 15. Ej: 541112345678')
+                return
+            }
+        } else if (cleanPhone.length === 13) {
+            // Formato +5491112345678
+            if (!cleanPhone.startsWith('54911') && !cleanPhone.startsWith('54915')) {
+                setError('Número con código internacional debe ser +549 11 o +549 15. Ej: +5491112345678')
+                return
+            }
+        } else if (cleanPhone.length < 10) {
+            setError('El número es muy corto. Debe tener 10 dígitos. Ej: 1112345678')
+            return
+        }
+
         setLoading(true)
         setError('')
 
@@ -40,14 +75,23 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                 throw new Error(data.error || 'Error al actualizar teléfono')
             }
 
+            console.log('[CompletePhoneModal] Teléfono actualizado exitosamente:', data)
+
             // Guardar nuevo token JWT con estado actualizado
             if (data.token) {
                 localStorage.setItem('fidelizacion_token', data.token)
             }
 
-            // Recargar página completa para actualizar sesión de NextAuth
-            window.location.reload()
+            // IMPORTANTE: Hacer un hard redirect para forzar a NextAuth a regenerar la sesión
+            // NextAuth usa JWT y necesita consultar la DB nuevamente para obtener needsPhone: false
+            // window.location.href hace un full page reload, lo que fuerza a NextAuth a:
+            // 1. Validar el token de sesión
+            // 2. Ejecutar el callback jwt() que consulta la DB
+            // 3. Regenerar el token con los datos actualizados (needsPhone: false)
+            console.log('[CompletePhoneModal] Redirigiendo para actualizar sesión...')
+            window.location.href = '/pass'
         } catch (e) {
+            console.error('[CompletePhoneModal] Error:', e)
             setError(e instanceof Error ? e.message : 'Error al actualizar teléfono')
             setLoading(false)
         }
@@ -73,7 +117,7 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Número de teléfono
+                            Número de teléfono celular
                         </label>
                         <input
                             type="tel"
@@ -85,7 +129,8 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                             disabled={loading}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Formato: 1112345678
+                            Ingresá tu número celular completo (10 dígitos)<br />
+                            Ejemplos válidos: <strong>1112345678</strong>, <strong>1512345678</strong>, <strong>+5491112345678</strong>
                         </p>
                     </div>
 

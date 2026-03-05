@@ -43,7 +43,8 @@ export const authOptions: NextAuthOptions = {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
             authorization: {
                 params: {
-                    prompt: "consent",
+                    // Quitamos "prompt: consent" que puede causar invalid_grant
+                    // Google manejará el prompt automáticamente
                     access_type: "offline",
                     response_type: "code"
                 }
@@ -96,12 +97,12 @@ export const authOptions: NextAuthOptions = {
     callbacks: {
         async signIn({ user, account, profile }) {
             console.log('[AUTH] signIn callback started', { provider: account?.provider, email: user?.email })
-            
+
             // Solo procesar para Google OAuth
             if (account?.provider === "google" && user.email) {
                 try {
                     console.log('[AUTH] Processing Google OAuth login for:', user.email)
-                    
+
                     // Buscar cliente por email
                     let cliente = await prisma.cliente.findUnique({
                         where: { email: user.email }
@@ -169,11 +170,11 @@ export const authOptions: NextAuthOptions = {
             return true
         },
 
-        async jwt({ token, user, account }) {
+        async jwt({ token, user, account, trigger }) {
             try {
                 // Solo loguear en primer login o errores importantes
                 const isFirstLogin = !!user
-                
+
                 // Agregar datos adicionales al token JWT en el primer login
                 if (user) {
                     token.userId = user.id
@@ -183,10 +184,21 @@ export const authOptions: NextAuthOptions = {
                 // Solo consultar BD si:
                 // 1. Es el primer login (user existe), o
                 // 2. El token no tiene userId (necesita refrescarse), o
-                // 3. Es un login con OAuth (account existe)
-                const needsDbQuery = isFirstLogin || !token.userId || !!account
-                
+                // 3. Es un login con OAuth (account existe), o
+                // 4. El teléfono actual es temporal (necesita verificar si se actualizó), o
+                // 5. Se disparó un update manual (trigger === 'update')
+                const hasTemporaryPhone = token.phone && String(token.phone).includes('TEMP')
+                const needsDbQuery = isFirstLogin || !token.userId || !!account || hasTemporaryPhone || trigger === 'update'
+
                 if (needsDbQuery && token.email) {
+                    console.log('[AUTH-JWT] Consulting DB for:', token.email, 'reason:', {
+                        isFirstLogin,
+                        noUserId: !token.userId,
+                        hasAccount: !!account,
+                        hasTemporaryPhone,
+                        trigger
+                    })
+
                     const cliente: any = await prisma.cliente.findUnique({
                         where: { email: token.email }
                     })
@@ -197,7 +209,14 @@ export const authOptions: NextAuthOptions = {
                         token.name = cliente.nombre
                         token.picture = cliente.profileImage
                         // Solo necesita completar teléfono si es temporal (contiene TEMP)
-                        token.needsPhone = cliente.phone?.includes('TEMP') || false
+                        const needsPhone = cliente.phone?.includes('TEMP') || false
+                        token.needsPhone = needsPhone
+
+                        console.log('[AUTH-JWT] Token updated:', {
+                            userId: cliente.id,
+                            phone: cliente.phone,
+                            needsPhone
+                        })
                     }
                 }
 
