@@ -42,6 +42,12 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Campos específicos para beneficio de cumpleaños
+  const [esBeneficioCumpleanos, setEsBeneficioCumpleanos] = useState(false)
+  const [diasAntes, setDiasAntes] = useState<number>(3)
+  const [diasDespues, setDiasDespues] = useState<number>(3)
+  const [porcentajeDescuento, setPorcentajeDescuento] = useState<number>(15)
+
   useEffect(() => {
     cargarNiveles()
     if (beneficio) {
@@ -55,6 +61,17 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       setUsoUnico((beneficio as any).usoUnico || false)
       setActivo(beneficio.activo)
       setNivelesSeleccionados(beneficio.niveles.map((n) => n.id))
+
+      // Cargar configuración de cumpleaños si existe
+      const condiciones = (beneficio as any).condiciones
+      if (condiciones) {
+        if (condiciones.requiereFechaCumpleanos) {
+          setEsBeneficioCumpleanos(true)
+          setDiasAntes(condiciones.diasAntes || 3)
+          setDiasDespues(condiciones.diasDespues || 3)
+          setPorcentajeDescuento(condiciones.porcentajeDescuento || 15)
+        }
+      }
     }
   }, [beneficio])
 
@@ -109,6 +126,19 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
     setLoading(true)
 
     try {
+      const condiciones: any = {
+        maxPorDia,
+      }
+
+      // Agregar configuración de cumpleaños si está habilitado
+      if (esBeneficioCumpleanos) {
+        condiciones.requiereFechaCumpleanos = true
+        condiciones.diasAntes = diasAntes
+        condiciones.diasDespues = diasDespues
+        condiciones.porcentajeDescuento = porcentajeDescuento
+        condiciones.mensaje = `¡Feliz cumpleaños! Disfrutá tu ${porcentajeDescuento}% de descuento`
+      }
+
       const body = {
         nombre,
         descripcionCaja,
@@ -120,12 +150,13 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         usoUnico,
         activo,
         niveles: nivelesSeleccionados,
+        condiciones: esBeneficioCumpleanos ? condiciones : undefined,
       }
 
       const url = beneficio
         ? `/api/admin/beneficios/${beneficio.id}`
         : '/api/admin/beneficios'
-      
+
       const method = beneficio ? 'PATCH' : 'POST'
 
       const res = await fetch(url, {
@@ -258,11 +289,10 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                   key={emoji}
                   type="button"
                   onClick={() => setIcono(emoji)}
-                  className={`text-2xl p-2 rounded-lg transition ${
-                    icono === emoji
-                      ? 'bg-blue-600 ring-2 ring-blue-400'
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
+                  className={`text-2xl p-2 rounded-lg transition ${icono === emoji
+                    ? 'bg-blue-600 ring-2 ring-blue-400'
+                    : 'bg-slate-700 hover:bg-slate-600'
+                    }`}
                 >
                   {emoji}
                 </button>
@@ -329,6 +359,81 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
             Si está marcado, el beneficio solo se puede usar una vez en total (ej: descuento de bienvenida)
           </p>
 
+          {/* Configuración de Beneficio de Cumpleaños */}
+          <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="checkbox"
+                id="esBeneficioCumpleanos"
+                checked={esBeneficioCumpleanos}
+                onChange={(e) => setEsBeneficioCumpleanos(e.target.checked)}
+                className="w-5 h-5 rounded bg-slate-700 border-slate-600 accent-pink-600"
+              />
+              <label htmlFor="esBeneficioCumpleanos" className="text-white font-semibold flex items-center gap-2">
+                🎂 Beneficio de Semana de Cumpleaños
+              </label>
+            </div>
+
+            {esBeneficioCumpleanos && (
+              <div className="space-y-4 pl-8 border-l-2 border-pink-500/30">
+                <p className="text-sm text-slate-400">
+                  Este beneficio se activará automáticamente durante la semana del cumpleaños del cliente
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Días antes
+                    </label>
+                    <input
+                      type="number"
+                      value={diasAntes}
+                      onChange={(e) => setDiasAntes(Number(e.target.value))}
+                      min="0"
+                      max="30"
+                      className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Días después
+                    </label>
+                    <input
+                      type="number"
+                      value={diasDespues}
+                      onChange={(e) => setDiasDespues(Number(e.target.value))}
+                      min="0"
+                      max="30"
+                      className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Descuento (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={porcentajeDescuento}
+                      onChange={(e) => setPorcentajeDescuento(Number(e.target.value))}
+                      min="1"
+                      max="100"
+                      className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-pink-900/20 rounded-lg p-3">
+                  <p className="text-xs text-pink-300">
+                    💡 <strong>Ejemplo:</strong> Con {diasAntes} días antes y {diasDespues} días después,
+                    el beneficio estará activo {diasAntes + diasDespues + 1} días en total alrededor del cumpleaños.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Niveles */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -340,11 +445,10 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                   key={nivel.id}
                   type="button"
                   onClick={() => toggleNivel(nivel.id)}
-                  className={`p-4 rounded-xl font-medium transition ${
-                    nivelesSeleccionados.includes(nivel.id)
-                      ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
+                  className={`p-4 rounded-xl font-medium transition ${nivelesSeleccionados.includes(nivel.id)
+                    ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
                 >
                   {nivel.nombre === 'Bronce' && '🥉'}
                   {nivel.nombre === 'Plata' && '🥈'}
