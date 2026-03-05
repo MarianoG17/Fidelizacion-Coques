@@ -34,55 +34,37 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     const [fechaHasta, setFechaHasta] = useState('')
     const [resumenBeneficios, setResumenBeneficios] = useState<Array<{ beneficio: string; cantidad: number; mostrador: number; salon: number }>>([])
     const [cargandoResumen, setCargandoResumen] = useState(false)
-    
-    // DEBUG: Estado para mostrar logs en pantalla
-    const [debugLogs, setDebugLogs] = useState<string[]>(['[INIT] Componente inicializado'])
 
     useEffect(() => {
-        try {
-            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] useEffect ejecutado`])
-            fetchMetricas()
+        fetchMetricas()
 
-            // Setear fechas por defecto (últimos 30 días)
-            const hoy = new Date()
-            const hace30Dias = new Date()
-            hace30Dias.setDate(hoy.getDate() - 30)
+        // Setear fechas por defecto (últimos 30 días)
+        const hoy = new Date()
+        const hace30Dias = new Date()
+        hace30Dias.setDate(hoy.getDate() - 30)
 
-            setFechaHasta(hoy.toISOString().split('T')[0])
-            setFechaDesde(hace30Dias.toISOString().split('T')[0])
-        } catch (error: any) {
-            setDebugLogs(prev => [...prev, `[ERROR] useEffect: ${error.message}`])
-        }
+        setFechaHasta(hoy.toISOString().split('T')[0])
+        setFechaDesde(hace30Dias.toISOString().split('T')[0])
     }, [])
 
     async function fetchMetricas() {
-        try {
-            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Iniciando fetch`])
-            
-            // Leer admin_key directamente de localStorage para evitar timing issues en mobile
-            const key = localStorage.getItem('admin_key')
-            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Key: ${key ? 'EXISTS' : 'NULL'}`])
-            
-            if (!key) {
-                setCargando(false)
-                return
-            }
+        // Leer admin_key directamente de localStorage para evitar timing issues en mobile
+        const key = localStorage.getItem('admin_key')
+        if (!key) {
+            setCargando(false)
+            return
+        }
 
+        try {
             const res = await fetch('/api/admin/metricas', {
                 headers: { 'x-admin-key': key },
             })
             
-            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Response: ${res.status}`])
-            
             if (res.ok) {
                 const json = await res.json()
                 setData(json.data)
-                setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ OK`])
-            } else {
-                setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ Error ${res.status}`])
             }
-        } catch (e: any) {
-            setDebugLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] EXCEPTION: ${e.message}`])
+        } catch (e) {
             console.error('Error al cargar métricas:', e)
         } finally {
             setCargando(false)
@@ -192,20 +174,6 @@ export function Metricas({ adminKey }: { adminKey: string }) {
 
     return (
         <div className="space-y-6">
-            {/* DEBUG PANEL */}
-            <div className="bg-yellow-900/20 border-2 border-yellow-500 rounded-xl p-4">
-                <h3 className="text-yellow-400 font-bold text-sm mb-2">
-                    🔍 Debug ({debugLogs.length})
-                </h3>
-                <div className="bg-slate-950 rounded p-2 max-h-64 overflow-y-auto">
-                    {debugLogs.map((log, idx) => (
-                        <div key={idx} className="text-green-400 text-xs font-mono mb-1">
-                            {log}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
             <h2 className="text-2xl font-bold text-white">Métricas del Sistema</h2>
 
             {/* Cards de métricas */}
