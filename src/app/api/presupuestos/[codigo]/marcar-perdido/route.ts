@@ -1,27 +1,18 @@
 // src/app/api/presupuestos/[codigo]/marcar-perdido/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verificarEmpleado } from '@/lib/authEmpleado'
 
 /**
  * POST /api/presupuestos/[codigo]/marcar-perdido
  * Marca un presupuesto como PERDIDO con una razón
+ * Para uso interno del local
  */
 export async function POST(
-    req: NextRequest,
-    { params }: { params: { codigo: string } }
+  req: NextRequest,
+  { params }: { params: { codigo: string } }
 ) {
-    try {
-        // Verificar autenticación de empleado
-        const empleado = verificarEmpleado(req)
-        if (!empleado) {
-            return NextResponse.json(
-                { error: 'No autorizado' },
-                { status: 401 }
-            )
-        }
-
-        const { codigo } = params
+  try {
+    const { codigo } = params
         const body = await req.json()
         const { motivoPerdido } = body
 
