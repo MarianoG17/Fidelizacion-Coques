@@ -75,6 +75,7 @@ enum EstadoPresupuesto {
   COMPLETO
   CONFIRMADO
   CANCELADO
+  PERDIDO
 }
 
 // ─── Modelos ───────────────────────────────────────────────────────────────────
@@ -430,6 +431,7 @@ model Presupuesto {
   camposPendientes  Json?
   notasInternas     String?
   notasCliente      String?
+  motivoPerdido     String?            // Razón por la que se perdió el presupuesto
   creadoPor         String?
   creadoEn          DateTime           @default(now())
   actualizadoEn     DateTime           @updatedAt

@@ -15,9 +15,10 @@ interface Presupuesto {
   descuento: number
   fechaEntrega: string | null
   horaEntrega: string | null
-  estado: 'PENDIENTE' | 'COMPLETO' | 'CONFIRMADO' | 'CANCELADO'
+  estado: 'PENDIENTE' | 'COMPLETO' | 'CONFIRMADO' | 'CANCELADO' | 'PERDIDO'
   notasCliente: string | null
   notasInternas: string | null
+  motivoPerdido: string | null
   creadoEn: string
   actualizadoEn: string
   confirmadoEn: string | null
@@ -28,11 +29,14 @@ export default function PresupuestoPage() {
   const params = useParams()
   const router = useRouter()
   const codigo = params.codigo as string
-  
+
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [confirmando, setConfirmando] = useState(false)
+  const [mostrarModalPerdido, setMostrarModalPerdido] = useState(false)
+  const [motivoPerdido, setMotivoPerdido] = useState('')
+  const [marcandoPerdido, setMarcandoPerdido] = useState(false)
 
   useEffect(() => {
     cargarPresupuesto()
@@ -89,6 +93,42 @@ export default function PresupuestoPage() {
       setError(err.message || 'Error al confirmar presupuesto')
     } finally {
       setConfirmando(false)
+    }
+  }
+
+  async function marcarComoPerdido() {
+    if (!motivoPerdido.trim()) {
+      alert('Debe ingresar una razón para marcar el presupuesto como perdido')
+      return
+    }
+
+    setMarcandoPerdido(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/presupuestos/${codigo}/marcar-perdido`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ motivoPerdido: motivoPerdido.trim() })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al marcar presupuesto como perdido')
+      }
+
+      alert('Presupuesto marcado como perdido exitosamente')
+      setMostrarModalPerdido(false)
+      setMotivoPerdido('')
+      cargarPresupuesto() // Recargar para ver el estado actualizado
+    } catch (err: any) {
+      console.error('Error:', err)
+      setError(err.message || 'Error al marcar presupuesto como perdido')
+    } finally {
+      setMarcandoPerdido(false)
     }
   }
 
@@ -237,7 +277,7 @@ export default function PresupuestoPage() {
                     {Object.entries(item.addOns).map(([nombre, opciones]: [string, any]) => (
                       <div key={nombre} className="text-sm text-gray-600 mb-1">
                         <span className="font-medium">{nombre}:</span>{' '}
-                        {Array.isArray(opciones) 
+                        {Array.isArray(opciones)
                           ? opciones.map(o => o.etiqueta).join(', ')
                           : 'N/A'}
                       </div>
@@ -301,7 +341,7 @@ export default function PresupuestoPage() {
         )}
 
         {/* Acciones */}
-        {presupuesto.estado !== 'CONFIRMADO' && presupuesto.estado !== 'CANCELADO' && (
+        {presupuesto.estado !== 'CONFIRMADO' && presupuesto.estado !== 'CANCELADO' && presupuesto.estado !== 'PERDIDO' && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="space-y-3">
               <button
@@ -310,17 +350,23 @@ export default function PresupuestoPage() {
               >
                 ✏️ Editar Presupuesto
               </button>
-              
+
               <button
                 onClick={confirmarPresupuesto}
                 disabled={confirmando}
-                className={`w-full py-3 rounded-lg font-bold transition-colors ${
-                  confirmando
-                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
+                className={`w-full py-3 rounded-lg font-bold transition-colors ${confirmando
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
               >
                 {confirmando ? 'Confirmando...' : '✅ Confirmar Presupuesto'}
+              </button>
+
+              <button
+                onClick={() => setMostrarModalPerdido(true)}
+                className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors"
+              >
+                ❌ Marcar como Perdido
               </button>
             </div>
             <p className="text-xs text-gray-600 mt-3 text-center">
@@ -349,12 +395,89 @@ export default function PresupuestoPage() {
           </div>
         )}
 
+        {/* Info de presupuesto perdido */}
+        {presupuesto.estado === 'PERDIDO' && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <div className="text-center">
+              <span className="text-4xl mb-2 block">📉</span>
+              <h3 className="font-bold text-lg text-orange-800 mb-2">
+                Presupuesto Perdido
+              </h3>
+              {presupuesto.motivoPerdido && (
+                <div className="mt-4 bg-white rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">Razón:</p>
+                  <p className="text-gray-800 font-medium">{presupuesto.motivoPerdido}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
             <p className="text-red-800 text-center">{error}</p>
           </div>
         )}
       </div>
+
+      {/* Modal para marcar como perdido */}
+      {mostrarModalPerdido && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setMostrarModalPerdido(false)}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Marcar Presupuesto como Perdido
+            </h3>
+            
+            <p className="text-gray-600 mb-4">
+              Indicá la razón por la cual este presupuesto se perdió:
+            </p>
+
+            <textarea
+              value={motivoPerdido}
+              onChange={(e) => setMotivoPerdido(e.target.value)}
+              placeholder="Ej: Cliente eligió otra pastelería, precio muy alto, cambió de opinión..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+              rows={4}
+              maxLength={500}
+            />
+            
+            <p className="text-xs text-gray-500 mt-1 mb-4">
+              {motivoPerdido.length}/500 caracteres
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setMostrarModalPerdido(false)
+                  setMotivoPerdido('')
+                }}
+                className="flex-1 py-3 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400 transition-colors"
+                disabled={marcandoPerdido}
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={marcarComoPerdido}
+                disabled={marcandoPerdido || !motivoPerdido.trim()}
+                className={`flex-1 py-3 rounded-lg font-bold transition-colors ${
+                  marcandoPerdido || !motivoPerdido.trim()
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {marcandoPerdido ? 'Marcando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
