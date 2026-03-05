@@ -129,7 +129,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       const condiciones: any = {
         maxPorDia,
       }
-
+      
       // Agregar configuración de cumpleaños si está habilitado
       if (esBeneficioCumpleanos) {
         condiciones.requiereFechaCumpleanos = true
@@ -138,12 +138,16 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         condiciones.porcentajeDescuento = porcentajeDescuento
         condiciones.mensaje = `¡Feliz cumpleaños! Disfrutá tu ${porcentajeDescuento}% de descuento`
       }
-
+      
       const body = {
         nombre,
         descripcionCaja,
         tipo,
-        descuento: tipo === 'DESCUENTO' ? descuento / 100 : null,
+        // Si es beneficio de cumpleaños, el descuento viene de porcentajeDescuento
+        // Si no, viene del campo descuento normal
+        descuento: tipo === 'DESCUENTO'
+          ? (esBeneficioCumpleanos ? porcentajeDescuento / 100 : descuento / 100)
+          : null,
         icono,
         descripcion,
         maxPorDia,
@@ -260,7 +264,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
               </select>
             </div>
 
-            {tipo === 'DESCUENTO' && (
+            {tipo === 'DESCUENTO' && !esBeneficioCumpleanos && (
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Descuento (%) *
@@ -274,6 +278,16 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                   placeholder="10"
                   className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Para beneficios de cumpleaños, usa la sección específica más abajo
+                </p>
+              </div>
+            )}
+            {tipo === 'DESCUENTO' && esBeneficioCumpleanos && (
+              <div className="col-span-1">
+                <p className="text-sm text-yellow-400 bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3">
+                  💡 El descuento se configura en la sección de Cumpleaños
+                </p>
               </div>
             )}
           </div>

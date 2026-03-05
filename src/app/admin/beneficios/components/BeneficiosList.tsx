@@ -48,102 +48,122 @@ export function BeneficiosList({ beneficios, onEditar, onEliminar }: BeneficiosL
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {beneficios.map((beneficio) => (
-                <div
-                    key={beneficio.id}
-                    className={`bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border transition hover:border-slate-600 ${beneficio.activo ? 'border-slate-700/50' : 'border-slate-700/30 opacity-60'
-                        }`}
-                >
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="text-4xl">{beneficio.icono}</div>
-                            <div>
-                                <h3 className="text-lg font-bold text-white">{beneficio.nombre}</h3>
-                                <p className="text-sm text-slate-400">{beneficio.descripcionCaja}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {!beneficio.activo && (
-                                <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-lg border border-red-500/30">
-                                    Inactivo
-                                </span>
-                            )}
-                        </div>
-                    </div>
+        <div className="bg-slate-800 rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead>
+                        <tr className="bg-slate-700">
+                            <th className="text-left p-4 text-slate-300 font-semibold">Beneficio</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Descripción Caja</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Tipo</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Descuento</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Límite/día</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Niveles</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Usos</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Estado</th>
+                            <th className="text-left p-4 text-slate-300 font-semibold">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {beneficios.map((beneficio) => (
+                            <tr
+                                key={beneficio.id}
+                                className={`border-t border-slate-700 hover:bg-slate-750 transition ${!beneficio.activo ? 'opacity-60' : ''}`}
+                            >
+                                {/* Beneficio */}
+                                <td className="p-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">{beneficio.icono}</span>
+                                        <span className="text-white font-semibold">{beneficio.nombre}</span>
+                                    </div>
+                                </td>
 
-                    {/* Info */}
-                    <div className="space-y-3 mb-4">
-                        <div className="flex items-center gap-2">
-                            {getTipoBadge(beneficio.tipo)}
-                            {beneficio.tipo === 'DESCUENTO' && beneficio.descuento && (
-                                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-bold border border-blue-500/30">
-                                    {Math.round(beneficio.descuento * 100)}% OFF
-                                </span>
-                            )}
-                        </div>
+                                {/* Descripción Caja */}
+                                <td className="p-4">
+                                    <span className="text-slate-300 text-sm">{beneficio.descripcionCaja}</span>
+                                </td>
 
-                        {beneficio.descripcion && (
-                            <p className="text-sm text-slate-300">{beneficio.descripcion}</p>
-                        )}
+                                {/* Tipo */}
+                                <td className="p-4">
+                                    {getTipoBadge(beneficio.tipo)}
+                                </td>
 
-                        <div className="flex items-center gap-4 text-sm text-slate-400">
-                            <div className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>
-                                    {beneficio.maxPorDia === 0
-                                        ? 'Sin límite'
-                                        : `${beneficio.maxPorDia} uso${beneficio.maxPorDia > 1 ? 's' : ''}/día`}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                                <span>{beneficio.usosTotal} usos</span>
-                            </div>
-                        </div>
-
-                        {/* Niveles */}
-                        {beneficio.niveles.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {beneficio.niveles
-                                    .sort((a, b) => a.orden - b.orden)
-                                    .map((nivel) => (
-                                        <span
-                                            key={nivel.id}
-                                            className="px-2 py-1 bg-slate-700/50 text-slate-300 rounded-lg text-xs border border-slate-600/50"
-                                        >
-                                            {nivel.nombre === 'Bronce' && '🥉'}
-                                            {nivel.nombre === 'Plata' && '🥈'}
-                                            {nivel.nombre === 'Oro' && '🥇'}
-                                            {' '}{nivel.nombre}
+                                {/* Descuento */}
+                                <td className="p-4">
+                                    {beneficio.tipo === 'DESCUENTO' && beneficio.descuento ? (
+                                        <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-bold border border-blue-500/30">
+                                            {Math.round(beneficio.descuento * 100)}% OFF
                                         </span>
-                                    ))}
-                            </div>
-                        )}
-                    </div>
+                                    ) : (
+                                        <span className="text-slate-600 text-sm">-</span>
+                                    )}
+                                </td>
 
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-4 border-t border-slate-700/50">
-                        <button
-                            onClick={() => onEditar(beneficio)}
-                            className="flex-1 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-xl font-medium hover:bg-blue-600/30 transition border border-blue-500/30"
-                        >
-                            ✏️ Editar
-                        </button>
-                        <button
-                            onClick={() => onEliminar(beneficio.id)}
-                            className="flex-1 bg-red-600/20 text-red-400 px-4 py-2 rounded-xl font-medium hover:bg-red-600/30 transition border border-red-500/30"
-                        >
-                            🗑️ Eliminar
-                        </button>
-                    </div>
-                </div>
-            ))}
+                                {/* Límite/día */}
+                                <td className="p-4">
+                                    <span className="text-slate-300 text-sm">
+                                        {beneficio.maxPorDia === 0 ? 'Sin límite' : beneficio.maxPorDia}
+                                    </span>
+                                </td>
+
+                                {/* Niveles */}
+                                <td className="p-4">
+                                    <div className="flex flex-wrap gap-1">
+                                        {beneficio.niveles
+                                            .sort((a, b) => a.orden - b.orden)
+                                            .map((nivel) => (
+                                                <span
+                                                    key={nivel.id}
+                                                    className="px-2 py-1 bg-slate-700/50 text-slate-300 rounded text-xs"
+                                                >
+                                                    {nivel.nombre === 'Bronce' && '🥉'}
+                                                    {nivel.nombre === 'Plata' && '🥈'}
+                                                    {nivel.nombre === 'Oro' && '🥇'}
+                                                </span>
+                                            ))}
+                                    </div>
+                                </td>
+
+                                {/* Usos */}
+                                <td className="p-4">
+                                    <span className="text-slate-300 text-sm font-semibold">{beneficio.usosTotal}</span>
+                                </td>
+
+                                {/* Estado */}
+                                <td className="p-4">
+                                    {beneficio.activo ? (
+                                        <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold border border-green-500/30">
+                                            Activo
+                                        </span>
+                                    ) : (
+                                        <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-semibold border border-red-500/30">
+                                            Inactivo
+                                        </span>
+                                    )}
+                                </td>
+
+                                {/* Acciones */}
+                                <td className="p-4">
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => onEditar(beneficio)}
+                                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => onEliminar(beneficio.id)}
+                                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     )
 }
