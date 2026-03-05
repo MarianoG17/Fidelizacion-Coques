@@ -35,6 +35,16 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     const [resumenBeneficios, setResumenBeneficios] = useState<Array<{ beneficio: string; cantidad: number; mostrador: number; salon: number }>>([])
     const [cargandoResumen, setCargandoResumen] = useState(false)
 
+    // DEBUG: Estado para mostrar logs en pantalla
+    const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+    // Helper para agregar logs
+    const addLog = (mensaje: string) => {
+        const timestamp = new Date().toLocaleTimeString('es-AR')
+        setDebugLogs(prev => [...prev, `[${timestamp}] ${mensaje}`])
+        console.log(`[DEBUG] ${mensaje}`)
+    }
+
     useEffect(() => {
         fetchMetricas()
 
@@ -48,25 +58,42 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     }, [])
 
     async function fetchMetricas() {
+        addLog('🔍 Iniciando fetchMetricas')
+
         // Leer admin_key directamente de localStorage para evitar timing issues en mobile
         const key = localStorage.getItem('admin_key')
+        addLog(`📦 localStorage.admin_key: ${key ? `EXISTS (${key.length} chars)` : 'NULL'}`)
+
         if (!key) {
+            addLog('❌ ERROR: No hay admin_key en localStorage')
             setCargando(false)
             return
         }
 
         try {
+            addLog('🌐 Enviando fetch a /api/admin/metricas')
             const res = await fetch('/api/admin/metricas', {
                 headers: { 'x-admin-key': key },
             })
+
+            addLog(`📡 Response: ${res.status} ${res.statusText} (ok: ${res.ok})`)
+
             if (res.ok) {
                 const json = await res.json()
+                addLog(`✅ JSON recibido - totalClientes: ${json.data?.totalClientes || 'N/A'}`)
                 setData(json.data)
+                addLog('✅ Métricas cargadas exitosamente')
+            } else {
+                const errorText = await res.text()
+                addLog(`❌ Error en response: ${errorText.substring(0, 100)}`)
             }
-        } catch (e) {
+        } catch (e: any) {
+            addLog(`❌ EXCEPTION: ${e.message || String(e)}`)
+            addLog(`Stack: ${e.stack?.substring(0, 200) || 'N/A'}`)
             console.error('Error al cargar métricas:', e)
         } finally {
             setCargando(false)
+            addLog('🏁 fetchMetricas finalizado')
         }
     }
 
@@ -173,6 +200,33 @@ export function Metricas({ adminKey }: { adminKey: string }) {
 
     return (
         <div className="space-y-6">
+            {/* DEBUG PANEL - Visible en mobile */}
+            {debugLogs.length > 0 && (
+                <div className="bg-yellow-900/20 border-2 border-yellow-500 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-yellow-400 font-bold flex items-center gap-2">
+                            🔍 Debug Console (Mobile)
+                        </h3>
+                        <button
+                            onClick={() => setDebugLogs([])}
+                            className="text-yellow-400 text-xs hover:text-yellow-300 bg-yellow-900/50 px-3 py-1 rounded"
+                        >
+                            Limpiar
+                        </button>
+                    </div>
+                    <div className="bg-slate-950 rounded-lg p-3 max-h-80 overflow-y-auto">
+                        {debugLogs.map((log, idx) => (
+                            <div key={idx} className="text-green-400 text-xs font-mono mb-1 break-all">
+                                {log}
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-yellow-300 text-xs mt-2">
+                        💡 Este panel muestra los logs para debugging en mobile
+                    </p>
+                </div>
+            )}
+
             <h2 className="text-2xl font-bold text-white">Métricas del Sistema</h2>
 
             {/* Cards de métricas */}
