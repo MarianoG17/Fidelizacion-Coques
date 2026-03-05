@@ -47,6 +47,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [diasAntes, setDiasAntes] = useState<number>(3)
   const [diasDespues, setDiasDespues] = useState<number>(3)
   const [porcentajeDescuento, setPorcentajeDescuento] = useState<number>(15)
+  const [diasMinimosEntreUsos, setDiasMinimosEntreUsos] = useState<number>(365)
 
   useEffect(() => {
     cargarNiveles()
@@ -70,6 +71,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
           setDiasAntes(condiciones.diasAntes || 3)
           setDiasDespues(condiciones.diasDespues || 3)
           setPorcentajeDescuento(condiciones.porcentajeDescuento || 15)
+          setDiasMinimosEntreUsos(condiciones.diasMinimosEntreUsos || 365)
         }
       }
     }
@@ -129,16 +131,17 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       const condiciones: any = {
         maxPorDia,
       }
-      
+
       // Agregar configuración de cumpleaños si está habilitado
       if (esBeneficioCumpleanos) {
         condiciones.requiereFechaCumpleanos = true
         condiciones.diasAntes = diasAntes
         condiciones.diasDespues = diasDespues
         condiciones.porcentajeDescuento = porcentajeDescuento
+        condiciones.diasMinimosEntreUsos = diasMinimosEntreUsos
         condiciones.mensaje = `¡Feliz cumpleaños! Disfrutá tu ${porcentajeDescuento}% de descuento`
       }
-      
+
       const body = {
         nombre,
         descripcionCaja,
@@ -394,7 +397,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                   Este beneficio se activará automáticamente durante la semana del cumpleaños del cliente
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Días antes
@@ -408,7 +411,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                       className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
-
+                  
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Días después
@@ -422,7 +425,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                       className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
-
+                  
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Descuento (%)
@@ -436,12 +439,30 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                       className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Días entre usos
+                    </label>
+                    <input
+                      type="number"
+                      value={diasMinimosEntreUsos}
+                      onChange={(e) => setDiasMinimosEntreUsos(Number(e.target.value))}
+                      min="1"
+                      max="730"
+                      className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Mínimo de días que deben pasar entre usos (365 = 1 año)
+                    </p>
+                  </div>
                 </div>
-
+                
                 <div className="bg-pink-900/20 rounded-lg p-3">
                   <p className="text-xs text-pink-300">
                     💡 <strong>Ejemplo:</strong> Con {diasAntes} días antes y {diasDespues} días después,
                     el beneficio estará activo {diasAntes + diasDespues + 1} días en total alrededor del cumpleaños.
+                    Solo podrán usarlo cada {diasMinimosEntreUsos} días ({Math.round(diasMinimosEntreUsos/365)} año{diasMinimosEntreUsos >= 730 ? 's' : ''}).
                   </p>
                 </div>
               </div>

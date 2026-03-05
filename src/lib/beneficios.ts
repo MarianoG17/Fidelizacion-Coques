@@ -67,6 +67,8 @@ export async function getBeneficiosActivos(clienteId: string) {
         maxPorCliente?: number
         usoUnico?: boolean
         duracionMinutos?: number
+        diasMinimosEntreUsos?: number
+        requiereFechaCumpleanos?: boolean
       }
 
       if (condiciones.usoUnico) {
@@ -87,6 +89,29 @@ export async function getBeneficiosActivos(clienteId: string) {
           },
         })
         if (usado >= condiciones.maxPorDia) return null
+      }
+
+      // Verificar días mínimos entre usos (para beneficio de cumpleaños - previene abuso)
+      if (condiciones.diasMinimosEntreUsos && condiciones.diasMinimosEntreUsos > 0) {
+        const ultimoUso = await prisma.eventoScan.findFirst({
+          where: {
+            clienteId,
+            beneficioId: beneficio.id,
+            tipoEvento: 'BENEFICIO_APLICADO'
+          },
+          orderBy: { timestamp: 'desc' }
+        })
+
+        if (ultimoUso) {
+          const diasTranscurridos = Math.floor(
+            (Date.now() - ultimoUso.timestamp.getTime()) / (1000 * 60 * 60 * 24)
+          )
+
+          if (diasTranscurridos < condiciones.diasMinimosEntreUsos) {
+            // No ha pasado suficiente tiempo desde el último uso
+            return null
+          }
+        }
       }
 
       return beneficio
@@ -146,7 +171,7 @@ export async function evaluarNivel(clienteId: string) {
 
   // Total de días = visitas normales + (pedidos tortas × multiplicador)
   const visitasRecientes = visitasNormales + (pedidosTortas * tortasMultiplicador)
-  
+
   console.log(`[evaluarNivel] Cliente ${clienteId}: ${visitasNormales} visitas normales + ${pedidosTortas} pedidos tortas (×${tortasMultiplicador}) = ${visitasRecientes} visitas totales`)
 
   // Contar usos cruzados (distintos locales en el período)

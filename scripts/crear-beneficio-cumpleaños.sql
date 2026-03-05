@@ -28,9 +28,12 @@ VALUES (
             'maxPorDia',
             1,
             -- Máximo 1 uso por día
-            'maxPorMes',
+            'maxPorAño',
             1,
-            -- Máximo 1 uso en el mes (solo durante la semana)
+            -- Máximo 1 uso cada 365 días (previene abuso cambiando fecha de cumpleaños)
+            'diasMinimosEntreUsos',
+            365,
+            -- Mínimo 365 días entre usos
             'duracionMinutos',
             NULL,
             -- Sin duración, válido toda la semana
