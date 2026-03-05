@@ -69,6 +69,44 @@ export async function getBeneficiosActivos(clienteId: string) {
         duracionMinutos?: number
         diasMinimosEntreUsos?: number
         requiereFechaCumpleanos?: boolean
+        diasAntes?: number
+        diasDespues?: number
+      }
+
+      // Verificar ventana de cumpleaños (si el beneficio lo requiere)
+      if (condiciones.requiereFechaCumpleanos) {
+        if (!cliente.fechaCumpleanos) {
+          // Cliente no tiene fecha de cumpleaños cargada
+          return null
+        }
+
+        const ahora = new Date()
+        const cumpleanos = new Date(cliente.fechaCumpleanos)
+
+        // Ajustar el año del cumpleaños al año actual
+        const cumpleanosEsteAno = new Date(
+          ahora.getFullYear(),
+          cumpleanos.getMonth(),
+          cumpleanos.getDate()
+        )
+
+        const diasAntes = condiciones.diasAntes || 0
+        const diasDespues = condiciones.diasDespues || 0
+
+        // Calcular inicio y fin de la ventana
+        const inicioVentana = new Date(cumpleanosEsteAno)
+        inicioVentana.setDate(inicioVentana.getDate() - diasAntes)
+        inicioVentana.setHours(0, 0, 0, 0)
+
+        const finVentana = new Date(cumpleanosEsteAno)
+        finVentana.setDate(finVentana.getDate() + diasDespues)
+        finVentana.setHours(23, 59, 59, 999)
+
+        // Verificar si estamos dentro de la ventana
+        if (ahora < inicioVentana || ahora > finVentana) {
+          // Fuera de la ventana de cumpleaños
+          return null
+        }
       }
 
       if (condiciones.usoUnico) {
