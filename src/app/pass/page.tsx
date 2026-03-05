@@ -82,33 +82,53 @@ export default function PassPage() {
       return
     }
 
-    try {
-      const res = await fetch('/api/pass', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.status === 401) {
-        setError('no_auth')
-        return
-      }
-      const json = await res.json()
-      setPass(json.data)
-      setCountdown(json.data.otp.tiempoRestante)
+    // Retry logic: 3 intentos con delay de 1 segundo entre cada uno
+    const maxRetries = 3
+    let lastError: any = null
 
-      // Guardar timestamp de última visita para feedback modal
-      const ultimaVisita = json.data.ultimaVisita
-      if (ultimaVisita) {
-        const guardado = localStorage.getItem('ultimo_scan')
-        if (!guardado || parseInt(guardado) !== ultimaVisita) {
-          localStorage.setItem('ultimo_scan', ultimaVisita.toString())
-          localStorage.removeItem('feedback_scan_visto')
-          console.log('[PASS] Nuevo scan detectado:', new Date(ultimaVisita))
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch('/api/pass', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.status === 401) {
+          setError('no_auth')
+          setLoading(false)
+          return
+        }
+        const json = await res.json()
+        setPass(json.data)
+        setCountdown(json.data.otp.tiempoRestante)
+
+        // Guardar timestamp de última visita para feedback modal
+        const ultimaVisita = json.data.ultimaVisita
+        if (ultimaVisita) {
+          const guardado = localStorage.getItem('ultimo_scan')
+          if (!guardado || parseInt(guardado) !== ultimaVisita) {
+            localStorage.setItem('ultimo_scan', ultimaVisita.toString())
+            localStorage.removeItem('feedback_scan_visto')
+            console.log('[PASS] Nuevo scan detectado:', new Date(ultimaVisita))
+          }
+        }
+        
+        // Éxito - salir del loop
+        setLoading(false)
+        return
+      } catch (error) {
+        lastError = error
+        console.log(`[PASS] Intento ${attempt}/${maxRetries} falló, reintentando...`)
+        
+        // Si no es el último intento, esperar 1 segundo antes de reintentar
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
         }
       }
-    } catch {
-      setError('Error de conexión')
-    } finally {
-      setLoading(false)
     }
+
+    // Si llegamos aquí, fallaron todos los intentos
+    console.error('[PASS] Todos los intentos fallaron:', lastError)
+    setError('Error de conexión')
+    setLoading(false)
   }, [])
 
   const fetchBeneficios = useCallback(async () => {
