@@ -36,9 +36,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     const [cargandoResumen, setCargandoResumen] = useState(false)
 
     useEffect(() => {
-        if (adminKey) {
-            fetchMetricas()
-        }
+        fetchMetricas()
 
         // Setear fechas por defecto (últimos 30 días)
         const hoy = new Date()
@@ -47,12 +45,19 @@ export function Metricas({ adminKey }: { adminKey: string }) {
 
         setFechaHasta(hoy.toISOString().split('T')[0])
         setFechaDesde(hace30Dias.toISOString().split('T')[0])
-    }, [adminKey])
+    }, [])
 
     async function fetchMetricas() {
+        // Leer admin_key directamente de localStorage para evitar timing issues en mobile
+        const key = localStorage.getItem('admin_key')
+        if (!key) {
+            setCargando(false)
+            return
+        }
+
         try {
             const res = await fetch('/api/admin/metricas', {
-                headers: { 'x-admin-key': adminKey },
+                headers: { 'x-admin-key': key },
             })
             if (res.ok) {
                 const json = await res.json()
@@ -70,6 +75,9 @@ export function Metricas({ adminKey }: { adminKey: string }) {
             return
         }
 
+        const key = localStorage.getItem('admin_key')
+        if (!key) return
+
         setCargandoResumen(true)
         try {
             const params = new URLSearchParams({
@@ -78,7 +86,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
             })
 
             const res = await fetch(`/api/admin/exportar-visitas?${params}`, {
-                headers: { 'x-admin-key': adminKey },
+                headers: { 'x-admin-key': key },
             })
 
             if (!res.ok) {

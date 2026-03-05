@@ -23,15 +23,19 @@ export function EventosEspeciales({ adminKey }: { adminKey: string }) {
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoEspecial | null>(null)
 
   useEffect(() => {
-    if (adminKey) {
-      fetchEventos()
-    }
-  }, [adminKey])
+    fetchEventos()
+  }, [])
 
   async function fetchEventos() {
+    const key = localStorage.getItem('admin_key')
+    if (!key) {
+      setCargando(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/admin/eventos', {
-        headers: { 'x-admin-key': adminKey },
+        headers: { 'x-admin-key': key },
       })
       if (res.ok) {
         const json = await res.json()

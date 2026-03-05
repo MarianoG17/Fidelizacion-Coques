@@ -59,15 +59,19 @@ export function Clientes({ adminKey }: { adminKey: string }) {
   const [cargandoActividades, setCargandoActividades] = useState(false)
 
   useEffect(() => {
-    if (adminKey) {
-      fetchClientes()
-    }
-  }, [adminKey])
+    fetchClientes()
+  }, [])
 
   async function fetchClientes() {
+    const key = localStorage.getItem('admin_key')
+    if (!key) {
+      setCargando(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/admin/clientes', {
-        headers: { 'x-admin-key': adminKey },
+        headers: { 'x-admin-key': key },
       })
       if (res.ok) {
         const json = await res.json()
