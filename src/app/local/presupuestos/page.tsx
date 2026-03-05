@@ -9,7 +9,7 @@ interface Presupuesto {
   codigo: string
   nombreCliente: string | null
   telefonoCliente: string | null
-  estado: 'PENDIENTE' | 'COMPLETO' | 'CONFIRMADO' | 'CANCELADO'
+  estado: 'PENDIENTE' | 'COMPLETO' | 'CONFIRMADO' | 'CANCELADO' | 'PERDIDO'
   precioTotal: number
   fechaEntrega: string | null
   horaEntrega: string | null
@@ -78,14 +78,16 @@ export default function PresupuestosLocalPage() {
     PENDIENTE: 'bg-yellow-100 text-yellow-800 border-yellow-300',
     COMPLETO: 'bg-blue-100 text-blue-800 border-blue-300',
     CONFIRMADO: 'bg-green-100 text-green-800 border-green-300',
-    CANCELADO: 'bg-red-100 text-red-800 border-red-300'
+    CANCELADO: 'bg-red-100 text-red-800 border-red-300',
+    PERDIDO: 'bg-orange-100 text-orange-800 border-orange-300'
   }
 
   const estadoIconos = {
     PENDIENTE: '⏳',
     COMPLETO: '✅',
     CONFIRMADO: '🎉',
-    CANCELADO: '❌'
+    CANCELADO: '❌',
+    PERDIDO: '📉'
   }
 
   return (

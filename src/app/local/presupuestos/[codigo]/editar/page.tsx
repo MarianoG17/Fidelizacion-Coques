@@ -70,7 +70,7 @@ interface Presupuesto {
   descuento: number
   fechaEntrega: string | null
   horaEntrega: string | null
-  estado: 'PENDIENTE' | 'COMPLETO' | 'CONFIRMADO' | 'CANCELADO'
+  estado: 'PENDIENTE' | 'COMPLETO' | 'CONFIRMADO' | 'CANCELADO' | 'PERDIDO'
   notasCliente: string | null
   notasInternas: string | null
 }
