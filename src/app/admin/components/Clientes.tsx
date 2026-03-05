@@ -59,8 +59,10 @@ export function Clientes({ adminKey }: { adminKey: string }) {
   const [cargandoActividades, setCargandoActividades] = useState(false)
 
   useEffect(() => {
-    fetchClientes()
-  }, [])
+    if (adminKey) {
+      fetchClientes()
+    }
+  }, [adminKey])
 
   async function fetchClientes() {
     try {

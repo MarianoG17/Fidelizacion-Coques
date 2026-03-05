@@ -23,8 +23,10 @@ export function EventosEspeciales({ adminKey }: { adminKey: string }) {
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoEspecial | null>(null)
 
   useEffect(() => {
-    fetchEventos()
-  }, [])
+    if (adminKey) {
+      fetchEventos()
+    }
+  }, [adminKey])
 
   async function fetchEventos() {
     try {

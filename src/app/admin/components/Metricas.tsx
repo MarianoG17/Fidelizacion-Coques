@@ -36,7 +36,9 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     const [cargandoResumen, setCargandoResumen] = useState(false)
 
     useEffect(() => {
-        fetchMetricas()
+        if (adminKey) {
+            fetchMetricas()
+        }
 
         // Setear fechas por defecto (últimos 30 días)
         const hoy = new Date()
@@ -45,7 +47,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
 
         setFechaHasta(hoy.toISOString().split('T')[0])
         setFechaDesde(hace30Dias.toISOString().split('T')[0])
-    }, [])
+    }, [adminKey])
 
     async function fetchMetricas() {
         try {
