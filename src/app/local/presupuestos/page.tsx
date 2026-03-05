@@ -14,6 +14,7 @@ interface Presupuesto {
   fechaEntrega: string | null
   horaEntrega: string | null
   creadoEn: string
+  motivoPerdido: string | null
 }
 
 export default function PresupuestosLocalPage() {
@@ -21,19 +22,27 @@ export default function PresupuestosLocalPage() {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [mostrarConfirmados, setMostrarConfirmados] = useState(false)
+  const [vistaActual, setVistaActual] = useState<'pendientes' | 'confirmados' | 'perdidos'>('pendientes')
 
   useEffect(() => {
     cargarPresupuestos()
-  }, [mostrarConfirmados])
+  }, [vistaActual])
 
   async function cargarPresupuestos() {
     setCargando(true)
     setError(null)
 
     try {
-      // Cargar pendientes o confirmados según el estado del botón
-      const estado = mostrarConfirmados ? 'CONFIRMADO' : 'PENDIENTE,COMPLETO'
+      // Cargar según la vista seleccionada
+      let estado: string
+      if (vistaActual === 'pendientes') {
+        estado = 'PENDIENTE,COMPLETO'
+      } else if (vistaActual === 'confirmados') {
+        estado = 'CONFIRMADO'
+      } else {
+        estado = 'PERDIDO'
+      }
+      
       const response = await fetch(`/api/presupuestos?estado=${estado}`)
       const data = await response.json()
 
@@ -95,28 +104,53 @@ export default function PresupuestosLocalPage() {
       <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <BackButton href="/local" label="Volver a Staff" />
-          <div className="flex items-center justify-between mt-2">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                💾 {mostrarConfirmados ? 'Presupuestos Confirmados' : 'Presupuestos Pendientes'}
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {mostrarConfirmados 
-                  ? 'Presupuestos que ya fueron confirmados'
-                  : 'Presupuestos en proceso, listos para editar o confirmar'
-                }
-              </p>
+          
+          <div className="mt-2">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">
+              💾 Presupuestos
+            </h1>
+            
+            {/* Tabs de navegación */}
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setVistaActual('pendientes')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  vistaActual === 'pendientes'
+                    ? 'bg-yellow-600 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                ⏳ Pendientes
+              </button>
+              
+              <button
+                onClick={() => setVistaActual('confirmados')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  vistaActual === 'confirmados'
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                🎉 Confirmados
+              </button>
+              
+              <button
+                onClick={() => setVistaActual('perdidos')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  vistaActual === 'perdidos'
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                📉 Perdidos
+              </button>
             </div>
-            <button
-              onClick={() => setMostrarConfirmados(!mostrarConfirmados)}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                mostrarConfirmados
-                  ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {mostrarConfirmados ? '⏳ Ver Pendientes' : '🎉 Ver Confirmados'}
-            </button>
+            
+            <p className="text-sm text-gray-600 mt-2">
+              {vistaActual === 'pendientes' && 'Presupuestos en proceso, listos para editar o confirmar'}
+              {vistaActual === 'confirmados' && 'Presupuestos que ya fueron confirmados'}
+              {vistaActual === 'perdidos' && 'Presupuestos marcados como perdidos con su razón'}
+            </p>
           </div>
         </div>
       </div>
@@ -143,11 +177,13 @@ export default function PresupuestosLocalPage() {
               <div className="bg-white rounded-lg shadow-md p-8 text-center">
                 <span className="text-6xl mb-4 block">📋</span>
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  No hay presupuestos {mostrarConfirmados ? 'confirmados' : 'pendientes'}
+                  No hay presupuestos {vistaActual === 'pendientes' ? 'pendientes' : vistaActual === 'confirmados' ? 'confirmados' : 'perdidos'}
                 </h3>
                 <p className="text-gray-600">
-                  {mostrarConfirmados 
+                  {vistaActual === 'confirmados'
                     ? 'Los presupuestos confirmados aparecerán aquí'
+                    : vistaActual === 'perdidos'
+                    ? 'Los presupuestos perdidos aparecerán aquí'
                     : 'Los presupuestos guardados aparecerán aquí'
                   }
                 </p>
@@ -155,7 +191,7 @@ export default function PresupuestosLocalPage() {
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600 mb-4">
-                  {presupuestos.length} presupuesto{presupuestos.length !== 1 ? 's' : ''} {mostrarConfirmados ? 'confirmado' : 'pendiente'}{presupuestos.length !== 1 ? 's' : ''}
+                  {presupuestos.length} presupuesto{presupuestos.length !== 1 ? 's' : ''} {vistaActual === 'pendientes' ? 'pendiente' : vistaActual === 'confirmados' ? 'confirmado' : 'perdido'}{presupuestos.length !== 1 ? 's' : ''}
                 </p>
                 
                 {presupuestos.map((p) => (
@@ -206,6 +242,14 @@ export default function PresupuestosLocalPage() {
                             </p>
                           </div>
                         </div>
+                        
+                        {/* Motivo de pérdida */}
+                        {p.estado === 'PERDIDO' && p.motivoPerdido && (
+                          <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <p className="text-xs text-orange-600 font-semibold mb-1">📝 Motivo de Pérdida</p>
+                            <p className="text-orange-800 text-sm italic">"{p.motivoPerdido}"</p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Precio Total */}
