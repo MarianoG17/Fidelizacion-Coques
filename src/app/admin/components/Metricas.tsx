@@ -46,6 +46,10 @@ export function Metricas({ adminKey }: { adminKey: string }) {
     }
 
     useEffect(() => {
+        addLog('🚀 Componente Metricas montado - useEffect ejecutado')
+        addLog(`📱 User Agent: ${navigator.userAgent.substring(0, 50)}`)
+        addLog(`🌐 Window size: ${window.innerWidth}x${window.innerHeight}`)
+        
         fetchMetricas()
 
         // Setear fechas por defecto (últimos 30 días)
@@ -200,32 +204,36 @@ export function Metricas({ adminKey }: { adminKey: string }) {
 
     return (
         <div className="space-y-6">
-            {/* DEBUG PANEL - Visible en mobile */}
-            {debugLogs.length > 0 && (
-                <div className="bg-yellow-900/20 border-2 border-yellow-500 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-yellow-400 font-bold flex items-center gap-2">
-                            🔍 Debug Console (Mobile)
-                        </h3>
-                        <button
-                            onClick={() => setDebugLogs([])}
-                            className="text-yellow-400 text-xs hover:text-yellow-300 bg-yellow-900/50 px-3 py-1 rounded"
-                        >
-                            Limpiar
-                        </button>
-                    </div>
-                    <div className="bg-slate-950 rounded-lg p-3 max-h-80 overflow-y-auto">
-                        {debugLogs.map((log, idx) => (
+            {/* DEBUG PANEL - SIEMPRE VISIBLE */}
+            <div className="bg-yellow-900/20 border-2 border-yellow-500 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-yellow-400 font-bold flex items-center gap-2 text-sm">
+                        🔍 Debug Console (Mobile) - {debugLogs.length} logs
+                    </h3>
+                    <button
+                        onClick={() => setDebugLogs([])}
+                        className="text-yellow-400 text-xs hover:text-yellow-300 bg-yellow-900/50 px-3 py-1 rounded"
+                    >
+                        Limpiar
+                    </button>
+                </div>
+                <div className="bg-slate-950 rounded-lg p-3 max-h-96 overflow-y-auto">
+                    {debugLogs.length === 0 ? (
+                        <div className="text-slate-500 text-xs italic">
+                            Esperando logs... Si ves esto pero no aparecen logs, hay un problema de ejecución.
+                        </div>
+                    ) : (
+                        debugLogs.map((log, idx) => (
                             <div key={idx} className="text-green-400 text-xs font-mono mb-1 break-all">
                                 {log}
                             </div>
-                        ))}
-                    </div>
-                    <p className="text-yellow-300 text-xs mt-2">
-                        💡 Este panel muestra los logs para debugging en mobile
-                    </p>
+                        ))
+                    )}
                 </div>
-            )}
+                <p className="text-yellow-300 text-xs mt-2">
+                    💡 Este panel está SIEMPRE visible para debugging en mobile
+                </p>
+            </div>
 
             <h2 className="text-2xl font-bold text-white">Métricas del Sistema</h2>
 
