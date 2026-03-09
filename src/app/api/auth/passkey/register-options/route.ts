@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         // Generar opciones de registro
         const rpID = process.env.NEXT_PUBLIC_RP_ID || 'zona.com.ar'
         const rpName = 'Fidelización Zona'
-        const userID = cliente.id
+        const userID = new TextEncoder().encode(cliente.id) // Uint8Array
         const userName = cliente.email!
         const userDisplayName = cliente.nombre || cliente.email!
 
@@ -74,19 +74,19 @@ export async function POST(req: NextRequest) {
         // Guardar challenge temporalmente en memoria
         // NOTA: En producción considera usar Redis o DB para persistencia
         if (!global.passkeyChallenges) {
-          global.passkeyChallenges = new Map()
+            global.passkeyChallenges = new Map()
         }
         global.passkeyChallenges.set(userID, {
-          challenge: options.challenge,
-          timestamp: Date.now(),
+            challenge: options.challenge,
+            timestamp: Date.now(),
         })
-    
+
         // Limpiar challenges antiguos (más de 2 minutos)
         const now = Date.now()
         for (const [key, value] of global.passkeyChallenges.entries()) {
-          if (now - value.timestamp > 120000) {
-            global.passkeyChallenges.delete(key)
-          }
+            if (now - value.timestamp > 120000) {
+                global.passkeyChallenges.delete(key)
+            }
         }
 
         console.log('[PASSKEY] Opciones de registro generadas para:', cliente.email)
