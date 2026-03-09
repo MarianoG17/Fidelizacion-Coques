@@ -136,10 +136,22 @@ export function usePasskey() {
             const data = await verifyRes.json()
             console.log('[PASSKEY] Login exitoso:', data.user)
 
-            // Guardar token
+            // Guardar token en localStorage
             if (data.token) {
                 localStorage.setItem('fidelizacion_token', data.token)
+                console.log('[PASSKEY] Token guardado en localStorage')
             }
+
+            // IMPORTANTE: Crear sesión de NextAuth para que funcione con useSession()
+            // Esto es necesario porque algunos componentes usan NextAuth
+            console.log('[PASSKEY] Creando sesión de NextAuth...')
+            const { signIn } = await import('next-auth/react')
+            await signIn('credentials', {
+                phone: data.user.phone,
+                token: data.token,
+                redirect: false
+            })
+            console.log('[PASSKEY] Sesión de NextAuth creada')
 
             return data
         } catch (err: any) {
