@@ -46,11 +46,18 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Extraer challenge directamente de la credencial
-        // (funciona en serverless - no depende de memoria compartida)
-        const expectedChallenge = credential.response.challenge
+        // Extraer challenge del clientDataJSON (funciona en serverless)
+        let expectedChallenge: string
+        try {
+            const clientDataJSON = Buffer.from(credential.response.clientDataJSON, 'base64').toString('utf-8')
+            const clientData = JSON.parse(clientDataJSON)
+            expectedChallenge = clientData.challenge
 
-        if (!expectedChallenge) {
+            if (!expectedChallenge) {
+                throw new Error('Challenge not found in clientData')
+            }
+        } catch (error) {
+            console.error('[PASSKEY] Error extrayendo challenge:', error)
             return NextResponse.json(
                 { error: 'Challenge no encontrado en la credencial' },
                 { status: 400 }
