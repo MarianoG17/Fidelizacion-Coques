@@ -24,11 +24,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Buscar la credencial en la base de datos
-        // El credential.id viene en formato base64url, lo convertimos a base64 normal
-        const credentialIdBase64 = Buffer.from(credential.id, 'base64url').toString('base64')
-
+        // El credential.id viene en formato base64url del navegador
+        // Lo guardamos en ese mismo formato, así que buscamos directo
+        console.log('[PASSKEY] Buscando credencial con ID:', credential.id.substring(0, 20) + '...')
+        
         const passkey = await prisma.passkey.findUnique({
-            where: { credentialId: credentialIdBase64 },
+          where: { credentialId: credential.id },
             include: {
                 cliente: {
                     include: {
