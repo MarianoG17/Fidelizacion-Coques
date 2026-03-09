@@ -104,9 +104,12 @@ export async function POST(req: NextRequest) {
             credentialDeviceType,
         } = registrationInfo
 
-        // Convertir a base64 para almacenar en DB
-        const credentialIdBase64 = Buffer.from(credentialID).toString('base64')
+        // IMPORTANTE: Usar el mismo formato que en login
+        // El credential.id del navegador viene en base64url, guardamos ese
+        const credentialIdBase64 = credential.id // Ya viene en base64url del navegador
         const publicKeyBase64 = Buffer.from(credentialPublicKey).toString('base64')
+
+        console.log('[PASSKEY] Guardando credencial con ID:', credentialIdBase64.substring(0, 20) + '...')
 
         // Verificar si ya existe esta credencial
         const existingPasskey = await prisma.passkey.findUnique({
