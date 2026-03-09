@@ -82,8 +82,8 @@ export async function POST(req: NextRequest) {
 
         // Preparar authenticator para verificación
         const authenticator = {
-            credentialID: new Uint8Array(Buffer.from(passkey.credentialId, 'base64')),
-            credentialPublicKey: new Uint8Array(Buffer.from(passkey.publicKey, 'base64')),
+            credentialID: passkey.credentialId, // base64 string
+            credentialPublicKey: passkey.publicKey, // base64 string
             counter: Number(passkey.counter),
             transports: passkey.transports as AuthenticatorTransport[],
         }
