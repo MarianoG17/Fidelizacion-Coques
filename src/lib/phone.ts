@@ -1,68 +1,92 @@
 // src/lib/phone.ts
 /**
- * Normalización de teléfonos argentinos
- * 
- * En Argentina hay dos formatos comunes:
- * - Moderno: 11 1234-5678 (10 dígitos, empieza con 11)
- * - Legacy: 15 1234-5678 (10 dígitos, empieza con 15)
- * 
- * Ambos representan el MISMO número (el 15 es redundante/legacy)
- * 
- * Esta función normaliza ambos formatos a 11XXXXXXXX
+ * Normalización de teléfonos - VERSIÓN FLEXIBLE
+ *
+ * Acepta teléfonos de:
+ * - CABA (Argentina): 11 1234-5678 (10 dígitos, empieza con 11)
+ * - Interior (Argentina): 3456 123456 (códigos de área como 341, 351, 381, etc.)
+ * - Internacionales: +1 234 567 8900, +52 1 345 678 9012, etc.
+ *
+ * La función normaliza el número a un formato consistente para guardarlo en la DB.
  */
 
 /**
- * Normaliza un número de teléfono argentino a formato estándar
- * 
+ * Normaliza un número de teléfono a formato estándar
+ *
+ * FLEXIBILIDAD: Ahora acepta números del interior de Argentina y de otros países
+ *
  * @param phone - Teléfono en cualquier formato
- * @returns Teléfono normalizado (11XXXXXXXX) o null si es inválido
- * 
+ * @returns Teléfono normalizado o null si es inválido
+ *
  * @example
+ * // CABA (Argentina)
  * normalizarTelefono("1112345678")     // "1112345678"
  * normalizarTelefono("1512345678")     // "1112345678" (convierte 15 → 11)
- * normalizarTelefono("11 1234-5678")   // "1112345678"
- * normalizarTelefono("15 1234-5678")   // "1112345678"
  * normalizarTelefono("+5491112345678") // "1112345678"
- * normalizarTelefono("+5491512345678") // "1112345678"
+ *
+ * // Interior (Argentina)
+ * normalizarTelefono("3456268265")     // "3456268265" (código de área 3456)
+ * normalizarTelefono("+543456268265")  // "3456268265"
+ * normalizarTelefono("341 1234567")    // "3411234567" (Rosario)
+ *
+ * // Internacionales
+ * normalizarTelefono("+1234567890")    // "+1234567890"
+ * normalizarTelefono("+52 1 333 4567890") // "+521333567890"
  */
 export function normalizarTelefono(phone: string): string | null {
     if (!phone) return null
 
-    // Quitar todos los caracteres que no sean dígitos
-    let cleaned = phone.replace(/\D/g, '')
+    // Guardar si empezaba con + para detectar formato internacional
+    const hasPlus = phone.trim().startsWith('+')
 
-    // Si empieza con 549 (código de país con 9 de celular), quitarlo
-    if (cleaned.startsWith('549')) {
-        cleaned = cleaned.substring(3)
-    }
-    // Si empieza con 54 pero NO con 549 (formato +5411... sin el 9)
-    else if (cleaned.startsWith('54')) {
-        cleaned = cleaned.substring(2)
-    }
+    // Quitar todos los caracteres que no sean dígitos o +
+    let cleaned = phone.replace(/[^\d+]/g, '')
 
-    // Ahora deberíamos tener 10 dígitos empezando con 11 o 15
-    // O 11 dígitos si pusieron +5411 (falta quitar un 1)
-    if (cleaned.length === 11 && cleaned.startsWith('11')) {
-        // Caso: +5411XXXXXXXX → después de quitar 54 quedan 11 dígitos
-        // Esto es redundante, el primer 1 es parte del +54
-        // Quedamos con 11XXXXXXXX (10 dígitos)
-        // No hacemos nada, ya está bien
-        cleaned = cleaned.substring(0, 10)
-    }
-
-    if (cleaned.length !== 10) {
-        console.warn(`[normalizarTelefono] Longitud inválida: ${cleaned} (${cleaned.length} dígitos)`)
+    // Validación mínima: al menos 8 dígitos (números cortos internacionales)
+    const digitsOnly = cleaned.replace(/\D/g, '')
+    if (digitsOnly.length < 8) {
+        console.warn(`[normalizarTelefono] Muy corto: ${cleaned} (${digitsOnly.length} dígitos)`)
         return null
     }
 
-    // Si empieza con 15, convertir a 11
-    if (cleaned.startsWith('15')) {
+    // CASO 1: Número con + al inicio → INTERNACIONAL (no argentino)
+    if (hasPlus && cleaned.startsWith('+')) {
+        // Verificar si es argentino (+54...)
+        const digitsAfterPlus = cleaned.substring(1)
+
+        if (digitsAfterPlus.startsWith('54')) {
+            // Es argentino, procesarlo como tal
+            cleaned = digitsAfterPlus
+        } else {
+            // Es internacional (no argentino), dejarlo con el +
+            return cleaned // +1234567890, +52133345678, etc.
+        }
+    }
+
+    // CASO 2: Número argentino - normalizar
+    // Quitar código de país si existe (54)
+    if (cleaned.startsWith('549')) {
+        // +549 11 XXXX-XXXX (celular CABA con 9)
+        cleaned = cleaned.substring(3)
+    } else if (cleaned.startsWith('54')) {
+        // +54 11 XXXX-XXXX o +54 341 XXXX-XXX (sin el 9)
+        cleaned = cleaned.substring(2)
+    }
+
+    // Ahora cleaned debería tener solo dígitos argentinos
+    // Pueden ser:
+    // - 10 dígitos empezando con 11 o 15 (CABA)
+    // - 10 dígitos con otro código de área (Interior)
+    // - Más dígitos si es formato extraño
+
+    // Si empieza con 15, convertir a 11 (legacy CABA)
+    if (cleaned.startsWith('15') && cleaned.length === 10) {
         cleaned = '11' + cleaned.substring(2)
     }
 
-    // Verificar que ahora empiece con 11
-    if (!cleaned.startsWith('11')) {
-        console.warn(`[normalizarTelefono] No empieza con 11 o 15: ${cleaned}`)
+    // Validar longitud razonable (8 a 15 dígitos)
+    if (cleaned.length < 8 || cleaned.length > 15) {
+        console.warn(`[normalizarTelefono] Longitud fuera de rango: ${cleaned} (${cleaned.length} dígitos)`)
         return null
     }
 

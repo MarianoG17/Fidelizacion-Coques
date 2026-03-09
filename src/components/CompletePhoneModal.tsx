@@ -25,38 +25,31 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
             return
         }
 
-        // Validar formato de teléfono
-        const cleanPhone = phone.replace(/\D/g, '')
+        // Validar formato de teléfono - FLEXIBILIZADO para aceptar interior e internacionales
+        const cleanPhone = phone.replace(/[^\d+]/g, '')
 
-        // Validar longitud mínima
-        if (cleanPhone.length < 8) {
+        // Validación mínima: al menos 8 dígitos
+        const digitsOnly = cleanPhone.replace(/\D/g, '')
+        if (digitsOnly.length < 8) {
             setError('El teléfono debe tener al menos 8 dígitos')
             return
         }
 
-        // Para números argentinos de celular, verificar formato
-        // Aceptamos: 1112345678 (10 dígitos), 541112345678 (12 dígitos), +5491112345678 (13 dígitos)
-        if (cleanPhone.length === 10) {
-            // Debe empezar con 11 o 15
-            if (!cleanPhone.startsWith('11') && !cleanPhone.startsWith('15')) {
-                setError('Número celular argentino debe empezar con 11 o 15. Ej: 1112345678')
-                return
-            }
-        } else if (cleanPhone.length === 12) {
-            // Formato 541112345678
-            if (!cleanPhone.startsWith('5411') && !cleanPhone.startsWith('5415')) {
-                setError('Número con código de país debe ser +54 11 o +54 15. Ej: 541112345678')
-                return
-            }
-        } else if (cleanPhone.length === 13) {
-            // Formato +5491112345678
-            if (!cleanPhone.startsWith('54911') && !cleanPhone.startsWith('54915')) {
-                setError('Número con código internacional debe ser +549 11 o +549 15. Ej: +5491112345678')
-                return
-            }
-        } else if (cleanPhone.length < 10) {
-            setError('El número es muy corto. Debe tener 10 dígitos. Ej: 1112345678')
+        // Validación máxima: no más de 15 dígitos (estándar internacional E.164)
+        if (digitsOnly.length > 15) {
+            setError('El teléfono no puede tener más de 15 dígitos')
             return
+        }
+
+        // Validación específica para formatos comunes (ayuda al usuario pero no bloquea)
+        // Si tiene 10 dígitos sin + y no empieza con código válido argentino, dar hint
+        if (digitsOnly.length === 10 && !cleanPhone.startsWith('+')) {
+            // Verificar si podría ser un número del interior sin código de área completo
+            const startsWithValidCode = /^(11|15|2[2-9]|3[0-9]|4[0-9]|5[0-9]|6[0-9])/.test(digitsOnly)
+            if (!startsWithValidCode) {
+                setError('Para CABA: 11 XXXX-XXXX. Para interior: incluí código de área (ej: 341, 3456). Para internacional: usá +código')
+                return
+            }
         }
 
         setLoading(true)
@@ -117,20 +110,22 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Número de teléfono celular
+                            Número de teléfono
                         </label>
                         <input
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            placeholder="1112345678"
+                            placeholder="+54 9 11 1234-5678"
                             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                             autoFocus
                             disabled={loading}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            Ingresá tu número celular completo (10 dígitos)<br />
-                            Ejemplos válidos: <strong>1112345678</strong>, <strong>1512345678</strong>, <strong>+5491112345678</strong>
+                            Ingresá tu número completo (mínimo 8 dígitos)<br />
+                            <strong>CABA:</strong> 1112345678 o +5491112345678<br />
+                            <strong>Interior:</strong> 3456268265 o +543456268265<br />
+                            <strong>Internacional:</strong> +1234567890
                         </p>
                     </div>
 

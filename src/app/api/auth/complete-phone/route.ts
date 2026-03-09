@@ -33,13 +33,13 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Normalizar teléfono
+        // Normalizar teléfono - FLEXIBILIZADO para interior e internacionales
         const normalizedPhone = normalizarTelefono(phone)
         console.log('[COMPLETE-PHONE] Normalized phone:', normalizedPhone)
 
         if (!normalizedPhone) {
             return NextResponse.json(
-                { error: 'Formato de teléfono inválido. Debe tener 10 dígitos y empezar con 11 o 15. Ejemplo: 1112345678' },
+                { error: 'Formato de teléfono inválido. Debe tener entre 8 y 15 dígitos. Ejemplos: 1112345678 (CABA), 3456268265 (Interior), +1234567890 (Internacional)' },
                 { status: 400 }
             )
         }
