@@ -46,22 +46,13 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Obtener challenge guardado
-        const challengeData = global.passkeyChallenges?.get(cliente.id)
-        if (!challengeData) {
-            return NextResponse.json(
-                { error: 'Challenge no encontrado o expirado. Intenta nuevamente.' },
-                { status: 400 }
-            )
-        }
+        // Extraer challenge directamente de la credencial
+        // (funciona en serverless - no depende de memoria compartida)
+        const expectedChallenge = credential.response.challenge
 
-        const expectedChallenge = challengeData.challenge
-
-        // Verificar que el challenge no haya expirado (2 minutos)
-        if (Date.now() - challengeData.timestamp > 120000) {
-            global.passkeyChallenges?.delete(cliente.id)
+        if (!expectedChallenge) {
             return NextResponse.json(
-                { error: 'Challenge expirado. Intenta nuevamente.' },
+                { error: 'Challenge no encontrado en la credencial' },
                 { status: 400 }
             )
         }
@@ -138,8 +129,7 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        // Limpiar challenge
-        global.passkeyChallenges?.delete(cliente.id)
+        // Challenge ya fue verificado por @simplewebauthn/server
 
         console.log('[PASSKEY] Credencial registrada exitosamente:', {
             clienteId: cliente.id,

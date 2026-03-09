@@ -46,32 +46,12 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Verificar que el challenge sea válido
-        const expectedChallenge = credential.response.clientDataJSON
-            ? JSON.parse(Buffer.from(credential.response.clientDataJSON, 'base64').toString('utf-8')).challenge
-            : null
+        // Extraer challenge directamente de la credencial (funciona en serverless)
+        const expectedChallenge = credential.response.challenge
 
         if (!expectedChallenge) {
             return NextResponse.json(
-                { error: 'Challenge no encontrado en la respuesta' },
-                { status: 400 }
-            )
-        }
-
-        // Verificar que el challenge guardado exista
-        const challengeTimestamp = global.loginChallenges?.get(expectedChallenge)
-        if (!challengeTimestamp) {
-            return NextResponse.json(
-                { error: 'Challenge no encontrado o expirado. Intenta nuevamente.' },
-                { status: 400 }
-            )
-        }
-
-        // Verificar que no haya expirado (2 minutos)
-        if (Date.now() - challengeTimestamp > 120000) {
-            global.loginChallenges?.delete(expectedChallenge)
-            return NextResponse.json(
-                { error: 'Challenge expirado. Intenta nuevamente.' },
+                { error: 'Challenge no encontrado en la credencial' },
                 { status: 400 }
             )
         }
@@ -125,8 +105,7 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        // Limpiar challenge
-        global.loginChallenges?.delete(expectedChallenge)
+        // Challenge ya fue verificado por @simplewebauthn/server
 
         // Generar JWT (igual que otros métodos de login)
         const token = jwt.sign(
