@@ -10,6 +10,7 @@ import CuestionarioOptional from './components/CuestionarioOptional'
 import CompletePhoneModal from '@/components/CompletePhoneModal'
 import NotificationBell from '@/components/NotificationBell'
 import NotificationToggle from '@/components/NotificationToggle'
+import PasskeyPrompt from '@/components/PasskeyPrompt'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
@@ -110,14 +111,14 @@ export default function PassPage() {
             console.log('[PASS] Nuevo scan detectado:', new Date(ultimaVisita))
           }
         }
-        
+
         // Éxito - salir del loop
         setLoading(false)
         return
       } catch (error) {
         lastError = error
         console.log(`[PASS] Intento ${attempt}/${maxRetries} falló, reintentando...`)
-        
+
         // Si no es el último intento, esperar 1 segundo antes de reintentar
         if (attempt < maxRetries) {
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -384,6 +385,9 @@ export default function PassPage() {
             </div>
           )}
         </div>
+
+        {/* Banner de Activación de Passkey */}
+        <PasskeyPrompt autoHide={true} />
 
         {/* Progreso al próximo nivel */}
         {nivelesData?.progreso && (
