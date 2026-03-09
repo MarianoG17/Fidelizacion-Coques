@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
         // El credential.id viene en formato base64url del navegador
         // Lo guardamos en ese mismo formato, así que buscamos directo
         console.log('[PASSKEY] Buscando credencial con ID:', credential.id.substring(0, 20) + '...')
-        
+
         const passkey = await prisma.passkey.findUnique({
-          where: { credentialId: credential.id },
+            where: { credentialId: credential.id },
             include: {
                 cliente: {
                     include: {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         })
 
         if (!passkey) {
-            console.error('[PASSKEY] Credencial no encontrada:', credentialIdBase64.substring(0, 20) + '...')
+            console.error('[PASSKEY] Credencial no encontrada:', credential.id.substring(0, 20) + '...')
             return NextResponse.json(
                 { error: 'Credencial no encontrada' },
                 { status: 404 }
