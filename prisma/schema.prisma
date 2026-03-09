@@ -115,6 +115,7 @@ model Cliente {
   sesionesMesa          SesionMesa[]  // sesiones en mesas del salón
   presupuestos          Presupuesto[]
   notificaciones        Notificacion[] // historial de notificaciones push
+  passkeys              Passkey[]     // credenciales biométricas (Huella/Face ID)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
@@ -498,4 +499,25 @@ model Notificacion {
   @@index([clienteId])
   @@index([clienteId, leida])
   @@index([creadoEn])
+}
+
+// Sistema de Passkeys/Biometría (WebAuthn)
+model Passkey {
+  id                String    @id @default(uuid())
+  clienteId         String
+  cliente           Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  credentialId      String    @unique  // ID único de la credencial
+  publicKey         String    // Clave pública (base64)
+  counter           BigInt    @default(0)  // Contador de usos (previene replay attacks)
+  transports        String[]  @default([])  // ['internal', 'usb', 'nfc', 'ble']
+  
+  dispositivoNombre String?   // "iPhone de Juan", "Samsung Galaxy"
+  userAgent         String?   // Info del navegador/dispositivo
+  
+  createdAt         DateTime  @default(now())
+  lastUsedAt        DateTime? // Última vez que se usó esta credencial
+  
+  @@index([clienteId])
+  @@index([credentialId])
 }

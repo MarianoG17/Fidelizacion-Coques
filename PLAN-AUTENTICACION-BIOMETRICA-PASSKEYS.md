@@ -1,432 +1,683 @@
-# Plan: Autenticación Biométrica con Passkeys (Huella y Face ID)
+# Plan: Autenticación Biométrica (Passkeys) - Implementación Opcional
 
-## 🎯 Objetivo
+## ✅ Respuesta Directa
 
-Permitir que los clientes se logueen usando:
-- 🔐 **Huella dactilar** (Touch ID / lectores de huella Android)
-- 👤 **Reconocimiento facial** (Face ID)  
-- 🔑 **PIN del dispositivo** (como respaldo)
+**SÍ, totalmente posible.** Un usuario puede:
+1. Loguearse con Google (primera vez)
+2. Activar biometría desde su perfil
+3. Próximas veces: elegir entre Google o biometría
+4. Ambos métodos funcionan simultáneamente
 
-Sin necesidad de recordar contraseñas.
+## 🎯 Enfoque: Autenticación OPCIONAL y Compatible
 
----
-
-## ✨ ¿Qué son los Passkeys?
-
-Los **Passkeys** son credenciales digitales que se guardan en tu dispositivo y usan autenticación biométrica del sistema operativo.
-
-**Tecnología**: WebAuthn API (estándar web apoyado por Apple, Google, Microsoft)
-
-### Ventajas vs Contraseñas Tradicionales
-
-| Feature | Contraseñas | Passkeys |
-|---------|-------------|----------|
-| Facilidad de uso | Media | Muy alta (1 toque) |
-| Seguridad | Media-Baja | Muy alta |
-| Velocidad de login | ~5-10 seg | ~1 seg |
-| Olvidar credenciales | ❌ Sí | ✅ No |
-| Phishing | ❌ Vulnerable | ✅ Inmune |
-| Sincronización entre dispositivos | ❌ No | ✅ Sí (iCloud, Google) |
-
----
-
-## 🔍 Cómo Funciona
-
-### Primera vez (Registro del Passkey):
-1. Cliente se loguea con Google/Email
-2. Sistema pregunta: "¿Guardar passkey para login rápido?"
-3. Cliente confirma con huella/Face ID
-4. **Passkey guardado** en el dispositivo
-
-### Logins posteriores:
-1. Cliente abre app.coques.com.ar
-2. Click en "Login con huella/Face ID"
-3. **Usa huella/Face ID** para confirmar
-4. ✅ Logueado en 1 segundo
-
----
-
-## 📱 Compatibilidad
-
-### ✅ Totalmente Soportado:
-- **iPhone/iPad**: iOS 16+ (Touch ID, Face ID)
-- **Android**: Android 9+ (Huella, Face Unlock)
-- **Chrome/Edge**: Windows 10+ (Windows Hello)
-- **Safari**: macOS (Touch ID)
-
-### ⚠️ Soporte Parcial:
-- Navegadores viejos: Firefox <119, Safari <16
-- Dispositivos sin biometría: Usa PIN del dispositivo
-
-### 📊 Estadísticas:
-- ~85% de usuarios tienen dispositivos compatibles
-- ~95% de smartphones modernos (2020+) lo soportan
-
----
-
-## 🛠️ Implementación Técnica
-
-### Opción 1: SimpleWebAuthn (Recomendada) ⭐
-
-**Librería**: `@simplewebauthn/server` + `@simplewebauthn/browser`
-
-**Ventajas**:
-- ✅ Más simple de implementar
-- ✅ Wrapper sobre WebAuthn API
-- ✅ Maneja complejidad por vos
-- ✅ Muy bien documentada
-- ✅ TypeScript nativo
-
-**Tiempo**: 3-4 horas de implementación
-
-### Opción 2: WebAuthn API Nativa
-
-**Ventajas**:
-- ✅ Sin dependencias adicionales
-- ✅ Más control
-
-**Desventajas**:
-- ⚠️ Más complejo
-- ⚠️ Más código para escribir
-
-**Tiempo**: 6-8 horas
-
----
-
-## 📋 Plan de Implementación con SimpleWebAuthn
-
-### Fase 1: Backend - Endpoints (1 hora)
-
-**Crear endpoints**:
+### Métodos de Login (Todos Coexisten)
 ```
-POST /api/auth/passkey/register-options
-POST /api/auth/passkey/register-verify
-POST /api/auth/passkey/login-options
-POST /api/auth/passkey/login-verify
+┌─────────────────────────────────────┐
+│     Pantalla de Login               │
+├─────────────────────────────────────┤
+│                                     │
+│  [Continuar con Google] 🔵          │  ← Ya funciona
+│                                     │
+│  [Email y Contraseña] ✉️            │  ← Ya funciona
+│                                     │
+│  [Huella / Face ID] 👆             │  ← NUEVO (solo si está activado)
+│                                     │
+└─────────────────────────────────────┘
 ```
 
-**Agregar a schema.prisma**:
+**Clave:** La biometría NO reemplaza nada, solo se AGREGA como opción adicional.
+
+## 🔄 Flujo Completo
+
+### Caso 1: Usuario Nuevo con Google
+```
+1. Usuario → "Continuar con Google"
+2. OAuth de Google → Login exitoso
+3. Completa teléfono si es necesario
+4. Llega a su perfil/pass
+5. Ve banner: "🔐 ¿Querés activar acceso rápido con huella?"
+   [Activar Ahora] [Más Tarde]
+6. Si activa:
+   - Registra credencial biométrica
+   - Próximas veces: puede usar huella O Google
+```
+
+### Caso 2: Usuario Existente (Email/Password)
+```
+1. Usuario → Login con email/password
+2. Ve banner: "🔐 ¿Querés activar acceso con huella?"
+3. Si activa:
+   - Registra credencial biométrica
+   - Próximas veces: puede usar huella O email/password
+```
+
+### Caso 3: Login con Biometría (Después de Activar)
+```
+1. Usuario abre app
+2. Ve botón: "Ingresar con 👆 Huella / 🤳 Face ID"
+3. Click → Sensor biométrico del dispositivo
+4. Autenticado en 1-2 segundos
+5. Alternativas:
+   - ¿Problemas? → "Usar Google"
+   - ¿Problemas? → "Usar Email/Password"
+```
+
+## 🛠️ Implementación Paso a Paso
+
+### Fase 1: Base de Datos (15 min)
+
+```sql
+-- Agregar tabla para credenciales biométricas
+CREATE TABLE passkeys (
+  id SERIAL PRIMARY KEY,
+  cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  credential_id TEXT UNIQUE NOT NULL, -- ID de la credencial
+  public_key TEXT NOT NULL, -- Clave pública
+  counter BIGINT DEFAULT 0, -- Contador de usos (seguridad)
+  transports TEXT[], -- ['internal', 'usb', 'nfc', 'ble']
+  dispositivo_nombre TEXT, -- "iPhone de Juan" (opcional)
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_used_at TIMESTAMP,
+  UNIQUE(cliente_id, credential_id)
+);
+
+CREATE INDEX idx_passkeys_cliente ON passkeys(cliente_id);
+CREATE INDEX idx_passkeys_credential ON passkeys(credential_id);
+```
+
+**Migración:**
+```bash
+# Crear archivo
+touch prisma/migrations/add_passkeys.sql
+# Pegar el SQL arriba
+# Aplicar
+npm run prisma db push
+```
+
+### Fase 2: Instalar Librerías (5 min)
+
+```bash
+cd fidelizacion-zona
+npm install @simplewebauthn/server @simplewebauthn/browser
+```
+
+### Fase 3: Backend - API Endpoints (1.5 horas)
+
+#### 3.1 Generar Challenge para Registro
+```typescript
+// src/app/api/auth/passkey/register-options/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { generateRegistrationOptions } from '@simplewebauthn/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const cliente = await prisma.cliente.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!cliente) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    // Generar opciones de registro
+    const options = await generateRegistrationOptions({
+      rpName: 'Fidelización Zona',
+      rpID: process.env.NEXT_PUBLIC_RP_ID || 'zona.com.ar',
+      userID: cliente.id.toString(),
+      userName: cliente.email!,
+      userDisplayName: cliente.nombre || cliente.email!,
+      attestationType: 'none',
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform', // Solo dispositivo (no USB keys)
+        userVerification: 'required', // Requiere biometría
+        residentKey: 'preferred', // Permite passkeys sin username
+      },
+      supportedAlgorithmIDs: [-7, -257], // ES256 y RS256
+    })
+
+    // Guardar challenge temporalmente (para verificación posterior)
+    // Opción 1: En memoria (simple pero se pierde al reiniciar)
+    global.pendingChallenges = global.pendingChallenges || new Map()
+    global.pendingChallenges.set(cliente.id.toString(), options.challenge)
+
+    // Opción 2: En DB (más robusto)
+    // await prisma.cliente.update({
+    //   where: { id: cliente.id },
+    //   data: { pendingChallenge: options.challenge }
+    // })
+
+    return NextResponse.json(options)
+  } catch (error) {
+    console.error('[PASSKEY] Error generando opciones de registro:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+```
+
+#### 3.2 Verificar y Guardar Credencial
+```typescript
+// src/app/api/auth/passkey/register/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyRegistrationResponse } from '@simplewebauthn/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const { credential, deviceName } = await req.json()
+
+    const cliente = await prisma.cliente.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!cliente) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    // Obtener challenge guardado
+    const expectedChallenge = global.pendingChallenges?.get(cliente.id.toString())
+    if (!expectedChallenge) {
+      return NextResponse.json({ error: 'Challenge expirado' }, { status: 400 })
+    }
+
+    // Verificar credencial
+    const verification = await verifyRegistrationResponse({
+      response: credential,
+      expectedChallenge,
+      expectedOrigin: process.env.NEXT_PUBLIC_APP_URL!,
+      expectedRPID: process.env.NEXT_PUBLIC_RP_ID || 'zona.com.ar',
+    })
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return NextResponse.json({ error: 'Verificación fallida' }, { status: 400 })
+    }
+
+    const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
+
+    // Guardar en DB
+    await prisma.passkey.create({
+      data: {
+        clienteId: cliente.id,
+        credentialId: Buffer.from(credentialID).toString('base64'),
+        publicKey: Buffer.from(credentialPublicKey).toString('base64'),
+        counter: Number(counter),
+        dispositivoNombre: deviceName || 'Mi dispositivo',
+      }
+    })
+
+    // Limpiar challenge
+    global.pendingChallenges?.delete(cliente.id.toString())
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Biometría activada exitosamente' 
+    })
+  } catch (error) {
+    console.error('[PASSKEY] Error verificando registro:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+```
+
+#### 3.3 Generar Challenge para Login
+```typescript
+// src/app/api/auth/passkey/login-options/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { generateAuthenticationOptions } from '@simplewebauthn/server'
+
+export async function POST(req: NextRequest) {
+  try {
+    // Para passkeys, no necesitamos email previo
+    // El dispositivo ya conoce la credencial
+    
+    const options = await generateAuthenticationOptions({
+      rpID: process.env.NEXT_PUBLIC_RP_ID || 'zona.com.ar',
+      userVerification: 'required',
+    })
+
+    // Guardar challenge globalmente
+    global.loginChallenges = global.loginChallenges || new Map()
+    global.loginChallenges.set(options.challenge, Date.now())
+
+    return NextResponse.json(options)
+  } catch (error) {
+    console.error('[PASSKEY] Error generando opciones de login:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+```
+
+#### 3.4 Verificar Login con Biometría
+```typescript
+// src/app/api/auth/passkey/login/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyAuthenticationResponse } from '@simplewebauthn/server'
+import jwt from 'jsonwebtoken'
+
+export async function POST(req: NextRequest) {
+  try {
+    const { credential } = await req.json()
+
+    // Buscar credencial en DB
+    const credentialId = Buffer.from(credential.id, 'base64url').toString('base64')
+    
+    const passkey = await prisma.passkey.findUnique({
+      where: { credentialId },
+      include: { cliente: { include: { nivel: true } } }
+    })
+
+    if (!passkey) {
+      return NextResponse.json({ error: 'Credencial no encontrada' }, { status: 404 })
+    }
+
+    // Obtener challenge
+    const expectedChallenge = credential.response.clientDataJSON // extraer challenge
+
+    // Verificar autenticación
+    const verification = await verifyAuthenticationResponse({
+      response: credential,
+      expectedChallenge,
+      expectedOrigin: process.env.NEXT_PUBLIC_APP_URL!,
+      expectedRPID: process.env.NEXT_PUBLIC_RP_ID || 'zona.com.ar',
+      authenticator: {
+        credentialID: Buffer.from(passkey.credentialId, 'base64'),
+        credentialPublicKey: Buffer.from(passkey.publicKey, 'base64'),
+        counter: passkey.counter,
+      },
+    })
+
+    if (!verification.verified) {
+      return NextResponse.json({ error: 'Verificación fallida' }, { status: 401 })
+    }
+
+    // Actualizar contador
+    await prisma.passkey.update({
+      where: { id: passkey.id },
+      data: { 
+        counter: verification.authenticationInfo.newCounter,
+        lastUsedAt: new Date()
+      }
+    })
+
+    // Generar JWT (igual que login normal)
+    const token = jwt.sign(
+      {
+        clienteId: passkey.cliente.id,
+        email: passkey.cliente.email,
+        nombre: passkey.cliente.nombre,
+        phone: passkey.cliente.phone,
+        nivel: passkey.cliente.nivel?.nombre || 'Bronce',
+      },
+      process.env.JWT_SECRET || 'secret-key-coques-2024',
+      { expiresIn: '30d' }
+    )
+
+    return NextResponse.json({
+      success: true,
+      token,
+      user: {
+        id: passkey.cliente.id,
+        email: passkey.cliente.email,
+        nombre: passkey.cliente.nombre,
+      }
+    })
+  } catch (error) {
+    console.error('[PASSKEY] Error en login:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+```
+
+### Fase 4: Frontend - UI Components (1.5 horas)
+
+#### 4.1 Hook para Passkeys
+```typescript
+// src/hooks/usePasskey.ts
+import { useState } from 'react'
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
+
+export function usePasskey() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const registrar = async (deviceName?: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Verificar soporte
+      if (!window.PublicKeyCredential) {
+        throw new Error('Tu dispositivo no soporta biometría')
+      }
+
+      // Obtener opciones de registro
+      const optionsRes = await fetch('/api/auth/passkey/register-options', {
+        method: 'POST'
+      })
+      
+      if (!optionsRes.ok) {
+        throw new Error('Error al iniciar registro')
+      }
+
+      const options = await optionsRes.json()
+
+      // Solicitar credencial biométrica
+      const credential = await startRegistration(options)
+
+      // Enviar al servidor
+      const verifyRes = await fetch('/api/auth/passkey/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential, deviceName })
+      })
+
+      if (!verifyRes.ok) {
+        throw new Error('Error al verificar credencial')
+      }
+
+      return await verifyRes.json()
+    } catch (err: any) {
+      console.error('[PASSKEY] Error en registro:', err)
+      setError(err.message || 'Error al registrar biometría')
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const login = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Obtener opciones de login
+      const optionsRes = await fetch('/api/auth/passkey/login-options', {
+        method: 'POST'
+      })
+
+      if (!optionsRes.ok) {
+        throw new Error('Error al iniciar login')
+      }
+
+      const options = await optionsRes.json()
+
+      // Solicitar autenticación
+      const credential = await startAuthentication(options)
+
+      // Verificar con servidor
+      const verifyRes = await fetch('/api/auth/passkey/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      })
+
+      if (!verifyRes.ok) {
+        throw new Error('Error al verificar credencial')
+      }
+
+      const data = await verifyRes.json()
+
+      // Guardar token
+      if (data.token) {
+        localStorage.setItem('fidelizacion_token', data.token)
+      }
+
+      return data
+    } catch (err: any) {
+      console.error('[PASSKEY] Error en login:', err)
+      setError(err.message || 'Error al autenticar con biometría')
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { registrar, login, loading, error }
+}
+```
+
+#### 4.2 Banner de Activación en Perfil
+```typescript
+// src/components/PasskeyPrompt.tsx
+'use client'
+
+import { useState } from 'react'
+import { usePasskey } from '@/hooks/usePasskey'
+
+export default function PasskeyPrompt() {
+  const [dismissed, setDismissed] = useState(
+    localStorage.getItem('passkey_prompt_dismissed') === 'true'
+  )
+  const { registrar, loading, error } = usePasskey()
+
+  if (dismissed) return null
+
+  async function handleActivate() {
+    try {
+      await registrar()
+      alert('✅ Biometría activada exitosamente')
+      setDismissed(true)
+      localStorage.setItem('passkey_prompt_dismissed', 'true')
+    } catch (err) {
+      // Error ya manejado en el hook
+    }
+  }
+
+  function handleDismiss() {
+    setDismissed(true)
+    localStorage.setItem('passkey_prompt_dismissed', 'true')
+  }
+
+  return (
+    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded-r-lg">
+      <div className="flex items-start">
+        <div className="flex-shrink-0">
+          <span className="text-3xl">🔐</span>
+        </div>
+        <div className="ml-3 flex-1">
+          <h3 className="text-sm font-semibold text-blue-900">
+            Acceso rápido con huella o Face ID
+          </h3>
+          <p className="mt-1 text-sm text-blue-700">
+            Activá el acceso biométrico y entrá en segundos la próxima vez
+          </p>
+          {error && (
+            <p className="mt-2 text-sm text-red-600">{error}</p>
+          )}
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={handleActivate}
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Activando...' : 'Activar Ahora'}
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300"
+            >
+              Más Tarde
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+#### 4.3 Botón en Login
+```typescript
+// src/app/login/page.tsx - Agregar al componente existente
+import { usePasskey } from '@/hooks/usePasskey'
+import { useRouter } from 'next/navigation'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const { login: passkeyLogin, loading: passkeyLoading } = usePasskey()
+  const [hasPasskey, setHasPasskey] = useState(false)
+
+  // Detectar si el navegador soporta passkeys
+  useEffect(() => {
+    async function checkPasskeySupport() {
+      if (window.PublicKeyCredential) {
+        // Verificar si hay credenciales disponibles (opcional)
+        const available = await PublicKeyCredential.isConditionalMediationAvailable?.()
+        setHasPasskey(!!available)
+      }
+    }
+    checkPasskeySupport()
+  }, [])
+
+  async function handlePasskeyLogin() {
+    try {
+      await passkeyLogin()
+      router.push('/pass')
+    } catch (err) {
+      // Error ya manejado
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="max-w-md w-full space-y-4">
+        <h1 className="text-3xl font-bold text-center">Ingresar</h1>
+
+        {/* Botón de Passkey (solo si está soportado) */}
+        {hasPasskey && (
+          <button
+            onClick={handlePasskeyLogin}
+            disabled={passkeyLoading}
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-indigo-700 transition-all"
+          >
+            <span className="text-2xl">👆</span>
+            {passkeyLoading ? 'Autenticando...' : 'Huella / Face ID'}
+          </button>
+        )}
+
+        {hasPasskey && (
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">O continuar con</span>
+            </div>
+          </div>
+        )}
+
+        {/* Botón de Google (existente) */}
+        <button
+          onClick={() => signIn('google', { callbackUrl: '/pass' })}
+          className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-50"
+        >
+          <GoogleIcon />
+          Continuar con Google
+        </button>
+
+        {/* Email/Password (existente) */}
+        <form onSubmit={handleEmailLogin}>
+          {/* ... formulario existente ... */}
+        </form>
+      </div>
+    </div>
+  )
+}
+```
+
+### Fase 5: Schema de Prisma (10 min)
+
 ```prisma
+// prisma/schema.prisma - Agregar modelo
+model Passkey {
+  id                Int       @id @default(autoincrement())
+  clienteId         Int       @map("cliente_id")
+  credentialId      String    @unique @map("credential_id")
+  publicKey         String    @map("public_key")
+  counter           BigInt    @default(0)
+  dispositivoNombre String?   @map("dispositivo_nombre")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastUsedAt        DateTime? @map("last_used_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@index([clienteId])
+  @@map("passkeys")
+}
+
+// Agregar relación en modelo Cliente
 model Cliente {
   // ... campos existentes ...
-  
-  // Nuevos campos para Passkeys
   passkeys Passkey[]
 }
-
-model Passkey {
-  id            String   @id @default(uuid())
-  clienteId     String
-  cliente       Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-  
-  credentialID  String   @unique
-  publicKey     String
-  counter       Int      @default(0)
-  
-  deviceName    String?  // "iPhone de Mariano"
-  createdAt     DateTime @default(now())
-  lastUsedAt    DateTime @updatedAt
-  
-  @@index([clienteId])
-}
 ```
 
-### Fase 2: Frontend - UI (1 hora)
+### Fase 6: Variables de Entorno
 
-**Agregar botones en /login**:
-```tsx
-// Botón principal de passkey
-<button onClick={handlePasskeyLogin}>
-  🔐 Login con huella/Face ID
-</button>
-
-// Después del login con Google/Email
-<button onClick={handlePasskeyRegister}>
-  ¿Guardar passkey para login más rápido?
-</button>
+```env
+# .env.local - Agregar
+NEXT_PUBLIC_RP_ID=zona.com.ar
+NEXT_PUBLIC_APP_URL=https://zona.com.ar
 ```
 
-**Modal de configuración**:
+## 🧪 Testing
+
+### Casos de Prueba
+1. ✅ Registro de passkey después de login con Google
+2. ✅ Registro de passkey después de login con email/password
+3. ✅ Login con passkey
+4. ✅ Fallback a Google si passkey falla
+5. ✅ Múltiples dispositivos (cada uno su passkey)
+6. ✅ Desactivar passkey desde perfil
+
+## 📊 Ventajas de Esta Implementación
+
+✅ **No rompe nada:** Los métodos actuales siguen funcionando
+✅ **Opcional:** El usuario decide si lo activa
+✅ **Universal:** Funciona con Google, email/password, cualquier método
+✅ **Multi-dispositivo:** Cada dispositivo puede tener su passkey
+✅ **Seguro:** La clave privada nunca sale del dispositivo
+
+## 🎯 Resultado Final
+
 ```
-┌─────────────────────────────────┐
-│  Configurar Login Biométrico    │
-│                                 │
-│  [Icono de huella/Face ID]     │
-│                                 │
-│  Tu dispositivo te pedirá       │
-│  confirmar con huella o Face ID │
-│                                 │
-│  ┌───────────────────────────┐ │
-│  │   Activar Login Rápido   │ │
-│  └───────────────────────────┘ │
-│                                 │
-│          [ Cancelar ]           │
-└─────────────────────────────────┘
-```
+Usuario que se loguea con Google:
+1. Primera vez: Login con Google → Activa passkey (opcional)
+2. Segunda vez en adelante: 
+   - Opción A: Passkey (1 segundo)
+   - Opción B: Google (15 segundos)
+   - Ambas funcionan ✅
 
-### Fase 3: Lógica de Passkeys (1 hora)
-
-**Registro**:
-```typescript
-// 1. Cliente loguea con Google/Email
-// 2. Ofrecer guardar passkey
-// 3. Cliente confirma con biometría
-// 4. Guardar credencial en BD
-```
-
-**Login**:
-```typescript
-// 1. Cliente click "Login con huella"
-// 2. Sistema busca passkeys guardados
-// 3. Cliente confirma con biometría
-// 4. Verificar y loguear
-```
-
-### Fase 4: Testing (30 min)
-
-- Probar en iPhone (Touch ID / Face ID)
-- Probar en Android (Huella)
-- Probar fallback (sin biometría disponible)
-
-### Fase 5: UX Flows (30 min)
-
-**Flow completo**:
-```
-Cliente nuevo:
-1. Se registra con Google ✅
-2. Sistema pregunta: "¿Guardar passkey?" 
-3. Acepta y usa huella ✅
-4. Passkey guardado ✅
-
-Próximos logins:
-1. Abre app
-2. Ve botón "Login con huella" ✅
-3. Usa huella ✅
-4. Logueado en 1 segundo ✅
-
-Si cambia de dispositivo:
-1. Login con Google desde nuevo dispositivo ✅
-2. Sistema pregunta: "¿Guardar passkey aquí?" ✅
-3. Ahora tiene passkey en ambos dispositivos ✅
+Usuario que se loguea con Email/Password:
+1. Primera vez: Login con email → Activa passkey (opcional)
+2. Segunda vez en adelante:
+   - Opción A: Passkey (1 segundo)
+   - Opción B: Email/Password (10 segundos)
+   - Ambas funcionan ✅
 ```
 
----
+## ⏱️ Tiempo Total de Implementación
 
-## 🎨 Diseño UX Recomendado
+- Base de datos: 15 min
+- Librerías: 5 min
+- Backend (4 endpoints): 1.5 horas
+- Frontend (hook + components): 1.5 horas
+- Testing: 30 min
 
-### Página de Login
-```
-┌──────────────────────────────────────┐
-│                                      │
-│         [Logo Coques]                │
-│                                      │
-│      Iniciar Sesión Rápido           │
-│                                      │
-│   ┌──────────────────────────────┐  │
-│   │ 🔐 Login con huella/Face ID  │  │ <- NUEVO
-│   └──────────────────────────────┘  │
-│                                      │
-│   ─────── O continuar con ───────   │
-│                                      │
-│   ┌──────────────────────────────┐  │
-│   │ [G] Continuar con Google     │  │
-│   └──────────────────────────────┘  │
-│                                      │
-│   ┌──────────────────────────────┐  │
-│   │ Email                        │  │
-│   └──────────────────────────────┘  │
-│   ...                                │
-└──────────────────────────────────────┘
-```
+**Total: ~4 horas**
 
-### Modal después del primer login
-```
-┌──────────────────────────────────────┐
-│  ¡Genial! Iniciaste sesión con       │
-│  Google 🎉                           │
-│                                      │
-│  ¿Querés activar login rápido con    │
-│  huella o Face ID para la próxima?   │
-│                                      │
-│   [Icono de huella/Face ID]         │
-│                                      │
-│   ✅ Login en 1 segundo               │
-│   ✅ Más seguro                       │
-│   ✅ Sin contraseñas                  │
-│                                      │
-│  ┌──────────────────────────────┐   │
-│  │   ✓ Sí, activar ahora       │   │
-│  └──────────────────────────────┘   │
-│                                      │
-│       [ Tal vez después ]            │
-└──────────────────────────────────────┘
-```
+## ¿Implementamos ahora?
 
----
-
-## 📊 Comparación de Opciones de Login
-
-| Método | Velocidad | Seguridad | UX | Compatibilidad |
-|--------|-----------|-----------|-----|----------------|
-| **Passkey (Huella/Face)** | ⚡ 1 seg | 🔒🔒🔒 | 😍 | 85% |
-| **Google OAuth** | ⚡ 2-3 seg | 🔒🔒 | 😊 | 95% |
-| **Email/Password** | 🐌 5-10 seg | 🔒 | 😐 | 100% |
-
----
-
-## 💰 Costos
-
-**$0** - WebAuthn es un estándar abierto, sin costos adicionales
-
----
-
-## 🚀 Plan de Implementación Completo
-
-### Fase 1: Google OAuth (Esta sesión)
-- ⏱️ 2-3 horas
-- ✅ Login con Google funcionando
-
-### Fase 2: Passkeys (Próxima sesión)
-- ⏱️ 3-4 horas
-- ✅ Login con huella/Face ID funcionando
-
-### Resultado Final:
-```
-Cliente tiene 3 opciones para loguear:
-1. 🔐 Huella/Face ID (más rápido)
-2. [G] Google (rápido y familiar)
-3. 📧 Email/Password (tradicional)
-```
-
----
-
-## 📚 Librerías Recomendadas
-
-### Backend:
-```bash
-npm install @simplewebauthn/server
-```
-
-### Frontend:
-```bash
-npm install @simplewebauthn/browser
-```
-
-**Total**: 2 librerías pequeñas (~50kb combined)
-
----
-
-## 🔍 Consideraciones de Seguridad
-
-### ✅ Ventajas de Seguridad:
-- **Anti-phishing**: Passkey solo funciona en tu dominio
-- **Sin contraseñas en servidor**: No hay nada que hackear
-- **Biometría local**: Nunca sale del dispositivo
-- **Certificado criptográfico**: Matemáticamente seguro
-
-### ⚠️ Consideraciones:
-- **Pérdida de dispositivo**: Cliente puede usar Google OAuth como backup
-- **Cambio de teléfono**: Passkeys se sincronizan vía iCloud/Google
-- **Navegador viejo**: Fallback a Google/Email
-
----
-
-## 📱 Flujo Multi-Dispositivo
-
-### Escenario: Cliente usa 2 dispositivos
-
-**iPhone Personal**:
-- Login con passkey (Face ID)
-
-**Tablet en Casa**:
-- Primera vez: Login con Google
-- Sistema ofrece: "¿Guardar passkey aquí también?"
-- Acepta: Ahora tiene passkey en ambos
-
-**Nueva PC**:
-- Login con Google (sin passkey, es PC pública)
-- Sistema NO ofrece guardar passkey (es opcional)
-
----
-
-## ✅ Checklist de Implementación
-
-Cuando llegue el momento de implementar, necesitaremos:
-
-### Preparación:
-- [ ] Migración de BD (agregar tabla Passkey)
-- [ ] Instalar librerías SimpleWebAuthn
-- [ ] Configurar variables de entorno
-
-### Backend:
-- [ ] Endpoint: register-options
-- [ ] Endpoint: register-verify
-- [ ] Endpoint: login-options  
-- [ ] Endpoint: login-verify
-- [ ] Lógica de asociar passkey a cliente
-
-### Frontend:
-- [ ] Botón "Login con huella/Face ID"
-- [ ] Modal de registro de passkey
-- [ ] Flujo de registro post-login
-- [ ] Manejo de errores (dispositivo sin biometría)
-
-### Testing:
-- [ ] Probar en iPhone
-- [ ] Probar en Android
-- [ ] Probar en desktop
-- [ ] Probar fallbacks
-
----
-
-## 🎯 Orden de Implementación Sugerido
-
-### Esta semana:
-1. ✅ Fix URL emails → Listo
-2. 🔄 Login con Google → En progreso
-
-### Próxima semana:
-3. 🔐 Passkeys/Biometría
-
-**Razón**: Implementar Google primero facilita la implementación de Passkeys después (se complementan).
-
----
-
-## ❓ Preguntas Frecuentes
-
-### ¿Los passkeys se sincronizan entre dispositivos?
-**Sí**, vía iCloud (iPhone/iPad/Mac) y Google Password Manager (Android/Chrome).
-
-### ¿Qué pasa si el cliente no tiene biometría?
-Puede usar PIN del dispositivo, o seguir usando Google/Email.
-
-### ¿Funciona offline?
-**No** - Necesita conexión para verificar con el servidor. Pero la autenticación biométrica es local.
-
-### ¿Es compatible con PWA?
-**Sí** - Funciona perfecto en PWAs instaladas.
-
----
-
-## 📖 Recursos para Aprender Más
-
-- **WebAuthn Guide**: https://webauthn.guide
-- **SimpleWebAuthn Docs**: https://simplewebauthn.dev
-- **Demo**: https://webauthn.io (probar passkeys)
-- **Apple Passkeys**: https://developer.apple.com/passkeys
-
----
-
-## 🎉 Resumen
-
-**Passkeys = El futuro del login**
-
-- ⚡ Login en 1 segundo
-- 🔒 Más seguro que contraseñas
-- 😍 Mejor experiencia del usuario
-- 📱 Funciona en 85% de dispositivos modernos
-- 💰 $0 de costo adicional
-
-**Plan**: Implementar Google OAuth primero, después agregar Passkeys.
-
-Juntos, Google + Passkeys dan una experiencia de login increíble para tus clientes.
+Todo está listo para comenzar. ¿Quieres que empiece con la base de datos y los endpoints backend?
