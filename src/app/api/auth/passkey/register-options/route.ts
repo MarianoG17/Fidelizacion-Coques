@@ -42,15 +42,15 @@ export async function POST(req: NextRequest) {
 
         // Obtener credenciales existentes (para excluirlas)
         const existingCredentials = cliente.passkeys.map(pk => ({
-            id: Buffer.from(pk.credentialId, 'base64'),
-            type: 'public-key' as const,
+            id: pk.credentialId, // string en base64
             transports: pk.transports as AuthenticatorTransport[],
         }))
 
         // Generar opciones de registro
         const rpID = process.env.NEXT_PUBLIC_RP_ID || 'zona.com.ar'
         const rpName = 'Fidelización Zona'
-        const userID = new TextEncoder().encode(cliente.id) // Uint8Array
+        const userIDString = cliente.id // Para el Map
+        const userID = new TextEncoder().encode(cliente.id) // Uint8Array para la API
         const userName = cliente.email!
         const userDisplayName = cliente.nombre || cliente.email!
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         if (!global.passkeyChallenges) {
             global.passkeyChallenges = new Map()
         }
-        global.passkeyChallenges.set(userID, {
+        global.passkeyChallenges.set(userIDString, {
             challenge: options.challenge,
             timestamp: Date.now(),
         })
