@@ -447,9 +447,14 @@ export default function ConciliacionPage() {
   }
 
   function parseTime(timeStr: string): number {
-    // Convierte "14:40:00" a minutos desde medianoche
+    // Convierte "14:40:00" o "14:40" a minutos desde medianoche
     const parts = timeStr.split(':')
-    return parseInt(parts[0]) * 60 + parseInt(parts[1])
+    const horas = parseInt(parts[0]) || 0
+    const minutos = parseInt(parts[1]) || 0
+    
+    console.log('[PARSE TIME]', { timeStr, horas, minutos, total: horas * 60 + minutos })
+    
+    return horas * 60 + minutos
   }
 
   function descargarResultados() {
