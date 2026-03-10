@@ -281,12 +281,48 @@ export default function ConciliacionPage() {
 
   function conciliar(ayresRecords: AyresRecord[], appRecords: AppRecord[]): ConciliacionResult[] {
     return ayresRecords.map((ayresRec) => {
-      // Buscar coincidencias exactas por código y fecha
+      // Normalizar nombre del descuento de Ayres
+      const descuentoAyresNorm = ayresRec.descuento.toLowerCase()
+      
+      // Buscar coincidencias por NOMBRE del beneficio y fecha
       const matches = appRecords.filter((appRec) => {
         const mismaFecha = appRec.fecha === ayresRec.fecha
-        const codigoCoincide = appRec.codigoAyresIT === ayresRec.codigo
-
-        return mismaFecha && codigoCoincide
+        
+        // Match por código si existe
+        if (appRec.codigoAyresIT && appRec.codigoAyresIT === ayresRec.codigo) {
+          return true
+        }
+        
+        // Match por NOMBRE del beneficio (más flexible)
+        const beneficioNorm = appRec.beneficioNombre.toLowerCase()
+        
+        // Extraer porcentaje del descuento de Ayres (ej: "5%" de "Descuento App 5% Cafetería")
+        const porcentajeMatch = descuentoAyresNorm.match(/(\d+)%/)
+        
+        if (porcentajeMatch) {
+          const porcentaje = porcentajeMatch[1]
+          
+          // Verificar si el beneficio de la app contiene ese porcentaje y tipo similar
+          const esDescuentoCafeteria =
+            (descuentoAyresNorm.includes('cafetería') || descuentoAyresNorm.includes('cafeteria')) &&
+            (beneficioNorm.includes('cafetería') || beneficioNorm.includes('cafeteria') || beneficioNorm.includes('café'))
+          
+          const esDescuentoLavadero =
+            descuentoAyresNorm.includes('lavadero') &&
+            beneficioNorm.includes('lavadero')
+          
+          const porcentajeCoincide = beneficioNorm.includes(porcentaje + '%')
+          
+          if (mismaFecha && porcentajeCoincide && (esDescuentoCafeteria || esDescuentoLavadero)) {
+            // Verificar ventana de tiempo (2 horas = 120 minutos)
+            const diferenciaMinutos = Math.abs(
+              parseTime(appRec.hora) - parseTime(ayresRec.hora)
+            )
+            return diferenciaMinutos <= 120
+          }
+        }
+        
+        return false
       })
 
       if (matches.length > 0) {
@@ -309,13 +345,13 @@ export default function ConciliacionPage() {
         }
       }
 
-      // Buscar posibles matches por fecha y hora cercana (sin código)
+      // Buscar posibles matches por fecha y hora cercana (ventana de 2 horas)
       const posiblesMatches = appRecords.filter((appRec) => {
         const mismaFecha = appRec.fecha === ayresRec.fecha
         const diferenciaMinutos = Math.abs(
           parseTime(appRec.hora) - parseTime(ayresRec.hora)
         )
-        return mismaFecha && diferenciaMinutos < 300 // 5 minutos de tolerancia
+        return mismaFecha && diferenciaMinutos <= 120 // 2 horas de tolerancia
       })
 
       if (posiblesMatches.length > 0) {
