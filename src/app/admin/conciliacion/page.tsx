@@ -334,11 +334,21 @@ export default function ConciliacionPage() {
           // Mismo porcentaje
           if (porcentajeAyres === porcentajeApp && mismaFecha) {
             // Verificar tipo (cafetería, lavadero, etc.)
-            const esCafeteriaAyres = descuentoAyresNorm.includes('cafetería') || descuentoAyresNorm.includes('cafeteria')
-            const esCafeteriaApp = beneficioNorm.includes('cafetería') || beneficioNorm.includes('cafeteria') || beneficioNorm.includes('café')
+            // IMPORTANTE: Usar sin tildes porque ya está normalizado
+            const esCafeteriaAyres = descuentoAyresNorm.includes('cafeteria') || descuentoAyresNorm.includes('cafe')
+            const esCafeteriaApp = beneficioNorm.includes('cafeteria') || beneficioNorm.includes('cafe')
 
             const esLavaderoAyres = descuentoAyresNorm.includes('lavadero')
             const esLavaderoApp = beneficioNorm.includes('lavadero')
+
+            console.log('[TIPO CHECK]', {
+              esCafeteriaAyres,
+              esCafeteriaApp,
+              esLavaderoAyres,
+              esLavaderoApp,
+              descNorm: descuentoAyresNorm,
+              benefNorm: beneficioNorm
+            })
 
             const mismoTipo =
               (esCafeteriaAyres && esCafeteriaApp) ||
