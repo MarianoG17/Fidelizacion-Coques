@@ -280,9 +280,19 @@ export default function ConciliacionPage() {
   }
 
   function conciliar(ayresRecords: AyresRecord[], appRecords: AppRecord[]): ConciliacionResult[] {
+    console.log('[CONCILIACION] Total Ayres:', ayresRecords.length, 'Total App:', appRecords.length)
+    console.log('[CONCILIACION] Registros App:', appRecords)
+
     return ayresRecords.map((ayresRec) => {
       // Normalizar nombre del descuento de Ayres
       const descuentoAyresNorm = ayresRec.descuento.toLowerCase()
+
+      console.log('[PROCESANDO]', {
+        fecha: ayresRec.fecha,
+        hora: ayresRec.hora,
+        descuento: ayresRec.descuento,
+        codigo: ayresRec.codigo
+      })
 
       // Buscar coincidencias por NOMBRE del beneficio y fecha
       const matches = appRecords.filter((appRec) => {
@@ -299,6 +309,15 @@ export default function ConciliacionPage() {
         // Extraer porcentaje del descuento de Ayres (ej: "5%" de "Descuento App 5% Cafetería")
         const porcentajeMatchAyres = descuentoAyresNorm.match(/(\d+)%/)
         const porcentajeMatchApp = beneficioNorm.match(/(\d+)%/)
+
+        console.log('[COMPARANDO]', {
+          ayresDesc: ayresRec.descuento,
+          appBenef: appRec.beneficioNombre,
+          porcAyres: porcentajeMatchAyres?.[1],
+          porcApp: porcentajeMatchApp?.[1],
+          fechaAyres: ayresRec.fecha,
+          fechaApp: appRec.fecha
+        })
 
         if (porcentajeMatchAyres && porcentajeMatchApp) {
           const porcentajeAyres = porcentajeMatchAyres[1]
