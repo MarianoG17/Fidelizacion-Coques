@@ -88,7 +88,7 @@ export default function ConciliacionPage() {
     try {
       // Detectar tipo de archivo y parsear
       let ayresRecords: AyresRecord[] = []
-      
+
       if (archivo.name.endsWith('.xlsx') || archivo.name.endsWith('.xls')) {
         ayresRecords = await parsearExcelAyres(archivo)
       } else {
@@ -104,7 +104,7 @@ export default function ConciliacionPage() {
         'Descuento 20%',
         'Promo macarons 7x6'
       ]
-      
+
       ayresRecords = ayresRecords.filter(record =>
         !descuentosExcluidos.some(excluido =>
           record.descuento.toLowerCase().includes(excluido.toLowerCase())
@@ -120,9 +120,9 @@ export default function ConciliacionPage() {
       // Obtener datos de la app
       const fechaMin = ayresRecords[0].fecha
       const fechaMax = ayresRecords[ayresRecords.length - 1].fecha
-      
+
       console.log('Obteniendo datos de la app:', { fechaMin, fechaMax })
-      
+
       const res = await fetch(
         `/api/admin/reportes/descuentos?fechaDesde=${fechaMin}&fechaHasta=${fechaMax}&formato=json`,
         {
@@ -283,45 +283,58 @@ export default function ConciliacionPage() {
     return ayresRecords.map((ayresRec) => {
       // Normalizar nombre del descuento de Ayres
       const descuentoAyresNorm = ayresRec.descuento.toLowerCase()
-      
+
       // Buscar coincidencias por NOMBRE del beneficio y fecha
       const matches = appRecords.filter((appRec) => {
         const mismaFecha = appRec.fecha === ayresRec.fecha
-        
+
         // Match por código si existe
         if (appRec.codigoAyresIT && appRec.codigoAyresIT === ayresRec.codigo) {
           return true
         }
-        
+
         // Match por NOMBRE del beneficio (más flexible)
         const beneficioNorm = appRec.beneficioNombre.toLowerCase()
-        
+
         // Extraer porcentaje del descuento de Ayres (ej: "5%" de "Descuento App 5% Cafetería")
-        const porcentajeMatch = descuentoAyresNorm.match(/(\d+)%/)
-        
-        if (porcentajeMatch) {
-          const porcentaje = porcentajeMatch[1]
-          
-          // Verificar si el beneficio de la app contiene ese porcentaje y tipo similar
-          const esDescuentoCafeteria =
-            (descuentoAyresNorm.includes('cafetería') || descuentoAyresNorm.includes('cafeteria')) &&
-            (beneficioNorm.includes('cafetería') || beneficioNorm.includes('cafeteria') || beneficioNorm.includes('café'))
-          
-          const esDescuentoLavadero =
-            descuentoAyresNorm.includes('lavadero') &&
-            beneficioNorm.includes('lavadero')
-          
-          const porcentajeCoincide = beneficioNorm.includes(porcentaje + '%')
-          
-          if (mismaFecha && porcentajeCoincide && (esDescuentoCafeteria || esDescuentoLavadero)) {
-            // Verificar ventana de tiempo (2 horas = 120 minutos)
-            const diferenciaMinutos = Math.abs(
-              parseTime(appRec.hora) - parseTime(ayresRec.hora)
-            )
-            return diferenciaMinutos <= 120
+        const porcentajeMatchAyres = descuentoAyresNorm.match(/(\d+)%/)
+        const porcentajeMatchApp = beneficioNorm.match(/(\d+)%/)
+
+        if (porcentajeMatchAyres && porcentajeMatchApp) {
+          const porcentajeAyres = porcentajeMatchAyres[1]
+          const porcentajeApp = porcentajeMatchApp[1]
+
+          // Mismo porcentaje
+          if (porcentajeAyres === porcentajeApp && mismaFecha) {
+            // Verificar tipo (cafetería, lavadero, etc.)
+            const esCafeteriaAyres = descuentoAyresNorm.includes('cafetería') || descuentoAyresNorm.includes('cafeteria')
+            const esCafeteriaApp = beneficioNorm.includes('cafetería') || beneficioNorm.includes('cafeteria') || beneficioNorm.includes('café')
+
+            const esLavaderoAyres = descuentoAyresNorm.includes('lavadero')
+            const esLavaderoApp = beneficioNorm.includes('lavadero')
+
+            const mismoTipo =
+              (esCafeteriaAyres && esCafeteriaApp) ||
+              (esLavaderoAyres && esLavaderoApp)
+
+            if (mismoTipo) {
+              // Verificar ventana de tiempo (2 horas = 120 minutos)
+              const diferenciaMinutos = Math.abs(
+                parseTime(appRec.hora) - parseTime(ayresRec.hora)
+              )
+
+              console.log('[MATCH]', {
+                ayres: ayresRec.descuento,
+                app: appRec.beneficioNombre,
+                porcentaje: porcentajeAyres,
+                diferencia: diferenciaMinutos + ' min'
+              })
+
+              return diferenciaMinutos <= 120
+            }
           }
         }
-        
+
         return false
       })
 
