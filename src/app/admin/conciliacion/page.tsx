@@ -287,6 +287,22 @@ export default function ConciliacionPage() {
       .replace(/[\u0300-\u036f]/g, '') // Quita tildes
   }
 
+  // Función para normalizar fechas a formato YYYY-MM-DD
+  function normalizarFecha(fecha: string): string {
+    // Si ya está en formato YYYY-MM-DD, devolverla tal cual
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      return fecha
+    }
+
+    // Si está en formato DD/MM/YYYY, convertir
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+      const [day, month, year] = fecha.split('/')
+      return `${year}-${month}-${day}`
+    }
+
+    return fecha
+  }
+
   function conciliar(ayresRecords: AyresRecord[], appRecords: AppRecord[]): ConciliacionResult[] {
     console.log('[CONCILIACION] Total Ayres:', ayresRecords.length, 'Total App:', appRecords.length)
     console.log('[CONCILIACION] Registros App:', appRecords)
@@ -304,7 +320,10 @@ export default function ConciliacionPage() {
 
       // Buscar coincidencias por NOMBRE del beneficio y fecha
       const matches = appRecords.filter((appRec) => {
-        const mismaFecha = appRec.fecha === ayresRec.fecha
+        // Normalizar fechas para comparación
+        const fechaAyresNorm = normalizarFecha(ayresRec.fecha)
+        const fechaAppNorm = normalizarFecha(appRec.fecha)
+        const mismaFecha = fechaAyresNorm === fechaAppNorm
 
         // Match por código si existe
         if (appRec.codigoAyresIT && appRec.codigoAyresIT === ayresRec.codigo) {
