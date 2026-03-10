@@ -321,15 +321,20 @@ export default function ConciliacionPage() {
         console.log('[COMPARANDO]', {
           ayresDesc: ayresRec.descuento,
           appBenef: appRec.beneficioNombre,
+          descNorm: descuentoAyresNorm,
+          benefNorm: beneficioNorm,
           porcAyres: porcentajeMatchAyres?.[1],
           porcApp: porcentajeMatchApp?.[1],
           fechaAyres: ayresRec.fecha,
-          fechaApp: appRec.fecha
+          fechaApp: appRec.fecha,
+          mismaFecha
         })
 
         if (porcentajeMatchAyres && porcentajeMatchApp) {
           const porcentajeAyres = porcentajeMatchAyres[1]
           const porcentajeApp = porcentajeMatchApp[1]
+
+          console.log('[PORCENTAJES]', { ayres: porcentajeAyres, app: porcentajeApp, son_iguales: porcentajeAyres === porcentajeApp })
 
           // Mismo porcentaje
           if (porcentajeAyres === porcentajeApp && mismaFecha) {
