@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
         const eventos = await prisma.eventoScan.findMany({
             where: {
                 tipoEvento: 'BENEFICIO_APLICADO',
+                beneficioId: { not: null }, // Asegurar que tiene beneficio asociado
                 timestamp: {
                     gte: desde,
                     lte: hasta,
@@ -84,20 +85,10 @@ export async function GET(req: NextRequest) {
             },
         })
 
-        // Filtrar duplicados: Si hay múltiples eventos del mismo beneficio para el mismo cliente en el mismo minuto, tomar solo el primero
-        const eventosUnicos = eventos.filter((evento, index, self) => {
-            const key = `${evento.clienteId}_${evento.beneficioId}_${new Date(evento.timestamp).toISOString().slice(0, 16)}` // clienteId_beneficioId_YYYY-MM-DDTHH:MM
-
-            return index === self.findIndex(e => {
-                const eKey = `${e.clienteId}_${e.beneficioId}_${new Date(e.timestamp).toISOString().slice(0, 16)}`
-                return eKey === key
-            })
-        })
-
-        console.log(`[DESCUENTOS] Eventos totales: ${eventos.length}, Eventos únicos: ${eventosUnicos.length}`)
+        console.log(`[DESCUENTOS] Eventos con beneficio aplicado: ${eventos.length}`)
 
         // Formatear datos para el reporte
-        const reporte = eventosUnicos.map((evento) => {
+        const reporte = eventos.map((evento) => {
             const timestamp = new Date(evento.timestamp)
 
             // Parsear condiciones del beneficio si existe
@@ -236,8 +227,6 @@ export async function GET(req: NextRequest) {
                 hasta: hasta.toISOString(),
             },
             total: reporte.length,
-            totalOriginal: eventos.length,
-            duplicadosEliminados: eventos.length - eventosUnicos.length,
             data: reporte,
         })
     } catch (error) {
