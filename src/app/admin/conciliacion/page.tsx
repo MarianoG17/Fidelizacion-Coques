@@ -448,16 +448,18 @@ export default function ConciliacionPage() {
 
   function parseTime(timeStr: string): number {
     // Maneja formatos: "14:40:00", "14:40", "04:50 p. m.", "07:50:13 p. m."
-    let cleanTime = timeStr.trim().toLowerCase()
+    const original = timeStr.trim().toLowerCase()
 
-    // Detectar AM/PM
-    const isPM = cleanTime.includes('p.m.') || cleanTime.includes('p. m.') || cleanTime.includes('pm')
-    const isAM = cleanTime.includes('a.m.') || cleanTime.includes('a. m.') || cleanTime.includes('am')
+    // Detectar AM/PM usando regex más robusto
+    const isPM = /p\.\s?m\./i.test(original) || /pm/i.test(original)
+    const isAM = /a\.\s?m\./i.test(original) || /am/i.test(original)
 
     // Quitar AM/PM del string
-    cleanTime = cleanTime
-      .replace(/p\.?\s?m\.?/g, '')
-      .replace(/a\.?\s?m\.?/g, '')
+    let cleanTime = original
+      .replace(/p\.\s?m\./gi, '')
+      .replace(/a\.\s?m\./gi, '')
+      .replace(/pm/gi, '')
+      .replace(/am/gi, '')
       .trim()
 
     const parts = cleanTime.split(':')
