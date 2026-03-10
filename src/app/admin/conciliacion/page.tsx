@@ -473,6 +473,15 @@ export default function ConciliacionPage() {
       horas = 0
     }
 
+    // CORRECCIÓN TIMEZONE: Si tiene AM/PM (viene de la app), restar 3h para convertir UTC a Argentina
+    if (isPM || isAM) {
+      horas -= 3
+      // Manejar día anterior si es necesario (ej: 01:00 - 3h = -2 → 22:00 del día anterior)
+      if (horas < 0) {
+        horas += 24
+      }
+    }
+
     const total = horas * 60 + minutos
 
     console.log('[PARSE TIME]', {
@@ -481,9 +490,10 @@ export default function ConciliacionPage() {
       isPM,
       isAM,
       horasOriginal: parseInt(parts[0]),
-      horas,
+      horasAjustadas: horas,
       minutos,
-      total
+      total,
+      timezone: (isPM || isAM) ? 'UTC→ART (-3h)' : '24h (sin ajuste)'
     })
 
     return total
