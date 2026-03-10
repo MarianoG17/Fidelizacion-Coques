@@ -307,6 +307,9 @@ export default function ConciliacionPage() {
     console.log('[CONCILIACION] Total Ayres:', ayresRecords.length, 'Total App:', appRecords.length)
     console.log('[CONCILIACION] Registros App:', appRecords)
 
+    // Rastrear qué registros de la app ya han sido matcheados
+    const appRecordsUsados = new Set<string>()
+
     return ayresRecords.map((ayresRec) => {
       // Normalizar nombre del descuento de Ayres (lowercase + sin tildes)
       const descuentoAyresNorm = normalizar(ayresRec.descuento)
@@ -319,7 +322,13 @@ export default function ConciliacionPage() {
       })
 
       // Buscar coincidencias por NOMBRE del beneficio y fecha
+      // IMPORTANTE: Excluir registros de la app que ya fueron matcheados
       const matches = appRecords.filter((appRec) => {
+        // Si este registro ya fue usado, no considerarlo
+        const appRecKey = `${appRec.fecha}_${appRec.hora}_${appRec.beneficioNombre}`
+        if (appRecordsUsados.has(appRecKey)) {
+          return false
+        }
         // Normalizar fechas para comparación
         const fechaAyresNorm = normalizarFecha(ayresRec.fecha)
         const fechaAppNorm = normalizarFecha(appRec.fecha)
@@ -409,6 +418,16 @@ export default function ConciliacionPage() {
             parseTime(closest.hora) - parseTime(ayresRec.hora)
           )
           return diffCurrent < diffClosest ? current : closest
+        })
+
+        // Marcar este registro de la app como usado
+        const matchKey = `${match.fecha}_${match.hora}_${match.beneficioNombre}`
+        appRecordsUsados.add(matchKey)
+
+        console.log('[MATCH REGISTRADO]', {
+          ayres: ayresRec.descuento,
+          app: match.beneficioNombre,
+          usadosTotal: appRecordsUsados.size
         })
 
         return {
