@@ -279,13 +279,21 @@ export default function ConciliacionPage() {
     return fecha
   }
 
+  // Función para normalizar texto (quitar tildes y pasar a lowercase)
+  function normalizar(texto: string): string {
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Quita tildes
+  }
+
   function conciliar(ayresRecords: AyresRecord[], appRecords: AppRecord[]): ConciliacionResult[] {
     console.log('[CONCILIACION] Total Ayres:', ayresRecords.length, 'Total App:', appRecords.length)
     console.log('[CONCILIACION] Registros App:', appRecords)
 
     return ayresRecords.map((ayresRec) => {
-      // Normalizar nombre del descuento de Ayres
-      const descuentoAyresNorm = ayresRec.descuento.toLowerCase()
+      // Normalizar nombre del descuento de Ayres (lowercase + sin tildes)
+      const descuentoAyresNorm = normalizar(ayresRec.descuento)
 
       console.log('[PROCESANDO]', {
         fecha: ayresRec.fecha,
@@ -303,8 +311,8 @@ export default function ConciliacionPage() {
           return true
         }
 
-        // Match por NOMBRE del beneficio (más flexible)
-        const beneficioNorm = appRec.beneficioNombre.toLowerCase()
+        // Match por NOMBRE del beneficio (lowercase + sin tildes)
+        const beneficioNorm = normalizar(appRec.beneficioNombre)
 
         // Extraer porcentaje del descuento de Ayres (ej: "5%" de "Descuento App 5% Cafetería")
         const porcentajeMatchAyres = descuentoAyresNorm.match(/(\d+)%/)
