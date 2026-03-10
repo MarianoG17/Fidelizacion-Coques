@@ -447,14 +447,44 @@ export default function ConciliacionPage() {
   }
 
   function parseTime(timeStr: string): number {
-    // Convierte "14:40:00" o "14:40" a minutos desde medianoche
-    const parts = timeStr.split(':')
-    const horas = parseInt(parts[0]) || 0
+    // Maneja formatos: "14:40:00", "14:40", "04:50 p. m.", "07:50:13 p. m."
+    let cleanTime = timeStr.trim().toLowerCase()
+
+    // Detectar AM/PM
+    const isPM = cleanTime.includes('p.m.') || cleanTime.includes('p. m.') || cleanTime.includes('pm')
+    const isAM = cleanTime.includes('a.m.') || cleanTime.includes('a. m.') || cleanTime.includes('am')
+
+    // Quitar AM/PM del string
+    cleanTime = cleanTime
+      .replace(/p\.?\s?m\.?/g, '')
+      .replace(/a\.?\s?m\.?/g, '')
+      .trim()
+
+    const parts = cleanTime.split(':')
+    let horas = parseInt(parts[0]) || 0
     const minutos = parseInt(parts[1]) || 0
-    
-    console.log('[PARSE TIME]', { timeStr, horas, minutos, total: horas * 60 + minutos })
-    
-    return horas * 60 + minutos
+
+    // Convertir de 12h a 24h
+    if (isPM && horas !== 12) {
+      horas += 12
+    } else if (isAM && horas === 12) {
+      horas = 0
+    }
+
+    const total = horas * 60 + minutos
+
+    console.log('[PARSE TIME]', {
+      original: timeStr,
+      cleanTime,
+      isPM,
+      isAM,
+      horasOriginal: parseInt(parts[0]),
+      horas,
+      minutos,
+      total
+    })
+
+    return total
   }
 
   function descargarResultados() {
