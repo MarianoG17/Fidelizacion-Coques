@@ -17,11 +17,36 @@ export default function LoginPage() {
   // Passkey hook
   const { login: passkeyLogin, loading: passkeyLoading, verificarSoporte } = usePasskey()
   const [soportaPasskey, setSoportaPasskey] = useState(false)
+  const [autoLoginIntentado, setAutoLoginIntentado] = useState(false)
 
-  // Verificar soporte de passkeys al montar
+  // Verificar soporte de passkeys y auto-login al montar
   useEffect(() => {
-    verificarSoporte().then(setSoportaPasskey)
-  }, [verificarSoporte])
+    const inicializar = async () => {
+      const soporte = await verificarSoporte()
+      setSoportaPasskey(soporte)
+
+      // Auto-login con passkey si está soportado y no se intentó antes
+      if (soporte && !autoLoginIntentado) {
+        const autoLoginDeshabilitado = localStorage.getItem('passkey-auto-login-disabled')
+
+        // Si no está deshabilitado, intentar login automático
+        if (!autoLoginDeshabilitado) {
+          console.log('[LOGIN] Intentando auto-login con passkey...')
+          setAutoLoginIntentado(true)
+
+          try {
+            await passkeyLogin()
+            router.push('/pass')
+          } catch (err) {
+            // Si falla o cancela, no hacer nada (mostrar opciones normales)
+            console.log('[LOGIN] Auto-login cancelado o no disponible')
+          }
+        }
+      }
+    }
+
+    inicializar()
+  }, [verificarSoporte, passkeyLogin, router, autoLoginIntentado])
 
   function validarEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
