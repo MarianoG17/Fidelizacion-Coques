@@ -101,6 +101,7 @@ export async function PATCH(
             estadoExternoTrigger,
             localDestinoId,
             niveles, // Array de IDs de niveles
+            condiciones: condicionesBody, // ✅ NUEVO: Recibir objeto condiciones del body
         } = body
 
         // Verificar que el beneficio existe
@@ -123,18 +124,31 @@ export async function PATCH(
             )
         }
 
-        // Construir objeto de condiciones actualizado
+        // ✅ MEJORADO: Construir objeto de condiciones
         const condicionesActuales = beneficioExistente.condiciones as any
-        const condiciones: any = {
-            tipo: tipo || condicionesActuales?.tipo || 'OTRO',
-            icono: icono !== undefined ? icono : (condicionesActuales?.icono || '🎁'),
-            descripcion: descripcion !== undefined ? descripcion : (condicionesActuales?.descripcion || ''),
-            maxPorDia: maxPorDia !== undefined ? maxPorDia : (condicionesActuales?.maxPorDia || 0),
-            usoUnico: usoUnico !== undefined ? usoUnico : (condicionesActuales?.usoUnico || false),
-        }
+        let condiciones: any
 
-        if (tipo === 'DESCUENTO' || condicionesActuales?.tipo === 'DESCUENTO') {
-            condiciones.descuento = descuento !== undefined ? descuento : condicionesActuales?.descuento
+        // Si viene objeto condiciones completo del body, usarlo (para casos de cumpleaños)
+        if (condicionesBody && typeof condicionesBody === 'object') {
+            // Merge con las actuales para no perder datos
+            condiciones = {
+                ...condicionesActuales,
+                ...condicionesBody,
+            }
+            console.log('[BENEFICIO] Usando condiciones del body:', condiciones)
+        } else {
+            // Si no, construir desde campos individuales (compatibilidad con forms antiguos)
+            condiciones = {
+                tipo: tipo || condicionesActuales?.tipo || 'OTRO',
+                icono: icono !== undefined ? icono : (condicionesActuales?.icono || '🎁'),
+                descripcion: descripcion !== undefined ? descripcion : (condicionesActuales?.descripcion || ''),
+                maxPorDia: maxPorDia !== undefined ? maxPorDia : (condicionesActuales?.maxPorDia || 0),
+                usoUnico: usoUnico !== undefined ? usoUnico : (condicionesActuales?.usoUnico || false),
+            }
+
+            if (tipo === 'DESCUENTO' || condicionesActuales?.tipo === 'DESCUENTO') {
+                condiciones.descuento = descuento !== undefined ? descuento : condicionesActuales?.descuento
+            }
         }
 
         // Preparar datos de actualización

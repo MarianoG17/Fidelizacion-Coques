@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
             estadoExternoTrigger,
             localDestinoId,
             niveles, // Array de IDs de niveles
+            condiciones: condicionesBody, // ✅ NUEVO: Recibir objeto condiciones del body
         } = body
 
         // Validaciones
@@ -107,17 +108,26 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Construir objeto de condiciones
-        const condiciones: any = {
-            tipo,
-            icono: icono || '🎁',
-            descripcion: descripcion || '',
-            maxPorDia: maxPorDia || 0,
-            usoUnico: usoUnico || false,
-        }
+        // ✅ MEJORADO: Construir objeto de condiciones
+        let condiciones: any
 
-        if (tipo === 'DESCUENTO') {
-            condiciones.descuento = descuento
+        // Si viene objeto condiciones completo del body, usarlo (para casos de cumpleaños)
+        if (condicionesBody && typeof condicionesBody === 'object') {
+            condiciones = condicionesBody
+            console.log('[BENEFICIO] Creando con condiciones del body:', condiciones)
+        } else {
+            // Si no, construir desde campos individuales (compatibilidad hacia atrás)
+            condiciones = {
+                tipo,
+                icono: icono || '🎁',
+                descripcion: descripcion || '',
+                maxPorDia: maxPorDia || 0,
+                usoUnico: usoUnico || false,
+            }
+
+            if (tipo === 'DESCUENTO') {
+                condiciones.descuento = descuento
+            }
         }
 
         // Crear el beneficio

@@ -37,5 +37,22 @@ next-env.d.ts
 # prisma
 prisma/*.db
 
-.vercel
-.env*.local
+# ═══════════════════════════════════════════════════════════
+# 🎨 TEMPLATE WHITE-LABEL - IMPORTANTE
+# ═══════════════════════════════════════════════════════════
+#
+# PARA COMPARTIR CON NUEVO CLIENTE:
+# - NO incluir: config/brand.config.ts (tiene datos de Coques)
+# - SÍ incluir: config/brand.config.example.ts (template vacío)
+#
+# El nuevo cliente debe:
+# 1. Copiar brand.config.example.ts → brand.config.ts
+# 2. Personalizar brand.config.ts con sus datos
+# 3. Commitear su propio brand.config.ts a su repo
+#
+# ═══════════════════════════════════════════════════════════
+
+# NO commitear configuración personalizada (opcional)
+# Si querés que cada cliente tenga su propio brand.config.ts,
+# descomentá la siguiente línea:
+# config/brand.config.ts

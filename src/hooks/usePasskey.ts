@@ -35,6 +35,19 @@ export function usePasskey() {
                 headers: { 'Content-Type': 'application/json' },
             })
 
+            // ✅ MEJORADO: Manejar sesión expirada
+            if (optionsRes.status === 401) {
+                const errorMsg = '⏱️ Tu sesión expiró. Por favor, volvé a ingresar.'
+                setError(errorMsg)
+
+                // Redirigir al login después de 2 segundos
+                setTimeout(() => {
+                    window.location.href = '/login'
+                }, 2000)
+
+                throw new Error(errorMsg)
+            }
+
             if (!optionsRes.ok) {
                 const data = await optionsRes.json()
                 throw new Error(data.error || 'Error al iniciar registro')
@@ -59,6 +72,18 @@ export function usePasskey() {
 
             if (!verifyRes.ok) {
                 const data = await verifyRes.json()
+
+                // ✅ MEJORADO: Manejar error de duplicado de forma más amigable
+                if (data.error?.includes('ya está registrada') || data.error?.includes('actualizada')) {
+                    // Si dice "actualizada" es porque el backend lo resolvió
+                    if (data.success) {
+                        console.log('[PASSKEY] Credencial actualizada exitosamente')
+                        return data
+                    }
+
+                    setError('🔄 Detectamos un intento anterior. Probá cerrar sesión y volver a ingresar.')
+                }
+
                 throw new Error(data.error || 'Error al verificar credencial')
             }
 
@@ -69,15 +94,18 @@ export function usePasskey() {
         } catch (err: any) {
             console.error('[PASSKEY] Error en registro:', err)
 
-            // Mensajes de error amigables
+            // ✅ MEJORADO: Mensajes de error más específicos y útiles
             let errorMessage = 'Error al registrar biometría'
 
             if (err.name === 'NotAllowedError') {
-                errorMessage = 'Operación cancelada. Intenta nuevamente.'
+                errorMessage = '❌ Cancelaste la operación o tu dispositivo no tiene biometría habilitada.'
             } else if (err.name === 'InvalidStateError') {
-                errorMessage = 'Esta credencial ya está registrada'
+                errorMessage = '🔄 Esta huella ya está en uso. Probá con otro dedo o resetea desde tu perfil.'
             } else if (err.name === 'NotSupportedError') {
-                errorMessage = 'Tu dispositivo no soporta esta función'
+                errorMessage = '⚠️ Tu dispositivo no soporta autenticación biométrica.'
+            } else if (err.message?.includes('sesión')) {
+                // Ya se manejó arriba con el setTimeout
+                errorMessage = err.message
             } else if (err.message) {
                 errorMessage = err.message
             }

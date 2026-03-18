@@ -116,28 +116,58 @@ export async function POST(req: NextRequest) {
             where: { credentialId: credentialIdBase64 }
         })
 
+        let passkey
+
         if (existingPasskey) {
-            return NextResponse.json(
-                { error: 'Esta credencial ya está registrada' },
-                { status: 400 }
-            )
-        }
+            // ✅ MEJORADO: Si ya existe, actualizar en vez de rechazar
+            // Esto previene errores cuando un registro anterior falló parcialmente
+            console.log('[PASSKEY] Credencial ya existe, actualizando...', {
+                passkeyId: existingPasskey.id,
+                clienteId: existingPasskey.clienteId,
+                clienteActual: cliente.id,
+            })
 
-        // Obtener transports del credential
-        const transports = (credential.response as any).transports || []
-
-        // Guardar en DB
-        const passkey = await prisma.passkey.create({
-            data: {
-                clienteId: cliente.id,
-                credentialId: credentialIdBase64,
-                publicKey: publicKeyBase64,
-                counter: BigInt(counter),
-                transports,
-                dispositivoNombre: deviceName || 'Mi dispositivo',
-                userAgent: req.headers.get('user-agent') || undefined,
+            // Verificar que sea del mismo cliente (seguridad)
+            if (existingPasskey.clienteId !== cliente.id) {
+                return NextResponse.json(
+                    { error: 'Esta credencial pertenece a otro usuario' },
+                    { status: 403 }
+                )
             }
-        })
+
+            // Actualizar la credencial existente
+            passkey = await prisma.passkey.update({
+                where: { id: existingPasskey.id },
+                data: {
+                    publicKey: publicKeyBase64,
+                    counter: BigInt(counter),
+                    transports: (credential.response as any).transports || [],
+                    dispositivoNombre: deviceName || existingPasskey.dispositivoNombre,
+                    userAgent: req.headers.get('user-agent') || undefined,
+                    lastUsedAt: new Date(), // Actualizar timestamp
+                }
+            })
+
+            console.log('[PASSKEY] Credencial actualizada exitosamente')
+        } else {
+            // Obtener transports del credential
+            const transports = (credential.response as any).transports || []
+
+            // Crear nueva credencial
+            passkey = await prisma.passkey.create({
+                data: {
+                    clienteId: cliente.id,
+                    credentialId: credentialIdBase64,
+                    publicKey: publicKeyBase64,
+                    counter: BigInt(counter),
+                    transports,
+                    dispositivoNombre: deviceName || 'Mi dispositivo',
+                    userAgent: req.headers.get('user-agent') || undefined,
+                }
+            })
+
+            console.log('[PASSKEY] Credencial creada exitosamente')
+        }
 
         // Challenge ya fue verificado por @simplewebauthn/server
 
