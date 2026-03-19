@@ -36,6 +36,15 @@ export default function PasskeyPrompt({ autoHide = true }: PasskeyPromptProps) {
         }
     }, [autoHide, verificarSoporte])
 
+    // ✅ NUEVO: Descartar automáticamente si hay error de sesión expirada
+    useEffect(() => {
+        if (error && error.includes('sesión')) {
+            console.log('[PASSKEY PROMPT] ⚠️ Sesión expirada detectada - descartando prompt automáticamente')
+            // Descartar para esta sesión (el usuario será redirigido al login)
+            setDismissed(true)
+        }
+    }, [error])
+
     // No mostrar si:
     // - Fue descartado manualmente
     // - No soporta biometría
@@ -137,7 +146,7 @@ export default function PasskeyPrompt({ autoHide = true }: PasskeyPromptProps) {
                         <button
                             onClick={handleNotNow}
                             disabled={loading}
-                            className="bg-white hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-300 transition-colors"
+                            className="bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-300 transition-colors touch-manipulation"
                         >
                             Ahora no
                         </button>
@@ -145,21 +154,22 @@ export default function PasskeyPrompt({ autoHide = true }: PasskeyPromptProps) {
                         <button
                             onClick={handleDismiss}
                             disabled={loading}
-                            className="text-gray-500 hover:text-gray-700 px-3 py-2.5 text-sm font-medium transition-colors"
+                            className="text-gray-500 hover:text-gray-700 active:text-gray-900 px-3 py-2.5 text-sm font-medium transition-colors touch-manipulation"
                         >
                             No volver a mostrar
                         </button>
                     </div>
                 </div>
 
-                {/* Botón cerrar (alternativo) */}
+                {/* Botón cerrar (alternativo) - Más grande para iOS */}
                 <button
                     onClick={handleNotNow}
-                    className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                    disabled={loading}
+                    className="flex-shrink-0 text-gray-400 hover:text-gray-600 active:text-gray-800 transition-colors p-2 -mr-2 -mt-2 touch-manipulation"
                     aria-label="Cerrar"
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
