@@ -419,7 +419,10 @@ export default function PassPage() {
               />
             </div>
             <p className="text-xs text-center text-gray-500 mt-1">
-              {nivelesData.progreso.visitasActuales} / {nivelesData.progreso.visitasRequeridas} visitas
+              {nivelesData.progreso.visitasActuales} / {nivelesData.progreso.visitasRequeridas} visitas en los últimos 60 días
+            </p>
+            <p className="text-xs text-center text-gray-400 mt-1">
+              💡 Seguí visitando para mantener tu nivel
             </p>
           </div>
         )}
