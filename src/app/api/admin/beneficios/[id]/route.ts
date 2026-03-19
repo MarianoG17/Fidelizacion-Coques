@@ -1,6 +1,7 @@
 // src/app/api/admin/beneficios/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,10 +10,8 @@ export async function GET(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
 
     try {
         const beneficio = await prisma.beneficio.findUnique({
@@ -80,10 +79,8 @@ export async function PATCH(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
 
     try {
         const body = await req.json()
@@ -216,10 +213,8 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
 
     try {
         // Verificar que el beneficio existe
