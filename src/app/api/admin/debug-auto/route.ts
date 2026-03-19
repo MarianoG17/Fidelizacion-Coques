@@ -1,22 +1,27 @@
 // src/app/api/admin/debug-auto/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+    // Verificar auth (el middleware solo chequea header, si falla intentar query param)
+    const authError = requireAdminAuth(req)
+    if (authError) {
+        // Fallback: intentar con query param
+        const { searchParams } = req.nextUrl
+        const adminKeyQuery = searchParams.get('key')
+        if (adminKeyQuery !== process.env.ADMIN_KEY) {
+            return authError // Retornar error original
+        }
+    }
+
     try {
         const { searchParams } = req.nextUrl
+        const phone = searchParams.get('phone')
 
-        // Verificar admin key (header o query param)
-        const adminKeyHeader = req.headers.get('x-admin-key')
-        const adminKeyQuery = searchParams.get('key')
-        const adminKey = adminKeyHeader || adminKeyQuery
-
-        console.log('[Debug Auto] Admin key recibida:', adminKey ? 'presente' : 'ausente')
-        console.log('[Debug Auto] Admin key esperada:', process.env.ADMIN_KEY ? 'configurada' : 'NO configurada')
-
-        if (adminKey !== process.env.ADMIN_KEY) {
+        if (!phone) {
             return NextResponse.json({
                 error: 'No autorizado',
                 debug: {

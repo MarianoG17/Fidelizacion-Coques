@@ -1,15 +1,14 @@
 // src/app/api/admin/niveles/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/niveles - Obtener todos los niveles con sus criterios
 export async function GET(req: NextRequest) {
-  const adminKey = req.headers.get('x-admin-key')
-  if (adminKey !== process.env.ADMIN_KEY) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
 
   try {
     const niveles = await prisma.nivel.findMany({

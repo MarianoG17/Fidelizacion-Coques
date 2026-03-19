@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { evaluarNivel } from '@/lib/beneficios'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,12 +12,10 @@ export const dynamic = 'force-dynamic'
  * Útil después de correcciones de bugs o cambios en la lógica de niveles
  */
 export async function POST(req: NextRequest) {
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
+
   try {
-    // Verificar autenticación de admin
-    const adminKey = req.headers.get('x-admin-key')
-    if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
 
     console.log('[Admin] Iniciando re-evaluación masiva de niveles...')
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireClienteAuth, serverError, badRequest } from '@/lib/auth'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,12 +81,10 @@ export async function GET(req: NextRequest) {
 
 // POST /api/eventos-especiales — solo admin (verificar con header especial por ahora)
 export async function POST(req: NextRequest) {
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
+
   try {
-    // Auth admin simple — en producción reemplazar con JWT admin
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
 
     const body = await req.json()
     const parsed = crearEventoSchema.safeParse(body)

@@ -2,12 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendPushNotification } from '@/lib/push'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export async function POST(req: NextRequest) {
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
 
     try {
         const body = await req.json()

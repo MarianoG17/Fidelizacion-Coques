@@ -1,13 +1,13 @@
 // src/app/api/admin/reportes/descuentos/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export async function GET(req: NextRequest) {
-    try {
-        const adminKey = req.headers.get('x-admin-key')
-        if (adminKey !== process.env.ADMIN_KEY) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-        }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
+
+    try{
 
         const { searchParams } = new URL(req.url)
         const fechaDesde = searchParams.get('fechaDesde') // YYYY-MM-DD
