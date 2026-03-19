@@ -56,7 +56,7 @@ export function getEndOfDayArgentina(): Date {
 /**
  * Verifica si una fecha está en el día actual de Argentina
  */
-export function isToday Arg(date: Date | string): boolean {
+export function isTodayArg(date: Date | string): boolean {
   const dateObj = typeof date === 'string' ? parseISO(date) : date
   const today = getStartOfDayArgentina()
   const tomorrow = addDays(today, 1)
