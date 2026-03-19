@@ -46,9 +46,14 @@ export default function NotificationToggle() {
         // Activar notificaciones
         await enableNotifications()
       }
+
+      // ✅ Fix Bug #10: Revalidar estado real después del cambio
+      await checkNotificationStatus()
     } catch (error) {
       console.error('Error al cambiar estado de notificaciones:', error)
       alert('Error al cambiar las notificaciones. Intentá de nuevo.')
+      // Revalidar incluso si hay error
+      await checkNotificationStatus()
     } finally {
       setIsLoading(false)
     }
@@ -91,7 +96,7 @@ export default function NotificationToggle() {
         throw new Error('Error al guardar suscripción en el servidor')
       }
 
-      setIsEnabled(true)
+      // Estado se actualizará en checkNotificationStatus()
       alert('✅ Notificaciones activadas correctamente')
     } catch (error) {
       console.error('Error al activar notificaciones:', error)
@@ -113,7 +118,7 @@ export default function NotificationToggle() {
         method: 'DELETE'
       })
 
-      setIsEnabled(false)
+      // Estado se actualizará en checkNotificationStatus()
       alert('🔕 Notificaciones desactivadas')
     } catch (error) {
       console.error('Error al desactivar notificaciones:', error)
