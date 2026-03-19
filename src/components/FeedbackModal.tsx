@@ -80,13 +80,23 @@ export default function FeedbackModal() {
 
     if (!ultimoScan || feedbackVisto) return
 
-    // Verificar frecuencia mínima
+    // ✅ MEJORADO: Verificar frecuencia usando AMBOS timestamps
     const ultimoFeedbackStr = localStorage.getItem('ultimo_feedback_timestamp')
-    if (ultimoFeedbackStr) {
-      const diasDesde = (Date.now() - parseInt(ultimoFeedbackStr)) / (1000 * 60 * 60 * 24)
+    const ultimoMostradoStr = localStorage.getItem('ultimo_feedback_mostrado')
+
+    // Usar el más reciente de los dos
+    const ultimoTimestamp = Math.max(
+      ultimoFeedbackStr ? parseInt(ultimoFeedbackStr) : 0,
+      ultimoMostradoStr ? parseInt(ultimoMostradoStr) : 0
+    )
+
+    if (ultimoTimestamp > 0) {
+      const diasDesde = (Date.now() - ultimoTimestamp) / (1000 * 60 * 60 * 24)
       if (diasDesde < config.feedbackFrecuenciaDias) {
+        console.log(`[FEEDBACK] ⏱️ Muy pronto para otro feedback (${diasDesde.toFixed(1)} días < ${config.feedbackFrecuenciaDias})`)
         return // Muy pronto para otro feedback
       }
+      console.log(`[FEEDBACK] ✅ Permitido mostrar feedback (${diasDesde.toFixed(1)} días >= ${config.feedbackFrecuenciaDias})`)
     }
 
     const tiempoTranscurrido = Date.now() - parseInt(ultimoScan)
@@ -95,6 +105,10 @@ export default function FeedbackModal() {
 
     // Mostrar después del tiempo configurado pero antes de 1 hora
     if (tiempoTranscurrido > tiempoEspera && tiempoTranscurrido < unaHora) {
+      // ✅ NUEVO: Guardar timestamp ANTES de mostrar para evitar loops
+      localStorage.setItem('ultimo_feedback_mostrado', Date.now().toString())
+      console.log('[FEEDBACK] 📋 Mostrando modal de feedback')
+
       setTrigger({
         type: 'VISITA_FISICA',
         timestamp: parseInt(ultimoScan)

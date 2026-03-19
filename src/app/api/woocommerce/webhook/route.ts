@@ -1,6 +1,7 @@
 // src/app/api/woocommerce/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { normalizarTelefono, toE164 } from '@/lib/phone'
 import crypto from 'crypto'
 import { evaluarNivel } from '@/lib/beneficios'
 
@@ -52,7 +53,7 @@ interface WooCommerceWebhookPayload {
  */
 function verificarFirma(body: string, firma: string | null): boolean {
   if (!firma) return false
-  
+
   const secret = process.env.WOOCOMMERCE_WEBHOOK_SECRET
   if (!secret) {
     console.error('[Webhook] WOOCOMMERCE_WEBHOOK_SECRET no configurado')
@@ -102,29 +103,8 @@ async function registrarPedidoTorta(
   }
 }
 
-/**
- * Normaliza el teléfono al formato E.164
- */
-function normalizarTelefono(phone: string): string {
-  // Remover espacios, guiones, paréntesis
-  let cleaned = phone.replace(/[\s\-\(\)]/g, '')
-  
-  // Si empieza con 0, quitarlo (formato local argentino)
-  if (cleaned.startsWith('0')) {
-    cleaned = cleaned.substring(1)
-  }
-  
-  // Si no tiene código de país, agregar +54 (Argentina)
-  if (!cleaned.startsWith('+')) {
-    if (cleaned.startsWith('54')) {
-      cleaned = '+' + cleaned
-    } else {
-      cleaned = '+54' + cleaned
-    }
-  }
-  
-  return cleaned
-}
+// ✅ Función eliminada - ahora usa normalizarTelefono() de /lib/phone.ts
+// Esto previene inconsistencias en la normalización de teléfonos
 
 export async function POST(req: NextRequest) {
   try {
@@ -138,7 +118,7 @@ export async function POST(req: NextRequest) {
     }
 
     const payload: WooCommerceWebhookPayload = JSON.parse(body)
-    
+
     console.log(`[Webhook] 📦 Pedido #${payload.id} - Estado: ${payload.status}`)
 
     // Solo procesar pedidos completados
@@ -153,6 +133,15 @@ export async function POST(req: NextRequest) {
     // Normalizar teléfono del cliente
     const phoneNormalizado = normalizarTelefono(payload.billing.phone)
     console.log(`[Webhook] 📞 Teléfono: ${payload.billing.phone} → ${phoneNormalizado}`)
+
+    // ✅ Fix: normalizarTelefono puede retornar null
+    if (!phoneNormalizado) {
+      console.log(`[Webhook] ⚠️ Teléfono inválido: ${payload.billing.phone}`)
+      return NextResponse.json({
+        error: 'Teléfono inválido',
+        code: 'INVALID_PHONE'
+      }, { status: 400 })
+    }
 
     // Buscar cliente por teléfono
     let cliente = await prisma.cliente.findUnique({
