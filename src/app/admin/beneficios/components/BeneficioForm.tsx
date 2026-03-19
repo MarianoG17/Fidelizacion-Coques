@@ -128,8 +128,22 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
     setLoading(true)
 
     try {
+      // ✅ MEJORADO: Construir objeto condiciones completo SIEMPRE
       const condiciones: any = {
+        tipo,
+        icono,
+        descripcion,
         maxPorDia,
+        usoUnico,
+      }
+
+      // Si es tipo descuento, agregar el campo descuento
+      if (tipo === 'DESCUENTO') {
+        // Si es beneficio de cumpleaños, usar porcentajeDescuento
+        // Si no, usar descuento normal
+        condiciones.descuento = esBeneficioCumpleanos
+          ? porcentajeDescuento / 100
+          : descuento / 100
       }
 
       // Agregar configuración de cumpleaños si está habilitado
@@ -142,12 +156,11 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         condiciones.mensaje = `¡Feliz cumpleaños! Disfrutá tu ${porcentajeDescuento}% de descuento`
       }
 
+      // ✅ MEJORADO: Siempre enviar objeto condiciones completo
       const body = {
         nombre,
         descripcionCaja,
         tipo,
-        // Si es beneficio de cumpleaños, el descuento viene de porcentajeDescuento
-        // Si no, viene del campo descuento normal
         descuento: tipo === 'DESCUENTO'
           ? (esBeneficioCumpleanos ? porcentajeDescuento / 100 : descuento / 100)
           : null,
@@ -157,7 +170,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         usoUnico,
         activo,
         niveles: nivelesSeleccionados,
-        condiciones: esBeneficioCumpleanos ? condiciones : undefined,
+        condiciones, // ✅ Siempre enviar (no condicional)
       }
 
       const url = beneficio
@@ -411,7 +424,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                       className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Días después
@@ -425,7 +438,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                       className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Descuento (%)
@@ -439,7 +452,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                       className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Días entre usos
@@ -457,12 +470,12 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="bg-pink-900/20 rounded-lg p-3">
                   <p className="text-xs text-pink-300">
                     💡 <strong>Ejemplo:</strong> Con {diasAntes} días antes y {diasDespues} días después,
                     el beneficio estará activo {diasAntes + diasDespues + 1} días en total alrededor del cumpleaños.
-                    Solo podrán usarlo cada {diasMinimosEntreUsos} días ({Math.round(diasMinimosEntreUsos/365)} año{diasMinimosEntreUsos >= 730 ? 's' : ''}).
+                    Solo podrán usarlo cada {diasMinimosEntreUsos} días ({Math.round(diasMinimosEntreUsos / 365)} año{diasMinimosEntreUsos >= 730 ? 's' : ''}).
                   </p>
                 </div>
               </div>
