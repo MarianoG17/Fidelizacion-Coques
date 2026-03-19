@@ -1,6 +1,7 @@
 // src/app/api/admin/clientes/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,10 +10,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const adminKey = req.headers.get('x-admin-key')
-  if (adminKey !== process.env.ADMIN_KEY) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
 
   try {
     const { id } = params
@@ -123,10 +122,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const adminKey = req.headers.get('x-admin-key')
-  if (adminKey !== process.env.ADMIN_KEY) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
 
   try {
     const { id } = params

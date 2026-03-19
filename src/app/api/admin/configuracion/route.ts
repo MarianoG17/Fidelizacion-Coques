@@ -1,15 +1,14 @@
 // src/app/api/admin/configuracion/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 // GET /api/admin/configuracion - Obtener configuración
 export async function GET(req: NextRequest) {
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
+
   try {
-    // Verificar admin key
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
 
     const config = await prisma.configuracionApp.findFirst()
 
@@ -44,12 +43,10 @@ export async function GET(req: NextRequest) {
 
 // PUT /api/admin/configuracion - Actualizar configuración
 export async function PUT(req: NextRequest) {
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
+
   try {
-    // Verificar admin key
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
 
     const body = await req.json()
     const {
