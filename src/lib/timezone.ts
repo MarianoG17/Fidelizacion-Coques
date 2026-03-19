@@ -1,49 +1,65 @@
 // src/lib/timezone.ts
-// Utilidades de zona horaria — siempre Argentina (UTC-3)
-// Lección aprendida: el servidor Vercel corre en UTC. Usar estas funciones
-// en lugar de new Date() directamente.
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz'
+import { format, parseISO, addDays } from 'date-fns'
 
-export const TIMEZONE = 'America/Argentina/Buenos_Aires'
-
-/**
- * Fecha actual en Argentina como string YYYY-MM-DD
- */
-export function getFechaArgentina(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: TIMEZONE })
-  // en-CA usa formato YYYY-MM-DD, el más seguro para parsing
-}
+const ARGENTINA_TZ = 'America/Argentina/Buenos_Aires'
 
 /**
- * DateTime actual en Argentina como objeto Date
- * Útil para comparar con startOf/endOf día
+ * Obtiene la fecha/hora actual en timezone de Argentina
+ * Útil para eventos que deben guardarse con timestamp local, no UTC
  */
 export function getDatetimeArgentina(): Date {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }))
+  return toZonedTime(new Date(), ARGENTINA_TZ)
 }
 
 /**
- * Inicio del día actual en Argentina (00:00:00)
+ * Convierte una fecha a timezone de Argentina
  */
-export function getInicioHoyArgentina(): Date {
-  const hoy = getDatetimeArgentina()
-  hoy.setHours(0, 0, 0, 0)
-  return hoy
+export function toArgentinaTime(date: Date): Date {
+  return toZonedTime(date, ARGENTINA_TZ)
 }
 
 /**
- * Inicio del día siguiente en Argentina (00:00:00 de mañana)
+ * Formatea una fecha en formato argentino: DD/MM/YYYY
  */
-export function getInicioMananaArgentina(): Date {
-  const manana = getInicioHoyArgentina()
-  manana.setDate(manana.getDate() + 1)
-  return manana
+export function formatDateArgentina(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  return formatInTimeZone(dateObj, ARGENTINA_TZ, 'dd/MM/yyyy')
 }
 
 /**
- * Hace N días desde hoy (inicio del día) en TZ Argentina
+ * Formatea una fecha con hora en Argentina: DD/MM/YYYY HH:mm
  */
-export function getHaceNDias(n: number): Date {
-  const fecha = getInicioHoyArgentina()
-  fecha.setDate(fecha.getDate() - n)
-  return fecha
+export function formatDateTimeArgentina(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  return formatInTimeZone(dateObj, ARGENTINA_TZ, 'dd/MM/yyyy HH:mm')
+}
+
+/**
+ * Obtiene la fecha de inicio del día actual en Argentina (00:00:00)
+ */
+export function getStartOfDayArgentina(): Date {
+  const now = toZonedTime(new Date(), ARGENTINA_TZ)
+  now.setHours(0, 0, 0, 0)
+  return now
+}
+
+/**
+ * Obtiene la fecha de fin del día actual en Argentina (23:59:59)
+ */
+export function getEndOfDayArgentina(): Date {
+  const now = toZonedTime(new Date(), ARGENTINA_TZ)
+  now.setHours(23, 59, 59, 999)
+  return now
+}
+
+/**
+ * Verifica si una fecha está en el día actual de Argentina
+ */
+export function isToday Arg(date: Date | string): boolean {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date
+  const today = getStartOfDayArgentina()
+  const tomorrow = addDays(today, 1)
+  
+  return dateObj >= today && dateObj < tomorrow
 }

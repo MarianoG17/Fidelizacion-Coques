@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
 
     const evento = await prisma.eventoScan.create({
       data: {
+        timestamp: getDatetimeArgentina(), // ✅ Fix Bug #9: Forzar timezone Argentina
         clienteId,
         localId: local.id,
         mesaId: mesaId || undefined,
