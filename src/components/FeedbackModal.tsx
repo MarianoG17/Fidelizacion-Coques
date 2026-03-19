@@ -45,20 +45,54 @@ export default function FeedbackModal() {
   useEffect(() => {
     function handleOpenFeedback() {
       console.log('[FEEDBACK] Abriendo modal desde notificación')
-      const ultimoScan = localStorage.getItem('ultimo_scan')
-      if (ultimoScan) {
-        setTrigger({
-          type: 'VISITA_FISICA',
-          timestamp: parseInt(ultimoScan)
-        })
-        setShow(true)
-        localStorage.setItem('feedback_scan_visto', 'true')
+      
+      // ✅ FIX: Verificar frecuencia antes de abrir (igual que checkVisitaFisica)
+      if (!config) {
+        console.log('[FEEDBACK] Config no cargada aún')
+        return
       }
+
+      const ultimoScan = localStorage.getItem('ultimo_scan')
+      if (!ultimoScan) return
+
+      // Verificar si ya pasó suficiente tiempo desde el último feedback mostrado
+      const ultimoFeedbackStr = localStorage.getItem('ultimo_feedback_timestamp')
+      const ultimoMostradoStr = localStorage.getItem('ultimo_feedback_mostrado')
+      
+      const ahora = Date.now()
+      const diasEnMs = config.feedbackFrecuenciaDias * 24 * 60 * 60 * 1000
+
+      // Verificar AMBOS timestamps (enviado Y mostrado)
+      if (ultimoFeedbackStr) {
+        const ultimoFeedback = parseInt(ultimoFeedbackStr)
+        if (ahora - ultimoFeedback < diasEnMs) {
+          console.log('[FEEDBACK] Aún no pasaron los días necesarios desde último envío')
+          return
+        }
+      }
+
+      if (ultimoMostradoStr) {
+        const ultimoMostrado = parseInt(ultimoMostradoStr)
+        if (ahora - ultimoMostrado < diasEnMs) {
+          console.log('[FEEDBACK] Modal ya mostrado recientemente')
+          return
+        }
+      }
+
+      // ✅ Guardar timestamp de modal mostrado ANTES de mostrarlo
+      localStorage.setItem('ultimo_feedback_mostrado', ahora.toString())
+
+      setTrigger({
+        type: 'VISITA_FISICA',
+        timestamp: parseInt(ultimoScan)
+      })
+      setShow(true)
+      localStorage.setItem('feedback_scan_visto', 'true')
     }
 
     window.addEventListener('openFeedbackModal', handleOpenFeedback)
     return () => window.removeEventListener('openFeedbackModal', handleOpenFeedback)
-  }, [])
+  }, [config]) // ✅ Agregar config como dependencia
 
   function startChecking() {
     // Verificar inmediatamente
