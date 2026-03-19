@@ -386,6 +386,24 @@ export default function PassPage() {
           )}
         </div>
 
+        {/* Banner PRE_REGISTRADO - ✅ UX Quick Win #2 */}
+        {!pass.nivel && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 mb-4 border border-blue-200">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl">👋</span>
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-1">
+                  ¡Bienvenido a Coques!
+                </h3>
+                <p className="text-sm text-blue-700 leading-relaxed">
+                  Tu cuenta será activada en tu primera visita al local.
+                  ¡Esperamos verte pronto para que empieces a disfrutar de tus beneficios!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Banner de Activación de Passkey */}
         <PasskeyPrompt autoHide={true} />
 

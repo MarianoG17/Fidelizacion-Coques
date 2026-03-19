@@ -102,9 +102,20 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">
                         ¡Bienvenido{userName ? `, ${userName}` : ''}!
                     </h2>
-                    <p className="text-gray-600">
-                        Para completar tu registro, necesitamos tu número de teléfono
+                    {/* ✅ UX Quick Win #1: Explicar por qué se necesita teléfono */}
+                    <p className="text-gray-700 mb-3">
+                        🎉 ¡Casi listo! Para enviarte tu código QR y notificaciones de beneficios, necesitamos tu teléfono.
                     </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
+                        <p className="text-sm text-blue-700 font-semibold mb-2">
+                            📱 Lo usaremos para:
+                        </p>
+                        <ul className="text-sm text-blue-600 space-y-1">
+                            <li>• Enviarte tu pase digital</li>
+                            <li>• Notificarte beneficios disponibles</li>
+                            <li>• Contactarte sobre tu auto en el lavadero</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

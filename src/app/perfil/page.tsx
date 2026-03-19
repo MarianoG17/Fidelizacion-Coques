@@ -277,12 +277,24 @@ export default function PerfilPage() {
             </h2>
 
             <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg p-4 mb-4">
-              <p className="text-sm text-gray-700 mb-2">
-                💡 <strong>¿Cómo funciona?</strong>
+              {/* ✅ UX Quick Win #3: Explicar qué gana cada uno */}
+              <p className="text-sm text-gray-700 font-semibold mb-2">
+                🎁 ¡Invitá amigos y ganá!
               </p>
-              <p className="text-sm text-gray-600">
-                Cuando tu amigo se registre con tu link, ambos reciben visitas bonus. ¡Mientras más amigos invites, más rápido subís de nivel!
-              </p>
+              <div className="bg-white/60 rounded-lg p-3 text-sm space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="text-green-600 font-bold">✓</span>
+                  <p className="text-gray-700">
+                    <strong>Vos ganás:</strong> 1 visita extra cuando tu amigo se active 🎉
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold">✓</span>
+                  <p className="text-gray-700">
+                    <strong>Tu amigo gana:</strong> Bienvenida especial al registrarse 👋
+                  </p>
+                </div>
+              </div>
             </div>
 
             <button
