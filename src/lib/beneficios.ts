@@ -1,5 +1,5 @@
 // src/lib/beneficios.ts
-import { getHaceNDias } from '@/lib/timezone'
+import { getHaceNDias, getInicioHoyArgentina } from '@/lib/timezone'
 import { prisma } from './prisma'
 import { sendPushNotification } from './push'
 import { EstadoAutoEnum } from '@prisma/client'
@@ -83,12 +83,28 @@ export async function getBeneficiosActivos(clienteId: string) {
         const ahora = new Date()
         const cumpleanos = new Date(cliente.fechaCumpleanos)
 
-        // Ajustar el año del cumpleaños al año actual
-        const cumpleanosEsteAno = new Date(
-          ahora.getFullYear(),
-          cumpleanos.getMonth(),
-          cumpleanos.getDate()
-        )
+        // ✅ FIX: Manejar 29 de febrero en años no bisiestos
+        let cumpleanosEsteAno: Date
+        
+        // Helper: verificar si un año es bisiesto
+        const esBisiesto = (year: number) => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+        
+        if (cumpleanos.getMonth() === 1 && cumpleanos.getDate() === 29) {
+          // Cliente nacido el 29 de febrero
+          if (esBisiesto(ahora.getFullYear())) {
+            cumpleanosEsteAno = new Date(ahora.getFullYear(), 1, 29)
+          } else {
+            // Año no bisiesto: usar 28 de febrero
+            cumpleanosEsteAno = new Date(ahora.getFullYear(), 1, 28)
+          }
+        } else {
+          // Fecha normal
+          cumpleanosEsteAno = new Date(
+            ahora.getFullYear(),
+            cumpleanos.getMonth(),
+            cumpleanos.getDate()
+          )
+        }
 
         const diasAntes = condiciones.diasAntes || 0
         const diasDespues = condiciones.diasDespues || 0
@@ -117,8 +133,8 @@ export async function getBeneficiosActivos(clienteId: string) {
       }
 
       if (condiciones.maxPorDia) {
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
+        // ✅ FIX: Usar timezone de Argentina, no del servidor
+        const hoy = getInicioHoyArgentina()
         const usado = await prisma.eventoScan.count({
           where: {
             clienteId,

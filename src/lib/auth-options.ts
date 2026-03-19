@@ -101,6 +101,13 @@ export const authOptions: NextAuthOptions = {
             // Solo procesar para Google OAuth
             if (account?.provider === "google" && user.email) {
                 try {
+                    // ✅ FIX: Verificar que el email de Google esté verificado
+                    const googleProfile = profile as any
+                    if (googleProfile && !googleProfile.email_verified) {
+                        console.log('[AUTH] Email not verified in Google account')
+                        throw new Error('Por favor verifica tu email en Google antes de continuar')
+                    }
+
                     console.log('[AUTH] Processing Google OAuth login for:', user.email)
 
                     // Buscar cliente por email
