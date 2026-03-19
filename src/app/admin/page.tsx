@@ -1,9 +1,23 @@
 'use client'
 // src/app/admin/page.tsx
 import { useState, useEffect } from 'react'
-import { EventosEspeciales } from './components/EventosEspeciales'
-import { Clientes } from './components/Clientes'
-import { Metricas } from './components/Metricas'
+import dynamic from 'next/dynamic'
+
+// ✅ OPTIMIZACIÓN Fase 3: Lazy load componentes admin por tab
+const EventosEspeciales = dynamic(() => import('./components/EventosEspeciales').then(mod => ({ default: mod.EventosEspeciales })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
+const Clientes = dynamic(() => import('./components/Clientes').then(mod => ({ default: mod.Clientes })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
+const Metricas = dynamic(() => import('./components/Metricas').then(mod => ({ default: mod.Metricas })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
 
 export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
