@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireClienteAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { evaluarNivel } from '@/lib/beneficios'
+import { getDatetimeArgentina } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
 

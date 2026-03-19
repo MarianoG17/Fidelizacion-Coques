@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { requireLocalAuth, unauthorized, badRequest, serverError } from '@/lib/auth'
 import { evaluarNivel } from '@/lib/beneficios'
 import { evaluarLogros } from '@/lib/logros'
-import { getInicioHoyArgentina, getInicioMananaArgentina } from '@/lib/timezone'
+import { getInicioHoyArgentina, getInicioMananaArgentina, getDatetimeArgentina } from '@/lib/timezone'
 import { verificarYEnviarFeedbacksPendientes } from '@/lib/feedback-scheduler'
 
 export const dynamic = 'force-dynamic'
