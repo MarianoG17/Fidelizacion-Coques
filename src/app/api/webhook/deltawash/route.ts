@@ -121,30 +121,29 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        // 6. Buscar o crear auto
-        let auto = cliente.autos[0]
-
-        if (!auto) {
-            auto = await prisma.auto.create({
-                data: {
+        // 6. Buscar o crear auto - ✅ FIX: Usar upsert para prevenir race condition
+        const auto = await prisma.auto.upsert({
+            where: {
+                clienteId_patente: {
                     clienteId: cliente.id,
-                    patente: patenteNormalizada,
-                    marca: payload.marca || null,
-                    modelo: payload.modelo || null,
-                    activo: true,
-                },
-            })
-            console.log(`[Webhook DeltaWash] Auto ${patenteNormalizada} creado para ${cliente.nombre || cliente.phone}`)
-        } else if (payload.marca || payload.modelo) {
-            // Actualizar marca/modelo si vienen
-            auto = await prisma.auto.update({
-                where: { id: auto.id },
-                data: {
-                    marca: payload.marca || auto.marca,
-                    modelo: payload.modelo || auto.modelo,
-                },
-            })
-        }
+                    patente: patenteNormalizada
+                }
+            },
+            update: {
+                // Actualizar marca/modelo si vienen en el webhook
+                marca: payload.marca || undefined,
+                modelo: payload.modelo || undefined,
+                activo: true, // Reactivar si estaba inactivo
+            },
+            create: {
+                clienteId: cliente.id,
+                patente: patenteNormalizada,
+                marca: payload.marca || null,
+                modelo: payload.modelo || null,
+                activo: true,
+            }
+        })
+        console.log(`[Webhook DeltaWash] Auto ${patenteNormalizada} ${cliente.autos[0] ? 'actualizado' : 'creado'} para ${cliente.nombre || cliente.phone}`)
 
         // 7. Verificar estado actual
         const estadoActual = await prisma.estadoAuto.findUnique({
