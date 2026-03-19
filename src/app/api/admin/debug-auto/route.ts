@@ -22,18 +22,6 @@ export async function GET(req: NextRequest) {
         const phone = searchParams.get('phone')
 
         if (!phone) {
-            return NextResponse.json({
-                error: 'No autorizado',
-                debug: {
-                    keyRecibida: !!adminKey,
-                    keyEsperada: !!process.env.ADMIN_KEY
-                }
-            }, { status: 401 })
-        }
-
-        const phone = searchParams.get('phone')
-
-        if (!phone) {
             return NextResponse.json({ error: 'Phone requerido' }, { status: 400 })
         }
 
