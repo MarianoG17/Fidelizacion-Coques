@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/feedback - Obtener todos los feedbacks (admin)
 export async function GET(req: NextRequest) {
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
+
     try {
-        // Verificar API key de admin
-        const apiKey = req.headers.get('x-admin-key')
-        if (apiKey !== process.env.ADMIN_KEY) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-        }
 
         const feedbacks = await prisma.feedback.findMany({
             include: {

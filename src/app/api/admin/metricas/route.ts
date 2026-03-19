@@ -2,15 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getHaceNDias } from '@/lib/timezone'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-    // Verificar admin key
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_KEY) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
 
     try {
         const [

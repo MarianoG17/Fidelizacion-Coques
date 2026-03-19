@@ -1,15 +1,14 @@
 // src/app/api/admin/clientes/[id]/actividades/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const adminKey = req.headers.get('x-admin-key')
-  if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
 
   const clienteId = params.id
 
