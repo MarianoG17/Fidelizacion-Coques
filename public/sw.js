@@ -1,35 +1,49 @@
 // Service Worker para PWA - Fidelización Zona
-const CACHE_NAME = 'fidelizacion-zona-v8' // v8: Cache busting forzado para iconos pavlova
-const ICON_VERSION = 'v8' // Cambiar esta versión para forzar actualización de iconos
-const urlsToCache = [
+// ✅ OPTIMIZACIÓN: v9 con estrategia mejorada
+const CACHE_NAME = 'fidelizacion-zona-v9'
+const ICON_VERSION = 'v9'
+
+// Recursos críticos (bloquean instalación si fallan)
+const CRITICAL_ASSETS = [
     '/',
     '/pass',
     '/login',
-    '/activar',
-    '/local',
-    '/manifest.json',
-    `/icon-192x192-v2.png?v=${ICON_VERSION}`,
-    `/icon-512x512-v2.png?v=${ICON_VERSION}`
+    '/manifest.json'
 ]
 
-// Instalación del Service Worker
+// Recursos no críticos (no bloquean instalación)
+const NON_CRITICAL_ASSETS = [
+    `/icon-192x192-v2.png?v=${ICON_VERSION}`,
+    `/icon-512x512-v2.png?v=${ICON_VERSION}`,
+    '/activar',
+    '/local'
+]
+
+// ✅ OPTIMIZACIÓN: Instalación mejorada sin bloqueos
 self.addEventListener('install', (event) => {
-    console.log('🔧 SW: Installing new version...')
+    console.log('🔧 SW: Installing v9...')
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(urlsToCache))
-            .then(() => {
-                console.log('✅ SW: Cache populated')
-                // NO hacer skipWaiting() automáticamente aquí
-                // Esperar a que el usuario lo active manualmente
-            })
+        caches.open(CACHE_NAME).then(async (cache) => {
+            // Cachear críticos (bloquea si falla)
+            await cache.addAll(CRITICAL_ASSETS)
+            console.log('✅ SW: Critical assets cached')
+            
+            // Cachear no críticos (no bloquea si falla)
+            await Promise.allSettled(
+                NON_CRITICAL_ASSETS.map(url => 
+                    cache.add(url).catch(err => console.warn('⚠️ SW: Failed to cache:', url))
+                )
+            )
+            console.log('✅ SW: Non-critical assets cached')
+            
+            // Activar inmediatamente (más rápido)
+            self.skipWaiting()
+        })
     )
 })
 
 // Escuchar mensajes del cliente
 self.addEventListener('message', (event) => {
-    console.log('📨 SW: Message received:', event.data)
-
     if (event.data && event.data.type === 'SKIP_WAITING') {
         console.log('⚡ SW: Activating new version immediately...')
         self.skipWaiting()
@@ -38,7 +52,7 @@ self.addEventListener('message', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-    console.log('🚀 SW: Activating new version...')
+    console.log('🚀 SW: Activating v9...')
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -51,128 +65,81 @@ self.addEventListener('activate', (event) => {
             )
         }).then(() => {
             console.log('✅ SW: Activation complete')
-            // Tomar control de todas las páginas inmediatamente
             return self.clients.claim()
         })
     )
 })
 
-// Estrategia: Network First, luego Cache
+// ✅ OPTIMIZACIÓN: Network First con timeout y cache fallback inteligente
 self.addEventListener('fetch', (event) => {
-    // Ignorar requests que no sean http/https (ej: chrome-extension://)
+    // Ignorar requests que no sean http/https
     if (!event.request.url.startsWith('http')) {
         return
     }
 
+    // Solo cachear GET requests
+    if (event.request.method !== 'GET') {
+        return
+    }
+
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Si la respuesta es válida, actualizar cache
+        // Intentar red primero con timeout de 3 segundos
+        Promise.race([
+            fetch(event.request).then(response => {
+                // Solo cachear responses exitosas
                 if (response && response.status === 200) {
                     const responseClone = response.clone()
-                    caches.open(CACHE_NAME).then((cache) => {
+                    caches.open(CACHE_NAME).then(cache => {
                         cache.put(event.request, responseClone)
                     })
                 }
                 return response
-            })
-            .catch(() => {
-                // Si falla la red, intentar desde cache
-                return caches.match(event.request)
-            })
-    )
-})
-
-// ========================================
-// PUSH NOTIFICATIONS
-// ========================================
-
-// Recibir notificación push
-self.addEventListener('push', (event) => {
-    console.log('📬 SW: Push notification received')
-
-    let notificationData = {
-        title: 'Coques Bakery',
-        body: 'Nueva notificación',
-        icon: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
-        badge: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
-        data: { url: '/pass' }
-    }
-
-    // Parsear datos del push
-    if (event.data) {
-        try {
-            const payload = event.data.json()
-            notificationData = {
-                title: payload.title || notificationData.title,
-                body: payload.body || notificationData.body,
-                icon: payload.icon || notificationData.icon,
-                badge: payload.badge || notificationData.badge,
-                data: payload.data || notificationData.data,
-                tag: payload.tag,
-                requireInteraction: payload.requireInteraction || false
-            }
-        } catch (e) {
-            console.error('❌ SW: Error parsing push data:', e)
-            notificationData.body = event.data.text()
-        }
-    }
-
-    // Mostrar notificación
-    event.waitUntil(
-        self.registration.showNotification(notificationData.title, {
-            body: notificationData.body,
-            icon: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
-            badge: `/icon-192x192-v2.png?v=${ICON_VERSION}`,
-            tag: notificationData.tag,
-            data: notificationData.data,
-            requireInteraction: notificationData.requireInteraction,
-            vibrate: [200, 100, 200], // Patrón de vibración
-            actions: notificationData.data.actions || []
-        }).then(() => {
-            console.log('✅ SW: Notification displayed')
-        })
-    )
-})
-
-// Click en notificación
-self.addEventListener('notificationclick', (event) => {
-    console.log('🖱️ SW: Notification clicked')
-
-    event.notification.close()
-
-    // Obtener URL de destino
-    const urlToOpen = event.notification.data?.url || '/pass'
-
-    // Abrir o enfocar la app
-    event.waitUntil(
-        self.clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
-        }).then((clientList) => {
-            // Buscar si ya hay una ventana abierta con la app
-            for (const client of clientList) {
-                if (client.url.includes(self.registration.scope) && 'focus' in client) {
-                    console.log('✅ SW: Focusing existing window and navigating to:', urlToOpen)
-                    return client.focus().then(() => {
-                        if ('navigate' in client) {
-                            return client.navigate(urlToOpen)
-                        }
-                    })
+            }),
+            // Timeout de 3 segundos para network
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Network timeout')), 3000)
+            )
+        ])
+        .catch(() => {
+            // Fallback a cache si network falla o timeout
+            return caches.match(event.request).then(cachedResponse => {
+                if (cachedResponse) {
+                    console.log('📦 SW: Serving from cache:', event.request.url)
+                    return cachedResponse
                 }
-            }
-
-            // Si no hay ventana abierta, abrir una nueva
-            if (self.clients.openWindow) {
-                console.log('✅ SW: Opening new window:', urlToOpen)
-                return self.clients.openWindow(urlToOpen)
-            }
+                // Si no está en cache y es una navegación, devolver página offline
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/')
+                }
+                throw new Error('No cached response available')
+            })
         })
     )
 })
 
-// Cierre de notificación
-self.addEventListener('notificationclose', (event) => {
-    console.log('🔕 SW: Notification closed by user')
-    // Aquí podríamos enviar analytics si fuera necesario
+// Push notification handler
+self.addEventListener('push', (event) => {
+    if (!event.data) return
+
+    const data = event.data.json()
+    const options = {
+        body: data.body || 'Nuevo mensaje de Coques',
+        icon: '/icon-192x192-v2.png',
+        badge: '/icon-192x192-v2.png',
+        vibrate: [200, 100, 200],
+        tag: data.tag || 'notification',
+        data: data.data || {},
+    }
+
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'Coques', options)
+    )
+})
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close()
+    event.waitUntil(
+        clients.openWindow(event.notification.data.url || '/')
+    )
 })

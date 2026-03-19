@@ -1,36 +1,30 @@
+'use client'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
-import InstallPrompt from '@/components/InstallPrompt'
-import UpdateNotification from '@/components/UpdateNotification'
-import FeedbackModal from '@/components/FeedbackModal'
-import PushPermissionPrompt from '@/components/PushPermissionPrompt'
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 
-export const metadata: Metadata = {
-  title: 'Coques Fidelización',
-  description: 'Programa de fidelización de Coques Bakery & Lavadero',
-  manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/icon-192x192-v2.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512x512-v2.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: '/icon-192x192-v2.png',
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Coques Fidelización',
-  },
-}
+// ✅ OPTIMIZACIÓN: Lazy load componentes no críticos
+const InstallPrompt = dynamic(() => import('@/components/InstallPrompt'), {
+  ssr: false,
+  loading: () => null
+})
 
-export const viewport: Viewport = {
-  themeColor: '#2563eb',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-}
+const UpdateNotification = dynamic(() => import('@/components/UpdateNotification'), {
+  ssr: false,
+  loading: () => null
+})
+
+const FeedbackModal = dynamic(() => import('@/components/FeedbackModal'), {
+  ssr: false,
+  loading: () => null
+})
+
+const PushPermissionPrompt = dynamic(() => import('@/components/PushPermissionPrompt'), {
+  ssr: false,
+  loading: () => null
+})
 
 export default function RootLayout({
   children,
@@ -39,13 +33,41 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        {/* ✅ OPTIMIZACIÓN: Preload recursos críticos */}
+        <link rel="preload" href="/api/me" as="fetch" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://coques.com.ar" />
+        <link rel="dns-prefetch" href="https://vercel.app" />
+
+        {/* Metadata */}
+        <title>Coques Fidelización</title>
+        <meta name="description" content="Programa de fidelización de Coques Bakery & Lavadero" />
+        <link rel="manifest" href="/manifest.json" />
+
+        {/* Icons */}
+        <link rel="icon" href="/icon-192x192-v2.png" sizes="192x192" type="image/png" />
+        <link rel="icon" href="/icon-512x512-v2.png" sizes="512x512" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon-192x192-v2.png" />
+
+        {/* Apple Web App */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Coques Fidelización" />
+
+        {/* Viewport */}
+        <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#1e40af" media="(prefers-color-scheme: dark)" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </head>
       <body>
         <SessionProvider>
           {children}
-          <InstallPrompt />
-          <UpdateNotification />
-          <FeedbackModal />
-          <PushPermissionPrompt />
+          <Suspense fallback={null}>
+            <InstallPrompt />
+            <UpdateNotification />
+            <FeedbackModal />
+            <PushPermissionPrompt />
+          </Suspense>
         </SessionProvider>
       </body>
     </html>

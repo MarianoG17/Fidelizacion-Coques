@@ -21,6 +21,14 @@ body {
   background: rgb(var(--background-start-rgb));
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  /* ✅ OPTIMIZACIÓN iOS: Prevenir scroll bounce */
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ✅ OPTIMIZACIÓN: Eliminar 300ms tap delay en mobile */
+* {
+  touch-action: manipulation;
 }
 
 /* Evitar zoom en inputs en iOS */

@@ -1,5 +1,30 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ✅ OPTIMIZACIÓN: Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn']
+    } : false,
+  },
+
+  // ✅ OPTIMIZACIÓN: Minify agresivo
+  swcMinify: true,
+
+  // ✅ OPTIMIZACIÓN: Comprimir páginas
+  compress: true,
+
+  // ✅ OPTIMIZACIÓN: Powered by header
+  poweredByHeader: false,
+
+  // ✅ OPTIMIZACIÓN: Package imports
+  experimental: {
+    optimizePackageImports: [
+      '@heroicons/react',
+      'date-fns',
+      'react-icons'
+    ],
+  },
+
   // Optimización de imágenes
   images: {
     formats: ['image/webp', 'image/avif'], // Formatos modernos más livianos
