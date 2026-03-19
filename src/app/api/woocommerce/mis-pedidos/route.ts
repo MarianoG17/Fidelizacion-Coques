@@ -181,13 +181,13 @@ export async function GET(req: NextRequest) {
 
                 await prisma.eventoScan.create({
                   data: {
+                    timestamp: getDatetimeArgentina(), // ✅ Fix Bug #9: Usar fecha actual Argentina, no de WooCommerce
                     clienteId: cliente.id,
                     localId: local.id,
                     tipoEvento: 'PEDIDO_TORTA',
                     metodoValidacion: 'QR',
                     contabilizada: true,
                     notas: `Pedido WooCommerce #${order.id}`,
-                    timestamp: timestampPedido,
                   }
                 })
 

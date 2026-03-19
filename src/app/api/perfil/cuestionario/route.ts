@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
         if (localPrincipal) {
             await prisma.eventoScan.create({
                 data: {
+                    timestamp: getDatetimeArgentina(), // ✅ Fix Bug #9: Timezone Argentina
                     clienteId,
                     localId: localPrincipal.id,
                     tipoEvento: 'VISITA',

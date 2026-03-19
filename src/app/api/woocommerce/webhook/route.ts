@@ -81,6 +81,7 @@ async function registrarPedidoTorta(
     // Crear evento PEDIDO_TORTA
     await prisma.eventoScan.create({
       data: {
+        timestamp: getDatetimeArgentina(), // ✅ Fix Bug #9: Timezone Argentina
         clienteId,
         localId,
         tipoEvento: 'PEDIDO_TORTA',
