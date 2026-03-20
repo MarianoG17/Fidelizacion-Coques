@@ -6,22 +6,16 @@ import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
-// Helper para formatear fecha en timezone Argentina
+// Helper para formatear fecha sin conversión de timezone
+// IMPORTANTE: Los timestamps en la DB ya están guardados en hora Argentina,
+// no en UTC. Por eso NO hacemos conversión, solo formateamos.
 function formatearFechaArgentina(fecha: Date): string {
-    // Ajustar manualmente a UTC-3 (Argentina)
-    // Crear nueva fecha ajustando el offset
-    const offsetArgentina = -3 * 60; // -3 horas en minutos
-    const offsetActual = fecha.getTimezoneOffset(); // offset actual en minutos (negativo para UTC+)
-    const diferenciaMinutos = offsetActual - offsetArgentina;
-    
-    const fechaArgentina = new Date(fecha.getTime() + diferenciaMinutos * 60 * 1000);
-    
-    const dia = String(fechaArgentina.getUTCDate()).padStart(2, '0');
-    const mes = String(fechaArgentina.getUTCMonth() + 1).padStart(2, '0');
-    const año = fechaArgentina.getUTCFullYear();
-    const hora = String(fechaArgentina.getUTCHours()).padStart(2, '0');
-    const minuto = String(fechaArgentina.getUTCMinutes()).padStart(2, '0');
-    
+    const dia = String(fecha.getUTCDate()).padStart(2, '0');
+    const mes = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+    const año = fecha.getUTCFullYear();
+    const hora = String(fecha.getUTCHours()).padStart(2, '0');
+    const minuto = String(fecha.getUTCMinutes()).padStart(2, '0');
+
     return `${dia}/${mes}/${año}, ${hora}:${minuto}`;
 }
 
