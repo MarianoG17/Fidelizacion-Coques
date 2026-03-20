@@ -8,17 +8,21 @@ export const dynamic = 'force-dynamic'
 
 // Helper para formatear fecha en timezone Argentina
 function formatearFechaArgentina(fecha: Date): string {
-    // Convertir a string en timezone Argentina directamente
-    const options: Intl.DateTimeFormatOptions = {
-        timeZone: 'America/Argentina/Buenos_Aires',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-    }
-    return fecha.toLocaleString('es-AR', options)
+    // Ajustar manualmente a UTC-3 (Argentina)
+    // Crear nueva fecha ajustando el offset
+    const offsetArgentina = -3 * 60; // -3 horas en minutos
+    const offsetActual = fecha.getTimezoneOffset(); // offset actual en minutos (negativo para UTC+)
+    const diferenciaMinutos = offsetActual - offsetArgentina;
+    
+    const fechaArgentina = new Date(fecha.getTime() + diferenciaMinutos * 60 * 1000);
+    
+    const dia = String(fechaArgentina.getUTCDate()).padStart(2, '0');
+    const mes = String(fechaArgentina.getUTCMonth() + 1).padStart(2, '0');
+    const año = fechaArgentina.getUTCFullYear();
+    const hora = String(fechaArgentina.getUTCHours()).padStart(2, '0');
+    const minuto = String(fechaArgentina.getUTCMinutes()).padStart(2, '0');
+    
+    return `${dia}/${mes}/${año}, ${hora}:${minuto}`;
 }
 
 export async function GET(req: NextRequest) {
