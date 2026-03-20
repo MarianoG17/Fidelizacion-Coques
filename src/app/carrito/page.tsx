@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import BackButton from '@/components/shared/BackButton'
 import { useCarrito } from '@/hooks/useCarrito'
 
@@ -44,8 +45,8 @@ function CarritoPageContent() {
 
   // Estados para edición de productos
   const [productoEditando, setProductoEditando] = useState<any>(null)
-  const [camposTextoEditando, setCamposTextoEditando] = useState<{[key: string]: string}>({})
-  
+  const [camposTextoEditando, setCamposTextoEditando] = useState<{ [key: string]: string }>({})
+
   // Solo notas opcionales
   const [notas, setNotas] = useState('')
 
@@ -193,11 +194,11 @@ function CarritoPageContent() {
   // Función para guardar edición
   function guardarEdicion() {
     if (!productoEditando) return
-    
+
     actualizarItem(productoEditando.productoId, productoEditando.varianteId, {
       camposTexto: Object.keys(camposTextoEditando).length > 0 ? camposTextoEditando : undefined,
     })
-    
+
     cerrarEdicion()
   }
 
@@ -543,10 +544,14 @@ function CarritoPageContent() {
                 <div className="flex gap-4">
                   {/* Imagen */}
                   {item.imagen ? (
-                    <img
+                    <Image
                       src={item.imagen}
                       alt={item.nombre}
+                      width={96}
+                      height={96}
                       className="w-24 h-24 object-cover rounded-lg"
+                      loading="lazy"
+                      quality={75}
                     />
                   ) : (
                     <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -790,11 +795,15 @@ function CarritoPageContent() {
                         >
                           <div className="flex flex-col gap-2">
                             {producto.imagen ? (
-                              <img
+                              <Image
                                 src={producto.imagen}
                                 alt={producto.nombre}
+                                width={256}
+                                height={128}
                                 className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                                 onClick={() => setImagenExpandida(producto.imagen)}
+                                loading="lazy"
+                                quality={75}
                               />
                             ) : (
                               <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -966,11 +975,15 @@ function CarritoPageContent() {
             >
               ✕
             </button>
-            <img
+            <Image
               src={imagenExpandida}
               alt="Imagen ampliada"
+              width={1200}
+              height={800}
               className="w-full h-auto rounded-lg"
               onClick={(e) => e.stopPropagation()}
+              quality={90}
+              priority
             />
           </div>
         </div>
