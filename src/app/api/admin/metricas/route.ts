@@ -6,6 +6,18 @@ import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
+// Helper para formatear fecha en timezone Argentina
+function formatearFechaArgentina(fecha: Date): string {
+    return new Date(fecha.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
+        .toLocaleString('es-AR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
+}
+
 export async function GET(req: NextRequest) {
     const authError = requireAdminAuth(req)
     if (authError) return authError
@@ -96,9 +108,7 @@ export async function GET(req: NextRequest) {
                     clienteNivel: v.cliente.nivel?.nombre || 'Sin nivel',
                     mesa: v.mesa?.nombre || 'Sin mesa',
                     local: v.local.nombre,
-                    fecha: v.timestamp.toLocaleString('en-US', {
-                        timeZone: 'America/Argentina/Buenos_Aires',
-                    }),
+                    fecha: formatearFechaArgentina(v.timestamp),
                     tipoEvento: v.tipoEvento,
                     beneficio: v.beneficio?.nombre || null,
                     beneficioDescripcion: v.beneficio?.descripcionCaja || null,
