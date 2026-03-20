@@ -865,16 +865,19 @@ function CarritoPageContent() {
 
               {/* Botones de acción */}
               <div className="space-y-2">
-                <button
-                  onClick={guardarComoPresupuesto}
-                  disabled={guardandoPresupuesto || items.length === 0}
-                  className={`w-full py-3 rounded-lg font-bold transition-colors ${guardandoPresupuesto || items.length === 0
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                >
-                  {guardandoPresupuesto ? 'Guardando...' : '💾 Guardar como Presupuesto'}
-                </button>
+                {/* Botón de presupuesto solo visible para staff */}
+                {modoStaff && (
+                  <button
+                    onClick={guardarComoPresupuesto}
+                    disabled={guardandoPresupuesto || items.length === 0}
+                    className={`w-full py-3 rounded-lg font-bold transition-colors ${guardandoPresupuesto || items.length === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                  >
+                    {guardandoPresupuesto ? 'Guardando...' : '💾 Guardar como Presupuesto'}
+                  </button>
+                )}
 
                 <button
                   onClick={procederCheckout}
