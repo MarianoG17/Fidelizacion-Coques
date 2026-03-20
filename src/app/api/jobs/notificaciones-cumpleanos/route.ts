@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { sendPushNotification } from '@/lib/push'
 
 /**
- * Job que envía notificaciones push a clientes en su cumpleaños
- * 
- * IMPORTANTE: Solo envía notificación el DÍA EXACTO del cumpleaños
- * (no los días antes ni después, aunque el beneficio esté activo esos días)
- * 
+ * Job que envía notificaciones push a clientes relacionadas con cumpleaños
+ *
+ * ENVÍA 2 NOTIFICACIONES:
+ * 1. 3 DÍAS ANTES: "Tu beneficio de cumpleaños ya está disponible! 15% OFF durante 7 días"
+ * 2. DÍA CUMPLEAÑOS: "¡Feliz cumpleaños! Recordá que tenés 15% OFF hasta..."
+ *
  * Ejecutar diariamente a las 9:00 AM con cron:
  * 0 9 * * * (cada día a las 9:00)
  */
@@ -35,44 +36,166 @@ export async function GET(req: Request) {
         const mesHoy = hoy.getMonth() + 1 // 1-12
         const diaHoy = hoy.getDate() // 1-31
 
-        console.log(`[Job Cumpleaños] Buscando cumpleaños para: ${diaHoy}/${mesHoy}`)
+        // Calcular fecha dentro de 3 días (para notificación de inicio)
+        const en3Dias = new Date(hoy)
+        en3Dias.setDate(en3Dias.getDate() + 3)
+        const mes3Dias = en3Dias.getMonth() + 1
+        const dia3Dias = en3Dias.getDate()
 
-        // Buscar clientes con cumpleaños HOY
-        // Usamos EXTRACT para comparar solo mes y día (ignorando año)
-        const clientesConCumpleanos = await prisma.$queryRaw<Array<{
+        console.log(`[Job Cumpleaños] Buscando:`)
+        console.log(`  - Cumpleaños HOY: ${diaHoy}/${mesHoy}`)
+        console.log(`  - Cumpleaños en 3 días: ${dia3Dias}/${mes3Dias}`)
+
+        // 1. Buscar clientes con cumpleaños en 3 DÍAS (para notif de inicio)
+        const clientesInicio = await prisma.$queryRaw<Array<{
             id: string
             nombre: string
             fechaCumpleanos: Date
             pushSub: any
         }>>`
-      SELECT id, nombre, "fechaCumpleanos", "pushSub"
-      FROM "Cliente"
-      WHERE "fechaCumpleanos" IS NOT NULL
-        AND "pushSub" IS NOT NULL
-        AND EXTRACT(MONTH FROM "fechaCumpleanos") = ${mesHoy}
-        AND EXTRACT(DAY FROM "fechaCumpleanos") = ${diaHoy}
-    `
+          SELECT id, nombre, "fechaCumpleanos", "pushSub"
+          FROM "Cliente"
+          WHERE "fechaCumpleanos" IS NOT NULL
+            AND "pushSub" IS NOT NULL
+            AND EXTRACT(MONTH FROM "fechaCumpleanos") = ${mes3Dias}
+            AND EXTRACT(DAY FROM "fechaCumpleanos") = ${dia3Dias}
+        `
 
-        console.log(`[Job Cumpleaños] Encontrados ${clientesConCumpleanos.length} clientes con cumpleaños hoy`)
+        // 2. Buscar clientes con cumpleaños HOY (para felicitación)
+        const clientesCumple = await prisma.$queryRaw<Array<{
+            id: string
+            nombre: string
+            fechaCumpleanos: Date
+            pushSub: any
+        }>>`
+          SELECT id, nombre, "fechaCumpleanos", "pushSub"
+          FROM "Cliente"
+          WHERE "fechaCumpleanos" IS NOT NULL
+            AND "pushSub" IS NOT NULL
+            AND EXTRACT(MONTH FROM "fechaCumpleanos") = ${mesHoy}
+            AND EXTRACT(DAY FROM "fechaCumpleanos") = ${diaHoy}
+        `
 
-        if (clientesConCumpleanos.length === 0) {
+        console.log(`[Job Cumpleaños] Encontrados:`)
+        console.log(`  - ${clientesInicio.length} con beneficio iniciando`)
+        console.log(`  - ${clientesCumple.length} con cumpleaños hoy`)
+
+        if (clientesInicio.length === 0 && clientesCumple.length === 0) {
             return NextResponse.json({
                 success: true,
-                message: 'No hay cumpleaños hoy',
-                enviadas: 0
+                message: 'No hay cumpleaños ni beneficios iniciando hoy',
+                enviadasInicio: 0,
+                enviadasCumple: 0
             })
         }
 
-        // Verificar cuáles ya recibieron notificación este año
+        // Obtener beneficio de cumpleaños activo
+        const beneficioCumpleanos = await prisma.beneficio.findFirst({
+            where: {
+                activo: true,
+                condiciones: {
+                    path: ['requiereFechaCumpleanos'],
+                    equals: true
+                }
+            }
+        })
+
+        if (!beneficioCumpleanos) {
+            return NextResponse.json({
+                success: true,
+                message: 'No hay beneficio de cumpleaños configurado',
+                enviadasInicio: 0,
+                enviadasCumple: 0
+            })
+        }
+
+        const condiciones = beneficioCumpleanos.condiciones as any
+        const diasAntes = condiciones.diasAntes || 0
+        const diasDespues = condiciones.diasDespues || 0
+        const diasTotales = diasAntes + diasDespues + 1
+        const porcentaje = condiciones.porcentajeDescuento || 15
+
         const anoActual = hoy.getFullYear()
         const inicioAno = new Date(anoActual, 0, 1)
         const finAno = new Date(anoActual, 11, 31, 23, 59, 59)
 
-        let enviadas = 0
-        let yaEnviadas = 0
+        let enviadasInicio = 0
+        let yaEnviadasInicio = 0
+        let enviadasCumple = 0
+        let yaEnviadasCumple = 0
 
-        for (const cliente of clientesConCumpleanos) {
-            // Verificar si ya enviamos notificación de cumpleaños este año
+        // ═══════════════════════════════════════════════════════════════
+        // 1. NOTIFICACIÓN DE INICIO (3 días antes)
+        // ═══════════════════════════════════════════════════════════════
+        for (const cliente of clientesInicio) {
+            // Verificar si ya enviamos notificación de INICIO este año
+            const notifExistente = await prisma.notificacion.findFirst({
+                where: {
+                    clienteId: cliente.id,
+                    tipo: 'CUMPLEANOS_INICIO',
+                    creadoEn: {
+                        gte: inicioAno,
+                        lte: finAno
+                    }
+                }
+            })
+
+            if (notifExistente) {
+                console.log(`[Inicio] Ya se envió a ${cliente.nombre || cliente.id}`)
+                yaEnviadasInicio++
+                continue
+            }
+
+            try {
+                const notificacion = await prisma.notificacion.create({
+                    data: {
+                        clienteId: cliente.id,
+                        tipo: 'CUMPLEANOS_INICIO',
+                        titulo: '🎁 Tu beneficio de cumpleaños está disponible',
+                        cuerpo: `¡Ya podés disfrutar tu ${porcentaje}% de descuento durante ${diasTotales} días! 🎉`,
+                        icono: '🎁',
+                        url: '/pass',
+                        leida: false,
+                        enviada: false,
+                        metadata: {
+                            porcentaje,
+                            diasTotales,
+                            beneficioId: beneficioCumpleanos.id,
+                            tipo: 'inicio'
+                        }
+                    }
+                })
+
+                const pushEnviado = await sendPushNotification(cliente.pushSub, {
+                    title: '🎁 Tu beneficio de cumpleaños está disponible',
+                    body: `¡Ya podés disfrutar tu ${porcentaje}% de descuento durante ${diasTotales} días! 🎉`,
+                    url: '/pass',
+                    icon: '/icon-192x192-v2.png',
+                    badge: '/icon-192x192-v2.png'
+                }, {
+                    clienteId: cliente.id,
+                    tipo: 'CUMPLEANOS_INICIO',
+                    metadata: { beneficioId: beneficioCumpleanos.id }
+                })
+
+                if (pushEnviado) {
+                    await prisma.notificacion.update({
+                        where: { id: notificacion.id },
+                        data: { enviada: true }
+                    })
+                    enviadasInicio++
+                    console.log(`[Inicio] ✅ Enviado a ${cliente.nombre || cliente.id}`)
+                }
+            } catch (error) {
+                console.error(`[Inicio] Error enviando a ${cliente.nombre || cliente.id}:`, error)
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // 2. NOTIFICACIÓN DE CUMPLEAÑOS (día exacto)
+        // ═══════════════════════════════════════════════════════════════
+        for (const cliente of clientesCumple) {
+            // Verificar si ya enviamos felicitación este año
             const notifExistente = await prisma.notificacion.findFirst({
                 where: {
                     clienteId: cliente.id,
@@ -85,59 +208,40 @@ export async function GET(req: Request) {
             })
 
             if (notifExistente) {
-                console.log(`[Job Cumpleaños] Ya se envió notificación este año a ${cliente.nombre || cliente.id}`)
-                yaEnviadas++
+                console.log(`[Cumpleaños] Ya se envió a ${cliente.nombre || cliente.id}`)
+                yaEnviadasCumple++
                 continue
             }
 
-            // Obtener beneficio de cumpleaños activo
-            const beneficioCumpleanos = await prisma.beneficio.findFirst({
-                where: {
-                    activo: true,
-                    condiciones: {
-                        path: ['requiereFechaCumpleanos'],
-                        equals: true
-                    }
-                }
-            })
-
-            if (!beneficioCumpleanos) {
-                console.log('[Job Cumpleaños] No hay beneficio de cumpleaños configurado')
-                continue
-            }
-
-            const condiciones = beneficioCumpleanos.condiciones as any
-            const diasAntes = condiciones.diasAntes || 0
-            const diasDespues = condiciones.diasDespues || 0
-            const diasTotales = diasAntes + diasDespues + 1
-
-            // Determinar el porcentaje desde condiciones
-            const porcentaje = condiciones.porcentajeDescuento || 15
+            // Calcular fecha de expiración del beneficio
+            const fechaExpiracion = new Date(en3Dias)
+            fechaExpiracion.setDate(fechaExpiracion.getDate() + diasDespues)
+            const diaExpira = fechaExpiracion.getDate()
+            const mesExpira = fechaExpiracion.getMonth() + 1
 
             try {
-                // Crear notificación en BD primero
                 const notificacion = await prisma.notificacion.create({
                     data: {
                         clienteId: cliente.id,
                         tipo: 'CUMPLEANOS',
                         titulo: '🎂 ¡Feliz cumpleaños!',
-                        cuerpo: `Disfrutá tu ${porcentaje}% de descuento durante ${diasTotales} días 🎉`,
+                        cuerpo: `Recordá que tenés ${porcentaje}% OFF hasta el ${diaExpira}/${mesExpira} 🎉`,
                         icono: '🎂',
                         url: '/pass',
                         leida: false,
                         enviada: false,
                         metadata: {
                             porcentaje,
-                            diasTotales,
-                            beneficioId: beneficioCumpleanos.id
+                            diasRestantes: diasDespues + 1,
+                            beneficioId: beneficioCumpleanos.id,
+                            tipo: 'felicitacion'
                         }
                     }
                 })
 
-                // Enviar push notification
                 const pushEnviado = await sendPushNotification(cliente.pushSub, {
                     title: '🎂 ¡Feliz cumpleaños!',
-                    body: `Disfrutá tu ${porcentaje}% de descuento durante ${diasTotales} días 🎉`,
+                    body: `Recordá que tenés ${porcentaje}% OFF hasta el ${diaExpira}/${mesExpira} 🎉`,
                     url: '/pass',
                     icon: '/icon-192x192-v2.png',
                     badge: '/icon-192x192-v2.png'
@@ -148,20 +252,15 @@ export async function GET(req: Request) {
                 })
 
                 if (pushEnviado) {
-                    // Marcar como enviada
                     await prisma.notificacion.update({
                         where: { id: notificacion.id },
                         data: { enviada: true }
                     })
-
-                    enviadas++
-                    console.log(`[Job Cumpleaños] ✅ Notificación enviada a ${cliente.nombre || cliente.id}`)
-                } else {
-                    console.log(`[Job Cumpleaños] ⚠️ No se pudo enviar push a ${cliente.nombre || cliente.id}`)
+                    enviadasCumple++
+                    console.log(`[Cumpleaños] ✅ Enviado a ${cliente.nombre || cliente.id}`)
                 }
-
             } catch (error) {
-                console.error(`[Job Cumpleaños] Error enviando a ${cliente.nombre || cliente.id}:`, error)
+                console.error(`[Cumpleaños] Error enviando a ${cliente.nombre || cliente.id}:`, error)
             }
         }
 
@@ -169,10 +268,16 @@ export async function GET(req: Request) {
             success: true,
             message: `Job ejecutado correctamente`,
             fecha: hoy.toISOString(),
-            clientesConCumpleanos: clientesConCumpleanos.length,
-            enviadas,
-            yaEnviadas,
-            pendientes: clientesConCumpleanos.length - enviadas - yaEnviadas
+            notificacionesInicio: {
+                total: clientesInicio.length,
+                enviadas: enviadasInicio,
+                yaEnviadas: yaEnviadasInicio
+            },
+            notificacionesCumple: {
+                total: clientesCumple.length,
+                enviadas: enviadasCumple,
+                yaEnviadas: yaEnviadasCumple
+            }
         })
 
     } catch (error: any) {
