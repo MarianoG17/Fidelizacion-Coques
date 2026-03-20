@@ -96,7 +96,9 @@ export async function GET(req: NextRequest) {
                     clienteNivel: v.cliente.nivel?.nombre || 'Sin nivel',
                     mesa: v.mesa?.nombre || 'Sin mesa',
                     local: v.local.nombre,
-                    fecha: v.timestamp.toISOString(),
+                    fecha: v.timestamp.toLocaleString('en-US', {
+                        timeZone: 'America/Argentina/Buenos_Aires',
+                    }),
                     tipoEvento: v.tipoEvento,
                     beneficio: v.beneficio?.nombre || null,
                     beneficioDescripcion: v.beneficio?.descripcionCaja || null,

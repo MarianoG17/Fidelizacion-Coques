@@ -421,14 +421,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                                     </td>
                                     <td className="py-3 px-2 text-slate-300">{visita.mesa}</td>
                                     <td className="py-3 px-2 text-slate-300">
-                                        {new Date(visita.fecha).toLocaleString('es-AR', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            timeZone: 'America/Argentina/Buenos_Aires',
-                                        })}
+                                        {visita.fecha}
                                     </td>
                                     <td className="py-3 px-2">
                                         {visita.beneficio ? (
