@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
+import { fetchWithRetry } from '@/lib/fetch-with-retry'
 import CuestionarioOptional from './components/CuestionarioOptional'
 import CompletePhoneModal from '@/components/CompletePhoneModal'
 import NotificationBell from '@/components/NotificationBell'
@@ -74,6 +75,8 @@ export default function PassPage() {
   const [beneficiosUsados, setBeneficiosUsados] = useState<BeneficioDisponible[]>([])
   const [nivelesData, setNivelesData] = useState<NivelesResponse | null>(null)
   const [showPhoneModal, setShowPhoneModal] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  const [retryAttempt, setRetryAttempt] = useState(0)
 
   const fetchPass = useCallback(async () => {
     const token = localStorage.getItem('fidelizacion_token')
@@ -83,53 +86,72 @@ export default function PassPage() {
       return
     }
 
-    // Retry logic: 3 intentos con delay de 1 segundo entre cada uno
-    const maxRetries = 3
-    let lastError: any = null
+    try {
+      setRetrying(false)
+      setRetryAttempt(0)
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const res = await fetch('/api/pass', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.status === 401) {
-          setError('no_auth')
-          setLoading(false)
-          return
+      const res = await fetchWithRetry('/api/pass', {
+        headers: { Authorization: `Bearer ${token}` },
+        maxRetries: 3,
+        timeout: 15000,
+        retryDelay: 1000,
+        onRetry: (attempt, error) => {
+          console.log(`[PASS] Reintentando... (${attempt}/3)`, error.message)
+          setRetrying(true)
+          setRetryAttempt(attempt)
         }
-        const json = await res.json()
-        setPass(json.data)
-        setCountdown(json.data.otp.tiempoRestante)
+      })
 
-        // Guardar timestamp de última visita para feedback modal
-        const ultimaVisita = json.data.ultimaVisita
-        if (ultimaVisita) {
-          const guardado = localStorage.getItem('ultimo_scan')
-          if (!guardado || parseInt(guardado) !== ultimaVisita) {
-            localStorage.setItem('ultimo_scan', ultimaVisita.toString())
-            localStorage.removeItem('feedback_scan_visto')
-            console.log('[PASS] Nuevo scan detectado:', new Date(ultimaVisita))
-          }
-        }
-
-        // Éxito - salir del loop
+      if (res.status === 401) {
+        localStorage.removeItem('fidelizacion_token')
+        setError('no_auth')
         setLoading(false)
         return
-      } catch (error) {
-        lastError = error
-        console.log(`[PASS] Intento ${attempt}/${maxRetries} falló, reintentando...`)
+      }
 
-        // Si no es el último intento, esperar 1 segundo antes de reintentar
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
+      const json = await res.json()
+
+      if (!json.data) {
+        throw new Error('Datos inválidos')
+      }
+
+      setPass(json.data)
+      setCountdown(json.data.otp.tiempoRestante)
+
+      // Guardar timestamp de última visita para feedback modal
+      const ultimaVisita = json.data.ultimaVisita
+      if (ultimaVisita) {
+        const guardado = localStorage.getItem('ultimo_scan')
+        if (!guardado || parseInt(guardado) !== ultimaVisita) {
+          localStorage.setItem('ultimo_scan', ultimaVisita.toString())
+          localStorage.removeItem('feedback_scan_visto')
+          console.log('[PASS] Nuevo scan detectado:', new Date(ultimaVisita))
         }
       }
-    }
 
-    // Si llegamos aquí, fallaron todos los intentos
-    console.error('[PASS] Todos los intentos fallaron:', lastError)
-    setError('Error de conexión')
-    setLoading(false)
+      // Guardar timestamp de última carga exitosa
+      sessionStorage.setItem('last_pass_fetch', Date.now().toString())
+
+      setError(null)
+      setRetrying(false)
+      setLoading(false)
+
+    } catch (e: any) {
+      console.error('[PASS] Error al cargar:', e)
+      setRetrying(false)
+
+      // Mensaje más específico según el error
+      if (e.message === 'NO_AUTH') {
+        localStorage.removeItem('fidelizacion_token')
+        setError('no_auth')
+      } else if (e.message === 'TIMEOUT') {
+        setError('timeout')
+      } else {
+        setError('connection')
+      }
+
+      setLoading(false)
+    }
   }, [])
 
   const fetchBeneficios = useCallback(async () => {
@@ -261,6 +283,34 @@ export default function PassPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, sessionStatus])
 
+  // Revalidación al volver a la app (visibilitychange)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Pass] App visible de nuevo, revalidando datos...')
+
+        const token = localStorage.getItem('fidelizacion_token')
+        if (!token || showPhoneModal) return
+
+        // Solo revalidar si han pasado más de 30 segundos
+        const lastFetch = sessionStorage.getItem('last_pass_fetch')
+        const now = Date.now()
+
+        if (!lastFetch || now - parseInt(lastFetch) > 30000) {
+          fetchPass()
+          fetchBeneficios()
+          fetchNiveles()
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchPass, fetchBeneficios, fetchNiveles, showPhoneModal])
+
   // Refresco periódico del OTP y beneficios
   useEffect(() => {
     // NO ejecutar hasta que la sesión esté completamente resuelta
@@ -365,6 +415,19 @@ export default function PassPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
+      {/* Indicador de retry */}
+      {retrying && (
+        <div className="fixed bottom-20 left-4 right-4 bg-blue-600 text-white rounded-xl p-3 shadow-lg z-50 animate-slide-up mx-auto max-w-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Reconectando...</p>
+              <p className="text-xs text-blue-100">Intento {retryAttempt} de 3</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-between mb-6">
@@ -782,17 +845,56 @@ function NoAuthScreen() {
 }
 
 function ErrorScreen({ message }: { message: string }) {
+  const router = useRouter()
+
+  const isTimeoutError = message === 'timeout'
+  const isConnectionError = message === 'connection'
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-      <div className="text-center">
-        <div className="text-4xl mb-3">⚠️</div>
-        <p className="text-gray-600">{message}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 text-slate-800 underline text-sm"
-        >
-          Reintentar
-        </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+        <div className="text-6xl mb-4">
+          {isTimeoutError ? '⏱️' : isConnectionError ? '📡' : '⚠️'}
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          {isTimeoutError ? 'Conexión lenta' : isConnectionError ? 'Sin conexión' : 'Error'}
+        </h2>
+        <p className="text-gray-600 mb-6">
+          {isTimeoutError
+            ? 'La conexión está tardando más de lo normal. Verificá tu conexión a internet.'
+            : isConnectionError
+              ? 'No pudimos conectar con el servidor. Verificá tu conexión a internet.'
+              : message
+          }
+        </p>
+
+        {/* Botones de acción */}
+        <div className="space-y-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
+          >
+            🔄 Reintentar
+          </button>
+
+          <button
+            onClick={() => {
+              localStorage.removeItem('fidelizacion_token')
+              router.push('/login')
+            }}
+            className="w-full text-gray-500 hover:text-gray-700 text-sm"
+          >
+            Cerrar sesión e intentar de nuevo
+          </button>
+        </div>
+
+        {/* Tip para modo offline */}
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-700">
+            💡 <strong>Tip:</strong> Si seguís teniendo problemas,
+            activá y desactivá el modo avión para resetear tu conexión.
+          </p>
+        </div>
       </div>
     </div>
   )

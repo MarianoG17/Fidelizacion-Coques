@@ -26,6 +26,11 @@ const PushPermissionPrompt = dynamic(() => import('@/components/PushPermissionPr
   loading: () => null
 })
 
+const ConnectionStatus = dynamic(() => import('@/components/ConnectionStatus'), {
+  ssr: false,
+  loading: () => null
+})
+
 export default function RootLayout({
   children,
 }: {
@@ -61,6 +66,7 @@ export default function RootLayout({
       </head>
       <body>
         <SessionProvider>
+          <ConnectionStatus />
           {children}
           <Suspense fallback={null}>
             <InstallPrompt />
