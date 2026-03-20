@@ -74,6 +74,7 @@ export async function GET(req: NextRequest) {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'America/Argentina/Buenos_Aires',
       }),
       cliente: v.cliente?.nombre || 'Desconocido',
       telefono: v.cliente?.phone || '',

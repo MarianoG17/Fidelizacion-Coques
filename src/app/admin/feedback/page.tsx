@@ -195,7 +195,9 @@ export default function AdminFeedbackPage() {
                                         </div>
                                         <div className="text-slate-400 text-sm">{feedback.cliente.phone}</div>
                                         <div className="text-slate-500 text-xs mt-1">
-                                            {new Date(feedback.createdAt).toLocaleString('es-AR')}
+                                            {new Date(feedback.createdAt).toLocaleString('es-AR', {
+                                                timeZone: 'America/Argentina/Buenos_Aires',
+                                            })}
                                         </div>
                                     </div>
                                     <div className="text-right">

@@ -3,6 +3,7 @@
 **Fecha descubrimiento:** 2026-03-19
 **Reportado por:** Usuario (testing)
 **Severidad:** 🔴 Alta
+**Estado:** ✅ RESUELTO (2026-03-20)
 
 ---
 
@@ -152,8 +153,43 @@ Después del fix, verificar:
 
 ---
 
-**Relacionado con:** 
+**Relacionado con:**
 - Bug #1 del ANALISIS-SEMANTICO-FEATURES.md (timezone en beneficios.ts)
 - Ya fixeamos timezone en `beneficios.ts:120`, falta en EventoScan
 
 **Prioridad:** 🔴 P0 - Afecta experiencia usuario directamente
+
+---
+
+## ✅ RESOLUCIÓN (2026-03-20)
+
+### Archivos Corregidos:
+
+1. **`src/app/admin/components/Metricas.tsx`** (línea 424-430)
+   - Agregado `timeZone: 'America/Argentina/Buenos_Aires'` en visualización de visitas recientes
+   
+2. **`src/app/api/admin/exportar-visitas/route.ts`** (línea 71-77)
+   - Agregado `timeZone: 'America/Argentina/Buenos_Aires'` en formateo de fechas para Excel
+   
+3. **`src/app/admin/feedback/page.tsx`** (línea 198-200)
+   - Agregado `timeZone: 'America/Argentina/Buenos_Aires'` en visualización de fecha de feedback
+   
+4. **`src/app/admin/components/Clientes.tsx`** (línea 185-194)
+   - Agregado `timeZone: 'America/Argentina/Buenos_Aires'` en función `formatearFecha()`
+
+### Solución Implementada:
+
+Se agregó el parámetro `timeZone: 'America/Argentina/Buenos_Aires'` a todas las llamadas de `toLocaleString('es-AR')` en el panel admin. Esto asegura que las fechas se interpreten correctamente en la zona horaria de Argentina (UTC-3), evitando la diferencia de 3 horas que mostraba anteriormente.
+
+### Impacto:
+
+- ✅ Los horarios ahora se muestran correctamente en timezone de Argentina
+- ✅ Consistencia entre lo que ve el cliente y lo que ve el admin
+- ✅ Exportaciones Excel con horarios correctos
+- ✅ Historial de actividades con timestamps correctos
+
+### Testing Recomendado:
+
+1. Verificar que al canjear un beneficio a las 23:50 ART, se muestre como "23:50" y no "20:50"
+2. Confirmar que las fechas en el resumen de métricas coincidan con la realidad
+3. Validar que el Excel exportado tenga horarios en ART

@@ -59,7 +59,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
             const res = await fetch('/api/admin/metricas', {
                 headers: { 'x-admin-key': key },
             })
-            
+
             if (res.ok) {
                 const json = await res.json()
                 setData(json.data)
@@ -427,6 +427,7 @@ export function Metricas({ adminKey }: { adminKey: string }) {
                                             year: 'numeric',
                                             hour: '2-digit',
                                             minute: '2-digit',
+                                            timeZone: 'America/Argentina/Buenos_Aires',
                                         })}
                                     </td>
                                     <td className="py-3 px-2">
