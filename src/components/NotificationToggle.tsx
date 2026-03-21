@@ -23,7 +23,7 @@ export default function NotificationToggle() {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      // Si hay suscripción activa, el permiso ya fue otorgado (no puede existir sin él)
+      // Si hay suscripción activa, el permiso ya fue otorgado
       setIsEnabled(!!subscription)
     } catch (error) {
       console.error('Error al verificar estado de notificaciones:', error)
@@ -42,97 +42,98 @@ export default function NotificationToggle() {
 
     try {
       if (isEnabled) {
-        // Desactivar notificaciones
         await disableNotifications()
+        setIsEnabled(false)
       } else {
-        // Activar notificaciones
         await enableNotifications()
+        setIsEnabled(true)
       }
-
-      // ✅ Fix Bug #10: Revalidar estado real después del cambio
-      await checkNotificationStatus()
     } catch (error) {
       console.error('Error al cambiar estado de notificaciones:', error)
-      alert('Error al cambiar las notificaciones. Intentá de nuevo.')
-      // Revalidar incluso si hay error
-      await checkNotificationStatus()
+      // No mostramos alert genérico: enableNotifications/disableNotifications ya muestran el error específico
+      // Revalidar el estado real en caso de error
+      try {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        setIsEnabled(!!subscription)
+      } catch {
+        // Si falla la revalidación, dejar el estado anterior
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
   async function enableNotifications() {
-    // Pedir permiso
-    const permission = await Notification.requestPermission()
-
-    if (permission !== 'granted') {
-      alert('Necesitamos tu permiso para enviarte notificaciones')
-      return
+    // Si el permiso ya está denegado, explicar cómo habilitarlo
+    if (Notification.permission === 'denied') {
+      alert('Las notificaciones están bloqueadas. Para activarlas, andá a Configuración → (tu navegador) → Notificaciones y permitilas para esta app.')
+      throw new Error('Permiso denegado')
     }
 
-    try {
-      const registration = await navigator.serviceWorker.ready
-
-      // Obtener VAPID public key
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidPublicKey) {
-        throw new Error('VAPID public key no configurada')
+    // Solo pedimos permiso si todavía no fue otorgado
+    if (Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        alert('Para recibir notificaciones necesitamos tu permiso. Intentá de nuevo y tocá "Permitir".')
+        throw new Error('Permiso no otorgado')
       }
+    }
 
-      // Suscribirse a push notifications
-      const subscription = await registration.pushManager.subscribe({
+    const registration = await navigator.serviceWorker.ready
+
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!vapidPublicKey) {
+      alert('Error de configuración. Contactá al administrador.')
+      throw new Error('VAPID public key no configurada')
+    }
+
+    let subscription: PushSubscription
+    try {
+      subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       })
-
-      // Guardar suscripción en el servidor
-      const jwtToken = localStorage.getItem('fidelizacion_token')
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
-
-      const response = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(subscription)
-      })
-
-      if (!response.ok) {
-        throw new Error('Error al guardar suscripción en el servidor')
-      }
-
-      // Estado se actualizará en checkNotificationStatus()
-      alert('✅ Notificaciones activadas correctamente')
     } catch (error) {
-      console.error('Error al activar notificaciones:', error)
+      console.error('Error al crear suscripción push:', error)
+      alert('No se pudo activar las notificaciones en este dispositivo. Verificá que la app esté instalada en la pantalla de inicio.')
       throw error
+    }
+
+    // Guardar suscripción en el servidor
+    const jwtToken = localStorage.getItem('fidelizacion_token')
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
+
+    const response = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(subscription)
+    })
+
+    if (!response.ok) {
+      alert('Las notificaciones se activaron en el dispositivo pero no se pudieron guardar. Intentá de nuevo.')
+      throw new Error('Error al guardar suscripción en el servidor')
     }
   }
 
   async function disableNotifications() {
-    try {
-      const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.getSubscription()
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.getSubscription()
 
-      if (subscription) {
-        await subscription.unsubscribe()
-      }
-
-      // Informar al servidor
-      const jwtToken = localStorage.getItem('fidelizacion_token')
-      const headers: Record<string, string> = {}
-      if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
-
-      await fetch('/api/push/subscribe', {
-        method: 'DELETE',
-        headers,
-      })
-
-      // Estado se actualizará en checkNotificationStatus()
-      alert('🔕 Notificaciones desactivadas')
-    } catch (error) {
-      console.error('Error al desactivar notificaciones:', error)
-      throw error
+    if (subscription) {
+      await subscription.unsubscribe()
     }
+
+    // Informar al servidor
+    const jwtToken = localStorage.getItem('fidelizacion_token')
+    const headers: Record<string, string> = {}
+    if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
+
+    await fetch('/api/push/subscribe', {
+      method: 'DELETE',
+      headers,
+    })
   }
 
   if (!isSupported) {
