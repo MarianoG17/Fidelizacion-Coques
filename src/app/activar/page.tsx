@@ -142,6 +142,7 @@ function ActivarContent() {
       await activarPasskey()
       // Marcar como configurado para que PasskeyPrompt no aparezca de nuevo en /pass
       localStorage.setItem('passkey_prompt_dismissed', 'true')
+      localStorage.setItem('passkey_registered', 'true')
       setPasskeyExitoso(true)
       setTimeout(() => router.push('/pass'), 1200)
     } catch (err) {

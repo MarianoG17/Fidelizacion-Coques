@@ -22,6 +22,7 @@ export default function PasskeySection() {
         try {
             await registrar()
             localStorage.setItem('passkey_prompt_dismissed', 'true')
+            localStorage.setItem('passkey_registered', 'true')
             setActivado(true)
             setMensajeExito(true)
             setTimeout(() => setMensajeExito(false), 3000)
