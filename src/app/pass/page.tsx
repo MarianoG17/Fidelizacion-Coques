@@ -11,7 +11,6 @@ import CuestionarioOptional from './components/CuestionarioOptional'
 import CompletePhoneModal from '@/components/CompletePhoneModal'
 import NotificationBell from '@/components/NotificationBell'
 import NotificationToggle from '@/components/NotificationToggle'
-import PasskeyPrompt from '@/components/PasskeyPrompt'
 
 const REFRESH_INTERVAL = 5000 // refrescar OTP cada 5 segundos
 
@@ -502,9 +501,6 @@ export default function PassPage() {
             </div>
           </div>
         )}
-
-        {/* Banner de Activación de Passkey */}
-        <PasskeyPrompt autoHide={true} />
 
         {/* Progreso al próximo nivel */}
         {nivelesData?.progreso && (
