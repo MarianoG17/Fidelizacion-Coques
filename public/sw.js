@@ -1,7 +1,7 @@
-// Service Worker para PWA - Fidelización Zona
+﻿// Service Worker para PWA - Fidelización Zona
 // ✅ OPTIMIZACIÓN: v9 con estrategia mejorada
-const CACHE_NAME = 'fidelizacion-zona-v9'
-const ICON_VERSION = 'v9'
+const CACHE_NAME = 'fidelizacion-zona-v10'
+const ICON_VERSION = 'v10'
 
 // Recursos críticos (bloquean instalación si fallan)
 const CRITICAL_ASSETS = [
@@ -21,7 +21,7 @@ const NON_CRITICAL_ASSETS = [
 
 // ✅ OPTIMIZACIÓN: Instalación mejorada sin bloqueos
 self.addEventListener('install', (event) => {
-    console.log('🔧 SW: Installing v9...')
+    console.log('🔧 SW: Installing v10...')
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             // Cachear críticos (bloquea si falla)
@@ -52,7 +52,7 @@ self.addEventListener('message', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-    console.log('🚀 SW: Activating v9...')
+    console.log('🚀 SW: Activating v10...')
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -79,6 +79,12 @@ self.addEventListener('fetch', (event) => {
 
     // Solo cachear GET requests
     if (event.request.method !== 'GET') {
+        return
+    }
+
+    // No cachear rutas de API — tienen su propia estrategia de caché en Next.js
+    // y servir datos viejos del SW puede mostrar nivel/beneficios desactualizados
+    if (event.request.url.includes('/api/')) {
         return
     }
 

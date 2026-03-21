@@ -339,6 +339,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Manejar violación de unique constraint (race condition entre requests concurrentes)
+    if ((error as any)?.code === 'P2002') {
+      const field = (error as any)?.meta?.target?.[0]
+      if (field === 'email') {
+        return NextResponse.json({ error: 'El email ya está registrado' }, { status: 400 })
+      }
+      if (field === 'phone') {
+        return NextResponse.json({ error: 'El teléfono ya está registrado' }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'El usuario ya está registrado' }, { status: 400 })
+    }
+
     console.error('Error en registro:', error)
     return NextResponse.json(
       { error: 'Error al crear la cuenta' },

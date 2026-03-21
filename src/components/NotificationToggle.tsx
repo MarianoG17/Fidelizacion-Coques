@@ -139,10 +139,14 @@ export default function NotificationToggle() {
     const headers: Record<string, string> = {}
     if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
 
-    await fetch('/api/push/subscribe', {
+    const response = await fetch('/api/push/subscribe', {
       method: 'DELETE',
       headers,
     })
+
+    if (!response.ok && response.status !== 404) {
+      throw new Error('No se pudieron desactivar las notificaciones en el servidor. Intentá de nuevo.')
+    }
   }
 
   if (!isSupported) {

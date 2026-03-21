@@ -21,6 +21,7 @@ function ActivarContent() {
   const [codigoReferido, setCodigoReferido] = useState<string | null>(null)
   const [referidorNombre, setReferidorNombre] = useState<string | null>(null)
   const [codigoInvalido, setCodigoInvalido] = useState(false)
+  const [cargandoReferido, setCargandoReferido] = useState(false)
   const [soportaPasskey, setSoportaPasskey] = useState(false)
   const [passkeyError, setPasskeyError] = useState('')
   const [passkeyExitoso, setPasskeyExitoso] = useState(false)
@@ -30,6 +31,7 @@ function ActivarContent() {
     const ref = searchParams.get('ref')
     if (!ref) return
 
+    setCargandoReferido(true)
     fetch('/api/referidos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +51,7 @@ function ActivarContent() {
         // Error de red — usar el código de todas formas
         setCodigoReferido(ref)
       })
+      .finally(() => setCargandoReferido(false))
   }, [searchParams])
 
   // Verificar soporte de passkey en el dispositivo
@@ -272,6 +275,14 @@ function ActivarContent() {
             Acumulá beneficios en Coques y el Lavadero
           </p>
         </div>
+
+        {/* Banner de carga de referido */}
+        {cargandoReferido && (
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <p className="text-gray-500 text-sm">Verificando código de invitación...</p>
+          </div>
+        )}
 
         {/* Banner de referido válido */}
         {codigoReferido && referidorNombre && (

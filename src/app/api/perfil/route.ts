@@ -173,45 +173,23 @@ export async function PATCH(req: NextRequest) {
             }
         }
 
-        // Build update query dynamically
-        const updates: string[] = []
-        const values: any[] = []
-        let paramIndex = 1
+        // Build update data
+        const updateData: Record<string, any> = {}
+        if (nombre !== undefined) updateData.nombre = nombre.trim()
+        if (email !== undefined) updateData.email = email || null
+        if (fechaCumpleanos !== undefined) updateData.fechaCumpleanos = fechaCumpleanos ? new Date(fechaCumpleanos) : null
 
-        if (nombre !== undefined) {
-            updates.push(`nombre = $${paramIndex}`)
-            values.push(nombre.trim())
-            paramIndex++
-        }
-
-        if (email !== undefined) {
-            updates.push(`email = $${paramIndex}`)
-            values.push(email || null)
-            paramIndex++
-        }
-
-        if (fechaCumpleanos !== undefined) {
-            updates.push(`"fechaCumpleanos" = $${paramIndex}`)
-            values.push(fechaCumpleanos ? new Date(fechaCumpleanos) : null)
-            paramIndex++
-        }
-
-        if (updates.length === 0) {
+        if (Object.keys(updateData).length === 0) {
             return NextResponse.json({ error: 'No hay datos para actualizar' }, { status: 400 })
         }
 
-        // Execute update
-        values.push(clienteId)
-        const updateQuery = `
-            UPDATE "Cliente"
-            SET ${updates.join(', ')}
-            WHERE id = $${paramIndex}
-            RETURNING id
-        `
+        const result = await prisma.cliente.update({
+            where: { id: clienteId },
+            data: updateData,
+            select: { id: true },
+        })
 
-        const result: any = await prisma.$queryRawUnsafe(updateQuery, ...values)
-
-        if (!result || result.length === 0) {
+        if (!result) {
             return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 })
         }
 
