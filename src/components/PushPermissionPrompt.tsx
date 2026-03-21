@@ -49,6 +49,8 @@ export default function PushPermissionPrompt() {
 
             // Delay más largo para no superponerse con InstallPrompt (que aparece a los 3s)
             setTimeout(() => {
+                // Re-verificar: si el usuario activó el toggle durante estos 12 segundos, no mostrar
+                if (Notification.permission !== 'default') return
                 setShowPrompt(true)
             }, 12000) // Mostrar después de 12 segundos
         } else if (permission === 'granted') {
