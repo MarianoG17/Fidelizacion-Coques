@@ -23,7 +23,6 @@ export default function NotificationToggle() {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      // Si hay suscripción activa, el permiso ya fue otorgado
       setIsEnabled(!!subscription)
     } catch (error) {
       console.error('Error al verificar estado de notificaciones:', error)
@@ -49,15 +48,17 @@ export default function NotificationToggle() {
         setIsEnabled(true)
       }
     } catch (error) {
-      console.error('Error al cambiar estado de notificaciones:', error)
-      // No mostramos alert genérico: enableNotifications/disableNotifications ya muestran el error específico
-      // Revalidar el estado real en caso de error
+      // Los errores de enable/disable traen mensajes amigables
+      const mensaje = error instanceof Error ? error.message : 'Error al cambiar las notificaciones. Intentá de nuevo.'
+      alert(mensaje)
+
+      // Revalidar estado real
       try {
         const registration = await navigator.serviceWorker.ready
         const subscription = await registration.pushManager.getSubscription()
         setIsEnabled(!!subscription)
       } catch {
-        // Si falla la revalidación, dejar el estado anterior
+        // dejar estado anterior
       }
     } finally {
       setIsLoading(false)
@@ -65,18 +66,16 @@ export default function NotificationToggle() {
   }
 
   async function enableNotifications() {
-    // Si el permiso ya está denegado, explicar cómo habilitarlo
+    // Si el permiso ya está denegado, indicar cómo habilitarlo desde el sistema
     if (Notification.permission === 'denied') {
-      alert('Las notificaciones están bloqueadas. Para activarlas, andá a Configuración → (tu navegador) → Notificaciones y permitilas para esta app.')
-      throw new Error('Permiso denegado')
+      throw new Error('Las notificaciones están bloqueadas en este dispositivo. Para activarlas andá a Configuración → Aplicaciones → Chrome → Notificaciones.')
     }
 
-    // Solo pedimos permiso si todavía no fue otorgado
+    // Solo pedimos permiso si todavía no fue otorgado (evita comportamiento raro en iOS/Android)
     if (Notification.permission !== 'granted') {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
-        alert('Para recibir notificaciones necesitamos tu permiso. Intentá de nuevo y tocá "Permitir".')
-        throw new Error('Permiso no otorgado')
+        throw new Error('Para recibir notificaciones necesitamos tu permiso. Intentá de nuevo y tocá "Permitir".')
       }
     }
 
@@ -84,8 +83,13 @@ export default function NotificationToggle() {
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     if (!vapidPublicKey) {
-      alert('Error de configuración. Contactá al administrador.')
-      throw new Error('VAPID public key no configurada')
+      throw new Error('Error de configuración. Contactá al administrador.')
+    }
+
+    // Si hay una suscripción anterior inválida, limpiarla antes de crear una nueva
+    const existingSub = await registration.pushManager.getSubscription()
+    if (existingSub) {
+      await existingSub.unsubscribe()
     }
 
     let subscription: PushSubscription
@@ -95,9 +99,8 @@ export default function NotificationToggle() {
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       })
     } catch (error) {
-      console.error('Error al crear suscripción push:', error)
-      alert('No se pudo activar las notificaciones en este dispositivo. Verificá que la app esté instalada en la pantalla de inicio.')
-      throw error
+      console.error('pushManager.subscribe falló:', error)
+      throw new Error('No se pudo activar las notificaciones. Verificá que la app esté instalada en la pantalla de inicio e intentá de nuevo.')
     }
 
     // Guardar suscripción en el servidor
@@ -112,8 +115,7 @@ export default function NotificationToggle() {
     })
 
     if (!response.ok) {
-      alert('Las notificaciones se activaron en el dispositivo pero no se pudieron guardar. Intentá de nuevo.')
-      throw new Error('Error al guardar suscripción en el servidor')
+      throw new Error('Notificaciones activadas en el dispositivo pero no se pudieron guardar. Intentá de nuevo.')
     }
   }
 
@@ -125,7 +127,6 @@ export default function NotificationToggle() {
       await subscription.unsubscribe()
     }
 
-    // Informar al servidor
     const jwtToken = localStorage.getItem('fidelizacion_token')
     const headers: Record<string, string> = {}
     if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
