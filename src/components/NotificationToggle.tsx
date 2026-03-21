@@ -78,7 +78,11 @@ export default function NotificationToggle() {
 
   async function enableNotifications() {
     if (Notification.permission === 'denied') {
-      throw new Error('Las notificaciones están bloqueadas en este dispositivo. Para activarlas andá a Configuración → Aplicaciones → Chrome → Notificaciones.')
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+      const msg = isIOS
+        ? 'Las notificaciones están bloqueadas. Para activarlas andá a Configuración → [Nombre de la app] → Notificaciones.'
+        : 'Las notificaciones están bloqueadas en este dispositivo. Para activarlas andá a Configuración → Aplicaciones → Chrome → Notificaciones.'
+      throw new Error(msg)
     }
 
     if (Notification.permission !== 'granted') {

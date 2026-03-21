@@ -21,6 +21,17 @@ export default function PushPermissionPrompt() {
             return
         }
 
+        // En iOS, las notificaciones push solo funcionan si la app está instalada (standalone mode)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+        if (isIOS) {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                (window.navigator as any).standalone
+            if (!isStandalone) {
+                console.log('🔕 iOS en modo browser: push no disponible hasta instalar la app')
+                return
+            }
+        }
+
         // Verificar el estado actual del permiso
         checkNotificationPermission()
     }, [status, session])
@@ -49,7 +60,8 @@ export default function PushPermissionPrompt() {
 
     async function checkExistingSubscription() {
         try {
-            const registration = await navigator.serviceWorker.ready
+            const reg = await navigator.serviceWorker.getRegistration('/')
+            const registration = reg ?? await navigator.serviceWorker.register('/sw.js')
             const subscription = await registration.pushManager.getSubscription()
 
             if (!subscription) {
@@ -86,7 +98,8 @@ export default function PushPermissionPrompt() {
 
     async function subscribeToPush() {
         try {
-            const registration = await navigator.serviceWorker.ready
+            const reg = await navigator.serviceWorker.getRegistration('/')
+            const registration = reg ?? await navigator.serviceWorker.register('/sw.js')
 
             // Obtener la VAPID public key desde las variables de entorno
             const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY

@@ -148,19 +148,11 @@ export default function InstallPrompt() {
           }
         `}</style>
 
-                {/* Puntero hacia la barra de Safari */}
-                <div className="flex justify-center">
-                    <div
-                        className="w-0 h-0"
-                        style={{
-                            borderLeft: '10px solid transparent',
-                            borderRight: '10px solid transparent',
-                            borderTop: '10px solid #1e293b',
-                        }}
-                    />
+                <div className="bg-slate-800 px-4 pt-3 pb-6">
+                {/* Drag handle — indica que es un panel deslizable */}
+                <div className="flex justify-center mb-3">
+                    <div className="w-10 h-1 bg-slate-600 rounded-full" />
                 </div>
-
-                <div className="bg-slate-800 px-4 pt-4 pb-6">
                     <div className="max-w-sm mx-auto">
                         {/* Header */}
                         <div className="flex items-start justify-between mb-4">
