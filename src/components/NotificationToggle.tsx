@@ -2,14 +2,15 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-// Timeout helper para navigator.serviceWorker.ready (puede colgarse en Android)
-async function getServiceWorkerRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration> {
-  return Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Service worker no disponible. Cerrá y rebrí la app.')), timeoutMs)
-    )
-  ])
+// Obtener registro del service worker sin bloquear
+// getRegistration() es inmediato (no espera como .ready que puede colgar en Android)
+async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
+  // Intentar obtener el registro existente directamente
+  const reg = await navigator.serviceWorker.getRegistration('/')
+  if (reg) return reg
+
+  // Fallback: registrar el SW si no existe aún
+  return navigator.serviceWorker.register('/sw.js')
 }
 
 export default function NotificationToggle() {
@@ -31,7 +32,7 @@ export default function NotificationToggle() {
     setIsSupported(true)
 
     try {
-      const registration = await getServiceWorkerRegistration(5000)
+      const registration = await getServiceWorkerRegistration()
       const subscription = await registration.pushManager.getSubscription()
       setIsEnabled(!!subscription)
     } catch (error) {
@@ -64,7 +65,7 @@ export default function NotificationToggle() {
 
       // Revalidar estado real
       try {
-        const registration = await getServiceWorkerRegistration(3000)
+        const registration = await getServiceWorkerRegistration()
         const subscription = await registration.pushManager.getSubscription()
         setIsEnabled(!!subscription)
       } catch {
@@ -87,7 +88,7 @@ export default function NotificationToggle() {
       }
     }
 
-    const registration = await getServiceWorkerRegistration(10000)
+    const registration = await getServiceWorkerRegistration()
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     if (!vapidPublicKey) {
@@ -127,7 +128,7 @@ export default function NotificationToggle() {
   }
 
   async function disableNotifications() {
-    const registration = await getServiceWorkerRegistration(10000)
+    const registration = await getServiceWorkerRegistration()
     const subscription = await registration.pushManager.getSubscription()
 
     if (subscription) {
