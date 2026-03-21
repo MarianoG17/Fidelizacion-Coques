@@ -20,6 +20,13 @@ export default function PasskeySection() {
 
     async function handleActivar() {
         try {
+            // Si ya está activo, resetear primero para poder re-registrar
+            if (activado) {
+                const token = localStorage.getItem('fidelizacion_token')
+                const headers: Record<string, string> = {}
+                if (token) headers['Authorization'] = `Bearer ${token}`
+                await fetch('/api/auth/passkey/reset', { method: 'POST', headers })
+            }
             await registrar()
             localStorage.setItem('passkey_prompt_dismissed', 'true')
             localStorage.setItem('passkey_registered', 'true')

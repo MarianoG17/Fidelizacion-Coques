@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
+import { requireClienteAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 /**
@@ -11,18 +12,25 @@ import { prisma } from '@/lib/prisma'
  */
 export async function POST(req: NextRequest) {
     try {
-        // Verificar autenticación
+        // Verificar autenticación: primero NextAuth (Google), luego JWT propio
         const session = await getServerSession(authOptions)
-        if (!session?.user?.email) {
-            return NextResponse.json(
-                { error: 'No autorizado' },
-                { status: 401 }
-            )
+        let clienteId: string | null = null
+
+        if (session?.user?.email) {
+            const c = await prisma.cliente.findUnique({ where: { email: session.user.email }, select: { id: true } })
+            clienteId = c?.id ?? null
+        } else {
+            const payload = await requireClienteAuth(req)
+            clienteId = payload?.clienteId ?? null
+        }
+
+        if (!clienteId) {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
 
         // Buscar cliente
         const cliente = await prisma.cliente.findUnique({
-            where: { email: session.user.email },
+            where: { id: clienteId },
             include: {
                 passkeys: {
                     select: { id: true }
@@ -42,12 +50,12 @@ export async function POST(req: NextRequest) {
 
         // Eliminar todas las passkeys del usuario
         await prisma.passkey.deleteMany({
-            where: { clienteId: cliente.id }
+            where: { clienteId: clienteId }
         })
 
         console.log('[PASSKEY] Reset exitoso:', {
-            clienteId: cliente.id,
-            email: cliente.email,
+            clienteId: clienteId,
+            email: cliente?.email,
             passkeysEliminadas: countBefore,
         })
 
