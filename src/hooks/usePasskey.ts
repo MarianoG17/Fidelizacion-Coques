@@ -28,11 +28,18 @@ export function usePasskey() {
                 throw new Error('Tu dispositivo no soporta autenticación biométrica')
             }
 
+            // Incluir el JWT custom si está disponible (necesario para registro post-activación)
+            const jwtToken = typeof window !== 'undefined'
+                ? localStorage.getItem('fidelizacion_token')
+                : null
+            const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+            if (jwtToken) authHeaders['Authorization'] = `Bearer ${jwtToken}`
+
             // Paso 1: Obtener opciones de registro del servidor
             console.log('[PASSKEY] Solicitando opciones de registro...')
             const optionsRes = await fetch('/api/auth/passkey/register-options', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
             })
 
             // ✅ MEJORADO: Manejar sesión expirada
@@ -63,7 +70,7 @@ export function usePasskey() {
             // Paso 3: Enviar credencial al servidor para verificación
             const verifyRes = await fetch('/api/auth/passkey/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
                 body: JSON.stringify({
                     credential,
                     deviceName: deviceName || 'Mi dispositivo'

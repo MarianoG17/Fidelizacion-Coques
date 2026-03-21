@@ -3,76 +3,91 @@
 // Página de registro — el cliente crea su cuenta con email y contraseña
 import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { usePasskey } from '@/hooks/usePasskey'
 
 function ActivarContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { registrar: activarPasskey, loading: loadingPasskey, verificarSoporte } = usePasskey()
 
-  const [paso, setPaso] = useState<'form' | 'confirmando' | 'listo' | 'error'>('form')
+  const [paso, setPaso] = useState<'form' | 'confirmando' | 'passkey' | 'error'>('form')
   const [nombre, setNombre] = useState('')
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState('') // valor display (formateado)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [consentimiento, setConsentimiento] = useState(false)
   const [error, setError] = useState('')
   const [codigoReferido, setCodigoReferido] = useState<string | null>(null)
+  const [referidorNombre, setReferidorNombre] = useState<string | null>(null)
+  const [codigoInvalido, setCodigoInvalido] = useState(false)
+  const [soportaPasskey, setSoportaPasskey] = useState(false)
+  const [passkeyError, setPasskeyError] = useState('')
+  const [passkeyExitoso, setPasskeyExitoso] = useState(false)
 
-  // Detectar código de referido en la URL
+  // Validar código de referido contra el backend
   useEffect(() => {
     const ref = searchParams.get('ref')
-    if (ref) {
-      setCodigoReferido(ref)
-    }
+    if (!ref) return
+
+    fetch('/api/referidos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigoReferido: ref }),
+    })
+      .then(res => {
+        if (res.ok) {
+          res.json().then(d => {
+            setCodigoReferido(ref)
+            setReferidorNombre(d.data?.referidorNombre ?? null)
+          })
+        } else {
+          setCodigoInvalido(true)
+        }
+      })
+      .catch(() => {
+        // Error de red — usar el código de todas formas
+        setCodigoReferido(ref)
+      })
   }, [searchParams])
+
+  // Verificar soporte de passkey en el dispositivo
+  useEffect(() => {
+    verificarSoporte().then(setSoportaPasskey)
+  }, [verificarSoporte])
+
+  // Formatear teléfono mientras el usuario tipea: "11 1234-5678"
+  function formatPhone(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 10)
+    if (digits.length <= 2) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 2)} ${digits.slice(2)}`
+    return `${digits.slice(0, 2)} ${digits.slice(2, 6)}-${digits.slice(6)}`
+  }
+
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setPhone(formatPhone(e.target.value))
+  }
 
   function validarEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
   }
 
-  function validarPassword(password: string): boolean {
-    return password.length >= 6
-  }
-
   async function registrar() {
-    // Validaciones
-    if (!nombre.trim()) {
-      setError('El nombre es requerido')
-      return
-    }
-    if (!email.trim()) {
-      setError('El email es requerido')
-      return
-    }
-    if (!validarEmail(email)) {
-      setError('Email inválido')
-      return
-    }
-    if (!password) {
-      setError('La contraseña es requerida')
-      return
-    }
-    if (!validarPassword(password)) {
-      setError('La contraseña debe tener al menos 6 caracteres')
-      return
-    }
-    if (!phone.trim()) {
-      setError('El teléfono es requerido')
-      return
-    }
-    if (!consentimiento) {
-      setError('Necesitás aceptar los términos para continuar')
-      return
-    }
+    if (!nombre.trim()) { setError('El nombre es requerido'); return }
+    if (!email.trim()) { setError('El email es requerido'); return }
+    if (!validarEmail(email)) { setError('Email inválido'); return }
+    if (!password) { setError('La contraseña es requerida'); return }
+    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return }
+    if (!phone.trim()) { setError('El teléfono es requerido'); return }
+    if (!consentimiento) { setError('Necesitás aceptar los términos para continuar'); return }
 
     setPaso('confirmando')
     setError('')
 
     try {
-      // Solo números, sin prefijo +549
       const phoneFormatted = phone.replace(/\D/g, '')
-      
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,35 +96,34 @@ function ActivarContent() {
           password,
           nombre: nombre.trim(),
           phone: phoneFormatted,
-          codigoReferido: codigoReferido || undefined, // Enviar código de referido si existe
+          codigoReferido: codigoReferido || undefined,
         }),
       })
 
-      // Check response status first
       if (!res.ok) {
-        // Try to parse error message from response
         let errorMessage = 'Error al crear la cuenta'
         try {
           const data = await res.json()
           errorMessage = data.error || errorMessage
-        } catch (e) {
-          // If JSON parsing fails, check status code
-          if (res.status === 405) {
-            errorMessage = 'Método no permitido. Contacte al administrador.'
-          } else if (res.status === 400) {
-            errorMessage = 'Datos inválidos. Verifique su información.'
-          }
+        } catch {
+          if (res.status === 405) errorMessage = 'Método no permitido. Contacte al administrador.'
+          else if (res.status === 400) errorMessage = 'Datos inválidos. Verifique su información.'
         }
         throw new Error(errorMessage)
       }
 
       const data = await res.json()
 
-      // Guardar token en localStorage
       if (data.data?.token) {
+        // Guardar JWT en localStorage (el hook usePasskey lo leerá automáticamente)
         localStorage.setItem('fidelizacion_token', data.data.token)
-        setPaso('listo')
-        setTimeout(() => router.push('/pass'), 1500)
+
+        // Si el dispositivo soporta passkey, mostrar el paso de activación
+        if (soportaPasskey) {
+          setPaso('passkey')
+        } else {
+          router.push('/pass')
+        }
       } else {
         throw new Error('No se recibió token de autenticación')
       }
@@ -119,18 +133,123 @@ function ActivarContent() {
     }
   }
 
-  if (paso === 'listo') {
+  async function handleActivarPasskey() {
+    setPasskeyError('')
+    try {
+      await activarPasskey()
+      // Marcar como configurado para que PasskeyPrompt no aparezca de nuevo en /pass
+      localStorage.setItem('passkey_prompt_dismissed', 'true')
+      setPasskeyExitoso(true)
+      setTimeout(() => router.push('/pass'), 1200)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo activar'
+      // Si el error es de sesión (no debería pasar), redirigir igual
+      if (msg.includes('sesión') || msg.includes('401')) {
+        router.push('/pass')
+      } else {
+        setPasskeyError(msg)
+      }
+    }
+  }
+
+  // ── Pantalla: activación de passkey (post-registro) ─────────────────────
+  if (paso === 'passkey') {
+    if (passkeyExitoso) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+          <div className="text-center">
+            <div className="text-5xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Todo listo!</h2>
+            <p className="text-gray-500">Acceso rápido activado. Redirigiendo...</p>
+          </div>
+        </div>
+      )
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-        <div className="text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Bienvenido!</h2>
-          <p className="text-gray-500">Redirigiendo a tu pass...</p>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          {/* Bienvenida */}
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-1">¡Cuenta creada!</h2>
+            <p className="text-gray-500 text-sm">Un último paso para entrar rápido la próxima vez</p>
+          </div>
+
+          {/* Tarjeta passkey */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <span className="text-3xl">👆</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-lg leading-tight">
+                  Activá el acceso con huella o Face ID
+                </h3>
+                <p className="text-gray-500 text-sm mt-0.5">
+                  Entrá sin contraseña la próxima vez
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+              La próxima vez que abras la app, vas a poder entrar en un segundo con tu biometría. Sin contraseña, sin pasos extra.
+            </p>
+
+            <ul className="space-y-2 mb-6">
+              {[
+                'Entrás con un toque o mirando la pantalla',
+                'Más seguro que una contraseña',
+                'Se guarda en tu dispositivo, nunca en el servidor',
+              ].map(b => (
+                <li key={b} className="flex items-start gap-2 text-sm text-gray-600">
+                  <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+
+            {passkeyError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+                <p className="text-red-700 text-sm">{passkeyError}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleActivarPasskey}
+              disabled={loadingPasskey}
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-base disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+            >
+              {loadingPasskey ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Activando...
+                </>
+              ) : (
+                <>
+                  <span>👆</span>
+                  Activar acceso rápido
+                </>
+              )}
+            </button>
+          </div>
+
+          <button
+            onClick={() => router.push('/pass')}
+            disabled={loadingPasskey}
+            className="w-full text-gray-500 py-3 text-sm font-medium hover:text-gray-700 transition-colors"
+          >
+            Ahora no, ir a mi pase →
+          </button>
         </div>
       </div>
     )
   }
 
+  // ── Formulario principal ─────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-6">
       <div className="w-full max-w-sm">
@@ -154,14 +273,14 @@ function ActivarContent() {
           </p>
         </div>
 
-        {/* Banner de referido si hay código */}
-        {codigoReferido && (
+        {/* Banner de referido válido */}
+        {codigoReferido && referidorNombre && (
           <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 mb-6 shadow-lg">
             <div className="flex items-start gap-3">
               <span className="text-4xl">🎁</span>
               <div className="flex-1">
                 <p className="text-white font-bold text-xl mb-2">
-                  ¡Tu amigo te invitó!
+                  ¡{referidorNombre} te invitó!
                 </p>
                 <p className="text-white text-sm leading-relaxed">
                   Al registrarte con este link, ambos reciben visitas bonus para subir de nivel más rápido 🚀
@@ -171,27 +290,39 @@ function ActivarContent() {
           </div>
         )}
 
-        {/* Beneficios visibles como incentivo */}
-        <div className="bg-blue-50 rounded-2xl p-4 mb-6">
-          <p className="text-sm font-semibold text-blue-800 mb-2">
-            {codigoReferido ? '¡Y además ganás!' : '¿Qué ganás?'}
-          </p>
-          <ul className="space-y-1">
-            {[
-              'Café gratis mientras lavamos tu auto',
-              'Beneficios exclusivos por nivel',
-              'Notificaciones cuando tu auto está listo',
-            ].map((b) => (
-              <li key={b} className="flex items-start gap-2 text-sm text-blue-700">
-                <span className="text-blue-500 mt-0.5">✓</span>
-                {b}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Banner de código inválido */}
+        {codigoInvalido && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+            <p className="text-amber-800 text-sm font-medium">
+              ⚠️ El código de invitación no es válido. Podés registrarte igual, sin el bonus.
+            </p>
+          </div>
+        )}
 
-        {/* Formulario */}
-        <div className="space-y-4">
+        {/* Beneficios visibles como incentivo */}
+        {!codigoReferido && !codigoInvalido && (
+          <div className="bg-blue-50 rounded-2xl p-4 mb-6">
+            <p className="text-sm font-semibold text-blue-800 mb-2">¿Qué ganás?</p>
+            <ul className="space-y-1">
+              {[
+                'Café gratis mientras lavamos tu auto',
+                'Beneficios exclusivos por nivel',
+                'Notificaciones cuando tu auto está listo',
+              ].map((b) => (
+                <li key={b} className="flex items-start gap-2 text-sm text-blue-700">
+                  <span className="text-blue-500 mt-0.5">✓</span>
+                  {b}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Formulario — Enter envía el form */}
+        <form
+          onSubmit={(e) => { e.preventDefault(); registrar() }}
+          className="space-y-4"
+        >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tu nombre <span className="text-red-500">*</span>
@@ -203,6 +334,7 @@ function ActivarContent() {
               placeholder="¿Cómo te llamás?"
               className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-800 text-slate-800"
               disabled={paso === 'confirmando'}
+              autoFocus
             />
           </div>
 
@@ -261,12 +393,12 @@ function ActivarContent() {
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={handlePhoneChange}
               placeholder="11 1234-5678"
               className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-slate-800 text-slate-800"
               disabled={paso === 'confirmando'}
             />
-            <p className="text-xs text-gray-400 mt-1">Sin el 0 ni el 15 (ej: 1112345678)</p>
+            <p className="text-xs text-gray-400 mt-1">Sin el 0 ni el 15 (ej: 11 1234-5678)</p>
           </div>
 
           {/* Consentimiento */}
@@ -286,8 +418,9 @@ function ActivarContent() {
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
               <p className="text-red-700 text-sm font-medium mb-2">{error}</p>
-              {(error.includes('ya está registrado') || error.includes('ya existe')) && (
+              {(error.includes('ya está registrado') || error.includes('ya existe') || error.includes('teléfono')) && (
                 <button
+                  type="button"
                   onClick={() => router.push('/login')}
                   className="text-sm text-red-600 hover:text-red-700 underline font-medium transition-colors"
                 >
@@ -298,7 +431,7 @@ function ActivarContent() {
           )}
 
           <button
-            onClick={registrar}
+            type="submit"
             disabled={paso === 'confirmando' || !consentimiento}
             className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold text-base disabled:opacity-50 transition-opacity"
           >
@@ -308,7 +441,7 @@ function ActivarContent() {
           <p className="text-center text-xs text-gray-400 mt-4">
             Podés darte de baja en cualquier momento
           </p>
-        </div>
+        </form>
       </div>
     </div>
   )

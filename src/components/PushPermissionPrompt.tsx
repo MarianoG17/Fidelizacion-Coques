@@ -29,10 +29,17 @@ export default function PushPermissionPrompt() {
         const permission = Notification.permission
 
         if (permission === 'default') {
-            // Esperar un poco antes de mostrar el prompt (mejor UX)
+            // Verificar si fue descartado recientemente (cooldown de 7 días)
+            const dismissed = localStorage.getItem('pushPromptDismissed')
+            if (dismissed) {
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+                if (parseInt(dismissed) > sevenDaysAgo) return
+            }
+
+            // Delay más largo para no superponerse con InstallPrompt (que aparece a los 3s)
             setTimeout(() => {
                 setShowPrompt(true)
-            }, 5000) // Mostrar después de 5 segundos
+            }, 12000) // Mostrar después de 12 segundos
         } else if (permission === 'granted') {
             // Ya tiene permiso, verificar si está suscrito
             checkExistingSubscription()

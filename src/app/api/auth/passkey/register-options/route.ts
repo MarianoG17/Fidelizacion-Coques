@@ -3,40 +3,42 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
+import { verificarToken } from '@/lib/auth'
 import { generateRegistrationOptions } from '@simplewebauthn/server'
 
 /**
  * Genera opciones para registrar una nueva credencial biométrica
  * POST /api/auth/passkey/register-options
+ * Acepta autenticación via NextAuth session O JWT custom (para registro inmediato post-activación)
  */
 export async function POST(req: NextRequest) {
     try {
-        // Verificar autenticación
+        // Verificar autenticación: NextAuth session primero, JWT custom como fallback
         const session = await getServerSession(authOptions)
-        if (!session?.user?.email) {
-            return NextResponse.json(
-                { error: 'No autorizado' },
-                { status: 401 }
-            )
-        }
 
-        // Buscar cliente
-        const cliente = await prisma.cliente.findUnique({
-            where: { email: session.user.email },
-            include: {
-                passkeys: {
-                    select: {
-                        credentialId: true,
-                        transports: true,
-                    }
-                }
+        let cliente = null
+
+        if (session?.user?.email) {
+            // Autenticado vía NextAuth
+            cliente = await prisma.cliente.findUnique({
+                where: { email: session.user.email },
+                include: { passkeys: { select: { credentialId: true, transports: true } } }
+            })
+        } else {
+            // Fallback: verificar JWT custom (usado inmediatamente después del registro)
+            const clienteId = await verificarToken(req)
+            if (clienteId) {
+                cliente = await prisma.cliente.findUnique({
+                    where: { id: clienteId },
+                    include: { passkeys: { select: { credentialId: true, transports: true } } }
+                })
             }
-        })
+        }
 
         if (!cliente) {
             return NextResponse.json(
-                { error: 'Usuario no encontrado' },
-                { status: 404 }
+                { error: 'No autorizado' },
+                { status: 401 }
             )
         }
 

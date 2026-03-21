@@ -3,18 +3,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
+import { verificarToken } from '@/lib/auth'
 import { verifyRegistrationResponse } from '@simplewebauthn/server'
 import type { RegistrationResponseJSON } from '@simplewebauthn/types'
 
 /**
  * Verifica y guarda una nueva credencial biométrica
  * POST /api/auth/passkey/register
+ * Acepta autenticación via NextAuth session O JWT custom (para registro inmediato post-activación)
  */
 export async function POST(req: NextRequest) {
     try {
-        // Verificar autenticación
+        // Verificar autenticación: NextAuth session primero, JWT custom como fallback
         const session = await getServerSession(authOptions)
-        if (!session?.user?.email) {
+
+        let cliente = null
+
+        if (session?.user?.email) {
+            cliente = await prisma.cliente.findUnique({ where: { email: session.user.email } })
+        } else {
+            const clienteId = await verificarToken(req)
+            if (clienteId) {
+                cliente = await prisma.cliente.findUnique({ where: { id: clienteId } })
+            }
+        }
+
+        if (!cliente) {
             return NextResponse.json(
                 { error: 'No autorizado' },
                 { status: 401 }
@@ -31,18 +45,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 { error: 'Credencial requerida' },
                 { status: 400 }
-            )
-        }
-
-        // Buscar cliente
-        const cliente = await prisma.cliente.findUnique({
-            where: { email: session.user.email }
-        })
-
-        if (!cliente) {
-            return NextResponse.json(
-                { error: 'Usuario no encontrado' },
-                { status: 404 }
             )
         }
 
