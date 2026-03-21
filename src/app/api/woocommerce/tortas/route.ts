@@ -1,16 +1,9 @@
 // src/app/api/woocommerce/tortas/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
-
-// ⚡ Caché server-side en memoria: evita llamadas a WooCommerce en cada request
-// Se invalida automáticamente al vencer el TTL
-interface ServerCache {
-  data: any
-  timestamp: number
-}
-const SERVER_CACHE_TTL = 2 * 60 * 60 * 1000 // 2 horas en ms
-let serverCache: ServerCache | null = null
+// Caché de ruta: Next.js almacena la respuesta completa en Data Cache compartido
+// entre todas las instancias de Vercel (sobrevive cold starts)
+export const revalidate = 7200 // 2 horas
 
 /**
  * Extrae el rendimiento de la descripción del producto
@@ -196,15 +189,6 @@ const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder:
 }
 
 export async function GET(req: NextRequest) {
-  const cacheTime = 7200 // 2 horas en segundos para Data Cache de Next.js
-
-  // ⚡ Caché en memoria: si hay datos frescos, responder sin llamar a WooCommerce
-  if (serverCache && Date.now() - serverCache.timestamp < SERVER_CACHE_TTL) {
-    return NextResponse.json(serverCache.data, {
-      headers: { 'X-Cache': 'HIT' }
-    })
-  }
-
   try {
     const wooUrl = process.env.WOOCOMMERCE_URL
     const wooKey = process.env.WOOCOMMERCE_KEY
@@ -251,7 +235,7 @@ export async function GET(req: NextRequest) {
           try {
             const batchResponse = await fetch(
               `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(skuBatch.join(','))}&per_page=100`,
-              { headers, next: { revalidate: cacheTime } }
+              { headers}
             )
             if (batchResponse.ok) {
               const prods = await batchResponse.json()
@@ -268,12 +252,12 @@ export async function GET(req: NextRequest) {
 
     const fetchCategoriaPromise = fetch(
       `${wooUrl}/wp-json/wc/v3/products/categories?search=tortas clasicas&per_page=50`,
-      { headers, next: { revalidate: cacheTime } }
+      { headers}
     )
 
     const fetchSku20Promise = fetch(
       `${wooUrl}/wp-json/wc/v3/products?sku=20&per_page=1&status=publish`,
-      { headers, next: { revalidate: cacheTime } }
+      { headers}
     )
 
     // Ejecutar los 3 en paralelo
@@ -311,7 +295,7 @@ export async function GET(req: NextRequest) {
     // Paso 2: Obtener productos de esa categoría (depende del resultado de categoría)
     const productsResponse = await fetch(
       `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=25&status=publish&orderby=menu_order&order=asc`,
-      { headers, next: { revalidate: cacheTime } }
+      { headers}
     )
 
     if (!productsResponse.ok) {
@@ -695,7 +679,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`[WooCommerce Tortas] Obtenidos ${productsWithVariations.length} productos`)
 
-    const responseData = {
+    return NextResponse.json({
       success: true,
       categoria: {
         id: tortasCategory.id,
@@ -704,13 +688,6 @@ export async function GET(req: NextRequest) {
       },
       count: productsWithVariations.length,
       products: productsWithVariations,
-    }
-
-    // Guardar en caché server-side para los próximos 2 horas
-    serverCache = { data: responseData, timestamp: Date.now() }
-
-    return NextResponse.json(responseData, {
-      headers: { 'X-Cache': 'MISS' }
     })
   } catch (error) {
     console.error('[WooCommerce Tortas] Error:', error)
