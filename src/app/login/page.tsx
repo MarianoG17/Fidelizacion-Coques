@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { usePasskey } from '@/hooks/usePasskey'
 
 export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
@@ -14,39 +13,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Passkey hook
-  const { login: passkeyLogin, loading: passkeyLoading, verificarSoporte } = usePasskey()
-  const [soportaPasskey, setSoportaPasskey] = useState(false)
-  const [autoLoginIntentado, setAutoLoginIntentado] = useState(false)
-
-  // Verificar soporte de passkeys y auto-login al montar
-  useEffect(() => {
-    const inicializar = async () => {
-      const soporte = await verificarSoporte()
-      setSoportaPasskey(soporte)
-
-      // Auto-login con passkey si está soportado y no se intentó antes
-      if (soporte && !autoLoginIntentado) {
-        const autoLoginDeshabilitado = localStorage.getItem('passkey-auto-login-disabled')
-
-        // Si no está deshabilitado, intentar login automático
-        if (!autoLoginDeshabilitado) {
-          console.log('[LOGIN] Intentando auto-login con passkey...')
-          setAutoLoginIntentado(true)
-
-          try {
-            await passkeyLogin()
-            router.push('/pass')
-          } catch (err) {
-            // Si falla o cancela, no hacer nada (mostrar opciones normales)
-            console.log('[LOGIN] Auto-login cancelado o no disponible')
-          }
-        }
-      }
-    }
-
-    inicializar()
-  }, [verificarSoporte, passkeyLogin, router, autoLoginIntentado])
 
   function validarEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -114,16 +80,6 @@ export default function LoginPage() {
     }
   }
 
-  async function handlePasskeyLogin() {
-    setError('')
-    try {
-      await passkeyLogin()
-      router.push('/pass')
-    } catch (err) {
-      // Error ya manejado en el hook
-    }
-  }
-
   function handleKeyPress(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !loading) {
       iniciarSesion()
@@ -143,43 +99,10 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Passkey Button - Solo si está soportado */}
-        {soportaPasskey && (
-          <button
-            onClick={handlePasskeyLogin}
-            disabled={loading || passkeyLoading || isGoogleLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold shadow-sm hover:shadow-md"
-          >
-            {passkeyLoading ? (
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              <span className="text-2xl">👆</span>
-            )}
-            <span>
-              {passkeyLoading ? 'Autenticando...' : 'Huella / Face ID'}
-            </span>
-          </button>
-        )}
-
-        {/* Divider - Solo si hay passkey */}
-        {soportaPasskey && (
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">O</span>
-            </div>
-          </div>
-        )}
-
         {/* Google Sign In Button */}
         <button
           onClick={handleGoogleSignIn}
-          disabled={loading || isGoogleLoading || passkeyLoading}
+          disabled={loading || isGoogleLoading}
           className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-white"
         >
           {isGoogleLoading ? (
