@@ -1,6 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+interface Nivel {
+  id: string
+  nombre: string
+  orden: number
+}
+
 interface Cliente {
   id: string
   nombre: string
@@ -57,10 +63,29 @@ export function Clientes({ adminKey }: { adminKey: string }) {
   const [actividadesAbiertas, setActividadesAbiertas] = useState<string | null>(null)
   const [actividadesData, setActividadesData] = useState<ActividadesData | null>(null)
   const [cargandoActividades, setCargandoActividades] = useState(false)
+  const [niveles, setNiveles] = useState<Nivel[]>([])
+  const [cambioNivelModal, setCambioNivelModal] = useState<{ clienteId: string; nombre: string; nivelActual: string | null } | null>(null)
+  const [nivelSeleccionado, setNivelSeleccionado] = useState('')
+  const [cambiandoNivel, setCambiandoNivel] = useState(false)
 
   useEffect(() => {
     fetchClientes()
+    fetchNiveles()
   }, [])
+
+  async function fetchNiveles() {
+    const key = localStorage.getItem('admin_key')
+    if (!key) return
+    try {
+      const res = await fetch('/api/admin/niveles', { headers: { 'x-admin-key': key } })
+      if (res.ok) {
+        const json = await res.json()
+        setNiveles(json.data || [])
+      }
+    } catch (e) {
+      console.error('Error al cargar niveles:', e)
+    }
+  }
 
   async function fetchClientes() {
     const key = localStorage.getItem('admin_key')
@@ -148,6 +173,34 @@ export function Clientes({ adminKey }: { adminKey: string }) {
       alert('Error de conexión al eliminar permanentemente')
     } finally {
       setEliminando(null)
+    }
+  }
+
+  function abrirCambioNivel(cliente: Cliente) {
+    setNivelSeleccionado(niveles.find(n => n.nombre === cliente.nivel?.nombre)?.id || '')
+    setCambioNivelModal({ clienteId: cliente.id, nombre: cliente.nombre || 'Sin nombre', nivelActual: cliente.nivel?.nombre || null })
+  }
+
+  async function confirmarCambioNivel() {
+    if (!cambioNivelModal || !nivelSeleccionado) return
+    setCambiandoNivel(true)
+    try {
+      const res = await fetch(`/api/admin/clientes/${cambioNivelModal.clienteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify({ nivelId: nivelSeleccionado }),
+      })
+      if (res.ok) {
+        setCambioNivelModal(null)
+        await fetchClientes()
+      } else {
+        const json = await res.json()
+        alert(json.error || 'Error al cambiar nivel')
+      }
+    } catch (error) {
+      alert('Error de conexión')
+    } finally {
+      setCambiandoNivel(false)
     }
   }
 
@@ -430,6 +483,13 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                         📋
                       </button>
                       <button
+                        onClick={() => abrirCambioNivel(cliente)}
+                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                        title="Cambiar nivel manualmente"
+                      >
+                        🏅
+                      </button>
+                      <button
                         onClick={() => eliminarCliente(cliente.id, cliente.nombre || 'Sin nombre')}
                         disabled={eliminando === cliente.id}
                         className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -459,6 +519,55 @@ export function Clientes({ adminKey }: { adminKey: string }) {
           </div>
         )}
       </div>
+
+      {/* Modal de Cambio de Nivel */}
+      {cambioNivelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-sm p-6 space-y-5">
+            <h3 className="text-xl font-bold text-white">🏅 Cambiar Nivel</h3>
+            <p className="text-slate-300 text-sm">
+              Cliente: <span className="text-white font-semibold">{cambioNivelModal.nombre}</span>
+            </p>
+            <p className="text-slate-400 text-sm">
+              Nivel actual: <span className="text-blue-300">{cambioNivelModal.nivelActual || 'Sin nivel'}</span>
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Nuevo nivel</label>
+              <select
+                value={nivelSeleccionado}
+                onChange={(e) => setNivelSeleccionado(e.target.value)}
+                className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">— Seleccioná un nivel —</option>
+                {niveles.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.nombre === 'Bronce' && '🥉 '}
+                    {n.nombre === 'Plata' && '🥈 '}
+                    {n.nombre === 'Oro' && '🥇 '}
+                    {n.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setCambioNivelModal(null)}
+                disabled={cambiandoNivel}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-semibold transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarCambioNivel}
+                disabled={cambiandoNivel || !nivelSeleccionado}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition"
+              >
+                {cambiandoNivel ? 'Guardando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Actividades */}
       {actividadesAbiertas && (
