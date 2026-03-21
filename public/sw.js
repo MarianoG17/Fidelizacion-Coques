@@ -1,7 +1,7 @@
 ﻿// Service Worker para PWA - Fidelización Zona
 // ✅ OPTIMIZACIÓN: v9 con estrategia mejorada
-const CACHE_NAME = 'fidelizacion-zona-v10'
-const ICON_VERSION = 'v10'
+const CACHE_NAME = 'fidelizacion-zona-v11'
+const ICON_VERSION = 'v11'
 
 // Recursos críticos (bloquean instalación si fallan)
 const CRITICAL_ASSETS = [
@@ -21,7 +21,7 @@ const NON_CRITICAL_ASSETS = [
 
 // ✅ OPTIMIZACIÓN: Instalación mejorada sin bloqueos
 self.addEventListener('install', (event) => {
-    console.log('🔧 SW: Installing v10...')
+    console.log('🔧 SW: Installing v11...')
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             // Cachear críticos (bloquea si falla)
@@ -35,9 +35,6 @@ self.addEventListener('install', (event) => {
                 )
             )
             console.log('✅ SW: Non-critical assets cached')
-            
-            // Activar inmediatamente (más rápido)
-            self.skipWaiting()
         })
     )
 })
@@ -52,7 +49,7 @@ self.addEventListener('message', (event) => {
 
 // Activación del Service Worker
 self.addEventListener('activate', (event) => {
-    console.log('🚀 SW: Activating v10...')
+    console.log('🚀 SW: Activating v11...')
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
