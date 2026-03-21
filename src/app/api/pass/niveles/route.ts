@@ -6,6 +6,10 @@ import { evaluarNivel } from '@/lib/beneficios'
 
 export const dynamic = 'force-dynamic'
 
+// Throttle: evitar evaluar nivel en cada carga de página (máx 1 vez cada 5 min por cliente)
+const evalCache = new Map<string, number>()
+const EVAL_TTL = 5 * 60 * 1000 // 5 minutos
+
 // GET /api/pass/niveles - Obtener todos los niveles con beneficios y progreso del cliente
 export async function GET(req: NextRequest) {
   try {
@@ -14,8 +18,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Evaluar y actualizar nivel si es necesario
-    await evaluarNivel(payload.clienteId)
+    // Evaluar nivel solo si no se evaluó recientemente
+    const lastEval = evalCache.get(payload.clienteId)
+    if (!lastEval || Date.now() - lastEval > EVAL_TTL) {
+      await evaluarNivel(payload.clienteId)
+      evalCache.set(payload.clienteId, Date.now())
+    }
 
     // Obtener cliente con su nivel actual (refrescado después de evaluar)
     const cliente = await prisma.cliente.findUnique({

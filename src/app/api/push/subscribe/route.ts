@@ -3,16 +3,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
+import { verificarToken } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 
-export async function POST(req: NextRequest) {
+async function resolveUserId(req: NextRequest): Promise<string | null> {
   const session = await getServerSession(authOptions)
+  if (session?.user) return (session.user as any).id || null
 
-  if (!session?.user) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  return await verificarToken(req)
+}
 
-  const userId = (session.user as any).id
+export async function POST(req: NextRequest) {
+  const userId = await resolveUserId(req)
 
   if (!userId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -42,13 +44,7 @@ export async function POST(req: NextRequest) {
 
 // Eliminar suscripción (cuando usuario desactiva notificaciones)
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.user) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
-
-  const userId = (session.user as any).id
+  const userId = await resolveUserId(req)
 
   if (!userId) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

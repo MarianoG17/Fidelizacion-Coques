@@ -23,7 +23,8 @@ export default function NotificationToggle() {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      setIsEnabled(!!subscription && Notification.permission === 'granted')
+      // Si hay suscripción activa, el permiso ya fue otorgado (no puede existir sin él)
+      setIsEnabled(!!subscription)
     } catch (error) {
       console.error('Error al verificar estado de notificaciones:', error)
     } finally {
@@ -85,11 +86,13 @@ export default function NotificationToggle() {
       })
 
       // Guardar suscripción en el servidor
+      const jwtToken = localStorage.getItem('fidelizacion_token')
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
+
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(subscription)
       })
 
@@ -115,8 +118,13 @@ export default function NotificationToggle() {
       }
 
       // Informar al servidor
+      const jwtToken = localStorage.getItem('fidelizacion_token')
+      const headers: Record<string, string> = {}
+      if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
+
       await fetch('/api/push/subscribe', {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers,
       })
 
       // Estado se actualizará en checkNotificationStatus()

@@ -129,7 +129,8 @@ export default function PassPage() {
         }
       }
 
-      // Guardar timestamp de última carga exitosa
+      // Guardar datos en sessionStorage para fallback offline
+      sessionStorage.setItem('pass_cache', JSON.stringify(json.data))
       sessionStorage.setItem('last_pass_fetch', Date.now().toString())
 
       setError(null)
@@ -140,11 +141,29 @@ export default function PassPage() {
       console.error('[PASS] Error al cargar:', e)
       setRetrying(false)
 
-      // Mensaje más específico según el error
       if (e.message === 'NO_AUTH') {
         localStorage.removeItem('fidelizacion_token')
         setError('no_auth')
-      } else if (e.message === 'TIMEOUT') {
+        setLoading(false)
+        return
+      }
+
+      // Intentar mostrar datos cacheados si hay conexión caída
+      const cached = sessionStorage.getItem('pass_cache')
+      if (cached) {
+        try {
+          const cachedData = JSON.parse(cached)
+          setPass(cachedData)
+          setCountdown(cachedData.otp?.tiempoRestante || 30)
+          setError('offline_cached') // Estado especial: datos viejos mostrados
+          setLoading(false)
+          return
+        } catch {
+          // Si el cache está corrupto, ignorar
+        }
+      }
+
+      if (e.message === 'TIMEOUT') {
         setError('timeout')
       } else {
         setError('connection')
@@ -389,6 +408,9 @@ export default function PassPage() {
   if (loading) return <LoadingScreen />
 
   // IMPORTANTE: Verificar modal ANTES de error para usuarios OAuth
+  if (error === 'no_auth') return <NoAuthScreen />
+  if (error && error !== 'offline_cached') return <ErrorScreen message={error} />
+
   if (showPhoneModal) {
     return (
       <>
@@ -406,15 +428,29 @@ export default function PassPage() {
     )
   }
 
-  if (error === 'no_auth') return <NoAuthScreen />
-  if (error) return <ErrorScreen message={error} />
-
   if (!pass) return null
 
   const nivelColor = pass.nivel ? NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' : '#6b7280'
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 pb-24">
+      {/* Banner de modo offline con datos cacheados */}
+      {error === 'offline_cached' && (
+        <div className="w-full max-w-sm mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
+          <span className="text-xl">📡</span>
+          <div className="flex-1">
+            <p className="text-amber-800 text-sm font-medium">Sin conexión</p>
+            <p className="text-amber-600 text-xs">Mostrando datos guardados. El QR puede estar desactualizado.</p>
+          </div>
+          <button
+            onClick={() => { setError(null); fetchPass() }}
+            className="text-amber-700 text-xs font-semibold underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* Indicador de retry */}
       {retrying && (
         <div className="fixed bottom-20 left-4 right-4 bg-blue-600 text-white rounded-xl p-3 shadow-lg z-50 animate-slide-up mx-auto max-w-sm">

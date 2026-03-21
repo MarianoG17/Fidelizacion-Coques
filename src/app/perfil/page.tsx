@@ -57,7 +57,7 @@ export default function PerfilPage() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          localStorage.removeItem('token')
+          localStorage.removeItem('fidelizacion_token')
           router.push('/login')
           return
         }

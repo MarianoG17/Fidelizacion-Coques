@@ -235,8 +235,9 @@ model EventoScan {
   @@index([clienteId])
   @@index([localId])
   @@index([timestamp])
-  @@index([clienteId, timestamp])       // para consultas de frecuencia/niveles
-  @@index([clienteId, contabilizada])   // para contar visitas reales
+  @@index([clienteId, timestamp])         // para consultas de frecuencia/niveles
+  @@index([clienteId, contabilizada])     // para contar visitas reales
+  @@index([clienteId, beneficioId])       // para consultas de beneficios usados por cliente
 }
 
 model EventoEspecial {

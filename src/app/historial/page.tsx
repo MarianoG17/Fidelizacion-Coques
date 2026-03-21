@@ -27,14 +27,19 @@ interface Pedido {
 
 type Tab = 'visitas' | 'pedidos'
 
+const LIMIT = 20
+
 export default function HistorialPage() {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<Tab>('visitas')
     const [visitas, setVisitas] = useState<VisitaHistorial[]>([])
     const [pedidos, setPedidos] = useState<Pedido[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadingMore, setLoadingMore] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [totalVisitas, setTotalVisitas] = useState(0)
+    const [hasMore, setHasMore] = useState(false)
+    const [offset, setOffset] = useState(0)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,9 +50,8 @@ export default function HistorialPage() {
             }
 
             try {
-                // Fetch both visits and orders in parallel
                 const [visitasRes, pedidosRes] = await Promise.all([
-                    fetch('/api/historial?limit=50', {
+                    fetch(`/api/historial?limit=${LIMIT}&offset=0`, {
                         headers: { Authorization: `Bearer ${token}` },
                     }),
                     fetch('/api/woocommerce/mis-pedidos', {
@@ -63,6 +67,8 @@ export default function HistorialPage() {
                 const visitasJson = await visitasRes.json()
                 setVisitas(visitasJson.data.historial)
                 setTotalVisitas(visitasJson.data.pagination.total)
+                setHasMore(visitasJson.data.pagination.hasMore)
+                setOffset(LIMIT)
 
                 if (pedidosRes.ok) {
                     const pedidosJson = await pedidosRes.json()
@@ -77,6 +83,28 @@ export default function HistorialPage() {
 
         fetchData()
     }, [router])
+
+    const cargarMas = async () => {
+        const token = localStorage.getItem('fidelizacion_token')
+        if (!token || loadingMore) return
+
+        setLoadingMore(true)
+        try {
+            const res = await fetch(`/api/historial?limit=${LIMIT}&offset=${offset}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (!res.ok) return
+
+            const json = await res.json()
+            setVisitas(prev => [...prev, ...json.data.historial])
+            setHasMore(json.data.pagination.hasMore)
+            setOffset(prev => prev + LIMIT)
+        } catch (err) {
+            console.error('Error al cargar más visitas:', err)
+        } finally {
+            setLoadingMore(false)
+        }
+    }
 
     function formatearPrecio(precio: string | number): string {
         const num = typeof precio === 'string' ? parseFloat(precio) : precio
@@ -268,6 +296,23 @@ export default function HistorialPage() {
                                 <p className="text-gray-600 mb-2">Aún no tenés visitas registradas</p>
                                 <p className="text-sm text-gray-500">¡Visitanos y empezá a acumular beneficios!</p>
                             </div>
+                        )}
+
+                        {hasMore && (
+                            <button
+                                onClick={cargarMas}
+                                disabled={loadingMore}
+                                className="w-full mt-4 py-3 rounded-xl border border-gray-300 text-gray-600 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            >
+                                {loadingMore ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                        Cargando...
+                                    </span>
+                                ) : (
+                                    `Ver más visitas`
+                                )}
+                            </button>
                         )}
                     </>
                 )}

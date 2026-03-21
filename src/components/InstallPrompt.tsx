@@ -138,65 +138,85 @@ export default function InstallPrompt() {
     if (showIOSInstructions) {
         return (
             <div
-                className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4 shadow-2xl"
-                style={{
-                    background: 'linear-gradient(135deg, rgb(59, 130, 246), rgb(99, 102, 241))',
-                    animation: 'slideUp 0.3s ease-out forwards'
-                }}
+                className="fixed bottom-0 left-0 right-0 z-50 shadow-2xl"
+                style={{ animation: 'slideUp 0.35s ease-out forwards' }}
             >
                 <style jsx>{`
           @keyframes slideUp {
-            from {
-              transform: translateY(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
           }
         `}</style>
-                <div className="max-w-lg mx-auto text-white">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-3 flex-1">
-                            <div className="text-2xl sm:text-3xl">📱</div>
-                            <div>
-                                <p className="font-bold text-sm sm:text-base leading-tight">Instalá la App de Coques</p>
-                                <p className="text-xs sm:text-sm opacity-90 mt-0.5">Tus puntos y beneficios siempre a mano</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleDismiss}
-                            className="p-1.5 sm:p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors flex-shrink-0 text-lg sm:text-xl"
-                            aria-label="Cerrar"
-                        >
-                            ✕
-                        </button>
-                    </div>
 
-                    <div className="bg-white bg-opacity-15 backdrop-blur-sm rounded-xl p-3 sm:p-4 space-y-2.5">
-                        <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 bg-white bg-opacity-25 rounded-lg flex items-center justify-center font-bold text-sm sm:text-base">
-                                1
+                {/* Puntero hacia la barra de Safari */}
+                <div className="flex justify-center">
+                    <div
+                        className="w-0 h-0"
+                        style={{
+                            borderLeft: '10px solid transparent',
+                            borderRight: '10px solid transparent',
+                            borderTop: '10px solid #1e293b',
+                        }}
+                    />
+                </div>
+
+                <div className="bg-slate-800 px-4 pt-4 pb-6">
+                    <div className="max-w-sm mx-auto">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                {/* App icon placeholder */}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl flex-shrink-0">
+                                    🥐
+                                </div>
+                                <div>
+                                    <p className="text-white font-bold text-base leading-tight">Instalá Coques</p>
+                                    <p className="text-slate-400 text-xs mt-0.5">Acceso rápido desde tu pantalla de inicio</p>
+                                </div>
                             </div>
-                            <p className="text-xs sm:text-sm leading-relaxed">
-                                Tocá <span className="inline-flex items-center px-2 py-0.5 bg-white bg-opacity-20 rounded-md font-medium mx-1">□↑</span> abajo
-                            </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 bg-white bg-opacity-25 rounded-lg flex items-center justify-center font-bold text-sm sm:text-base">
-                                2
-                            </div>
-                            <p className="text-xs sm:text-sm leading-relaxed">
-                                Seleccioná <span className="font-semibold">"Agregar a Inicio"</span>
-                            </p>
+                            <button
+                                onClick={handleDismiss}
+                                className="text-slate-400 hover:text-white transition-colors p-1 -mt-1 -mr-1"
+                                aria-label="Cerrar"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
 
-                        <div className="pt-2 border-t border-white border-opacity-20">
-                            <p className="text-xs opacity-90 text-center">
-                                ✨ Acceso rápido como app nativa
-                            </p>
+                        {/* Steps */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3 bg-slate-700 rounded-xl px-4 py-3">
+                                <span className="text-slate-400 text-sm font-semibold w-4 flex-shrink-0">1</span>
+                                <p className="text-white text-sm flex-1">
+                                    Tocá{' '}
+                                    <span className="inline-flex items-center gap-1 bg-slate-600 text-blue-300 px-2 py-0.5 rounded-md text-xs font-mono mx-0.5">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        Compartir
+                                    </span>{' '}
+                                    en la barra de Safari
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-slate-700 rounded-xl px-4 py-3">
+                                <span className="text-slate-400 text-sm font-semibold w-4 flex-shrink-0">2</span>
+                                <p className="text-white text-sm flex-1">
+                                    Elegí{' '}
+                                    <span className="text-blue-300 font-semibold">
+                                        "Agregar a pantalla de inicio"
+                                    </span>
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-slate-700 rounded-xl px-4 py-3">
+                                <span className="text-slate-400 text-sm font-semibold w-4 flex-shrink-0">3</span>
+                                <p className="text-white text-sm flex-1">
+                                    Tocá <span className="text-blue-300 font-semibold">"Agregar"</span> en la esquina superior derecha
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
