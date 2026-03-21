@@ -52,6 +52,7 @@ function CarritoPageContent() {
 
   // Estado para nivel y descuento del cliente
   const [nivelCliente, setNivelCliente] = useState<{ nivel: string, descuento: number } | null>(null)
+  const [tieneDescuentoNoCombinableActivo, setTieneDescuentoNoCombinableActivo] = useState(false)
 
   // Estado para modal de presupuesto
   const [mostrarModalPresupuesto, setMostrarModalPresupuesto] = useState(false)
@@ -92,6 +93,12 @@ function CarritoPageContent() {
             descuento: data.data.nivel.descuentoPedidosTortas || 0
           })
         }
+        // Verificar si algún beneficio activo es no combinable con el descuento de nivel
+        const beneficiosActivos = data.data.beneficiosActivos || []
+        const hayNoCombinableActivo = beneficiosActivos.some(
+          (b: any) => b.condiciones?.noCombinableConNivel === true
+        )
+        setTieneDescuentoNoCombinableActivo(hayNoCombinableActivo)
       }
     } catch (error) {
       console.error('Error al obtener nivel del cliente:', error)
@@ -447,11 +454,12 @@ function CarritoPageContent() {
     ), [items]
   )
 
-  // NO aplicar descuento si hay torta temática en el carrito
-  const descuentoPorcentaje = useMemo(() =>
-    tieneTortaTematica ? 0 : (nivelCliente?.descuento || 0),
-    [tieneTortaTematica, nivelCliente]
-  )
+  // NO aplicar descuento si hay torta temática o si hay beneficio no combinable activo
+  const descuentoPorcentaje = useMemo(() => {
+    if (tieneTortaTematica) return 0
+    if (tieneDescuentoNoCombinableActivo) return 0
+    return nivelCliente?.descuento || 0
+  }, [tieneTortaTematica, tieneDescuentoNoCombinableActivo, nivelCliente])
 
   const montoDescuento = useMemo(() =>
     precioTotal * (descuentoPorcentaje / 100),

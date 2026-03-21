@@ -36,6 +36,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [descripcion, setDescripcion] = useState('')
   const [maxPorDia, setMaxPorDia] = useState<number>(1)
   const [usoUnico, setUsoUnico] = useState(false)
+  const [noCombinableConNivel, setNoCombinableConNivel] = useState(false)
   const [activo, setActivo] = useState(true)
   const [nivelesSeleccionados, setNivelesSeleccionados] = useState<string[]>([])
   const [niveles, setNiveles] = useState<Nivel[]>([])
@@ -66,6 +67,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       // Cargar configuración de cumpleaños si existe
       const condiciones = (beneficio as any).condiciones
       if (condiciones) {
+        setNoCombinableConNivel(condiciones.noCombinableConNivel || false)
         if (condiciones.requiereFechaCumpleanos) {
           setEsBeneficioCumpleanos(true)
           setDiasAntes(condiciones.diasAntes || 3)
@@ -135,6 +137,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         descripcion,
         maxPorDia,
         usoUnico,
+        noCombinableConNivel,
       }
 
       // Si es tipo descuento, agregar el campo descuento
@@ -387,6 +390,23 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
           </div>
           <p className="text-xs text-slate-500 -mt-4">
             Si está marcado, el beneficio solo se puede usar una vez en total (ej: descuento de bienvenida)
+          </p>
+
+          {/* No combinable con descuento de nivel */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="noCombinableConNivel"
+              checked={noCombinableConNivel}
+              onChange={(e) => setNoCombinableConNivel(e.target.checked)}
+              className="w-5 h-5 rounded bg-slate-700 border-slate-600 accent-orange-500"
+            />
+            <label htmlFor="noCombinableConNivel" className="text-slate-300 font-medium">
+              🚫 No combinable con descuento de nivel
+            </label>
+          </div>
+          <p className="text-xs text-slate-500 -mt-4">
+            Si está marcado, cuando este beneficio esté activo no se aplicará el descuento por nivel en el carrito
           </p>
 
           {/* Configuración de Beneficio de Cumpleaños */}

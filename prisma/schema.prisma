@@ -460,6 +460,7 @@ model ConfiguracionApp {
   // Sistema de Niveles
   nivelesPeriodoDias          Int      @default(30)   // Período de días para evaluar visitas en niveles
   tortasMultiplicador         Int      @default(3)    // Multiplicador de pedidos de tortas (1 pedido = X visitas)
+  nivelRegistroId             String?                 // ID del nivel asignado en nuevos registros (null = Bronce)
   
   // URLs
   googleMapsUrl               String   @default("https://maps.app.goo.gl/n6q5HNELZuwDyT556")

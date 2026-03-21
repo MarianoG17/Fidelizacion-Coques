@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       config: {
         nivelesPeriodoDias: config.nivelesPeriodoDias,
         tortasMultiplicador: config.tortasMultiplicador,
+        nivelRegistroId: (config as any).nivelRegistroId ?? null,
         feedbackHabilitado: config.feedbackHabilitado,
         feedbackTiempoVisitaMinutos: config.feedbackTiempoVisitaMinutos,
         feedbackDiasPedidoTorta: config.feedbackDiasPedidoTorta,
@@ -52,6 +53,7 @@ export async function PUT(req: NextRequest) {
     const {
       nivelesPeriodoDias,
       tortasMultiplicador,
+      nivelRegistroId,
       feedbackHabilitado,
       feedbackTiempoVisitaMinutos,
       feedbackDiasPedidoTorta,
@@ -104,6 +106,7 @@ export async function PUT(req: NextRequest) {
       data: {
         nivelesPeriodoDias,
         tortasMultiplicador,
+        nivelRegistroId: nivelRegistroId || null,
         feedbackHabilitado,
         feedbackTiempoVisitaMinutos,
         feedbackDiasPedidoTorta,
@@ -131,6 +134,7 @@ export async function PUT(req: NextRequest) {
       config: {
         nivelesPeriodoDias: configActualizada.nivelesPeriodoDias,
         tortasMultiplicador: configActualizada.tortasMultiplicador,
+        nivelRegistroId: (configActualizada as any).nivelRegistroId ?? null,
         feedbackHabilitado: configActualizada.feedbackHabilitado,
         feedbackTiempoVisitaMinutos: configActualizada.feedbackTiempoVisitaMinutos,
         feedbackDiasPedidoTorta: configActualizada.feedbackDiasPedidoTorta,

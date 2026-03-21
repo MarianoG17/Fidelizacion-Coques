@@ -64,10 +64,15 @@ export async function POST(req: NextRequest) {
     // Generar otpSecret para el cliente (necesario para el QR del Pass)
     const otpSecret = generarSecretoOTP()
 
-    // Obtener el nivel Bronce (orden 1) para asignarlo por defecto
-    const nivelBronce = await prisma.nivel.findFirst({
-      where: { orden: 1 },
+    // Obtener el nivel inicial configurado (o Bronce por defecto)
+    const configuracion = await prisma.configuracionApp.findFirst({
+      select: { nivelRegistroId: true } as any,
     })
+    const nivelRegistroId = (configuracion as any)?.nivelRegistroId
+    const nivelBronce = nivelRegistroId
+      ? await prisma.nivel.findUnique({ where: { id: nivelRegistroId } }) ??
+        await prisma.nivel.findFirst({ where: { orden: 1 } })
+      : await prisma.nivel.findFirst({ where: { orden: 1 } })
 
     // Buscar el cliente que refirió si hay código
     let referidoPorId: string | undefined
