@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PerfilData } from '@/types'
 import NotificationToggle from '@/components/NotificationToggle'
+import PasskeySection from '@/components/PasskeySection'
 
 export default function PerfilPage() {
   const router = useRouter()
@@ -322,6 +323,9 @@ export default function PerfilPage() {
 
         {/* Notification Toggle */}
         <NotificationToggle />
+
+        {/* Passkey / Biometric Login */}
+        <PasskeySection />
 
         {/* Profile Information Card */}
         <div className="bg-white rounded-2xl shadow-md p-6">
