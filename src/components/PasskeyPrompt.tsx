@@ -14,27 +14,17 @@ interface PasskeyPromptProps {
  * Se muestra en el perfil del usuario después del login
  */
 export default function PasskeyPrompt({ autoHide = true }: PasskeyPromptProps) {
-    const [dismissed, setDismissed] = useState(false)
+    const [dismissed, setDismissed] = useState(() =>
+        typeof window !== 'undefined' && localStorage.getItem('passkey_prompt_dismissed') === 'true'
+    )
     const [hasPasskey, setHasPasskey] = useState(false)
     const { registrar, loading, error, verificarSoporte } = usePasskey()
     const [soportaBiometria, setSoportaBiometria] = useState(false)
 
-    // Verificar si ya fue descartado o si ya tiene passkeys
+    // Verificar soporte de biometría (solo al montar)
     useEffect(() => {
-        // Verificar si fue descartado manualmente
-        const wasDismissed = localStorage.getItem('passkey_prompt_dismissed') === 'true'
-        setDismissed(wasDismissed)
-
-        // Verificar soporte de biometría
         verificarSoporte().then(setSoportaBiometria)
-
-        // Si autoHide, verificar si ya tiene passkeys registradas
-        if (autoHide) {
-            // Esto lo determinaríamos con una llamada al servidor, pero por ahora
-            // asumimos que no tiene si está viendo el prompt
-            // En una implementación completa, harías: GET /api/auth/passkey/list
-        }
-    }, [autoHide, verificarSoporte])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ✅ NUEVO: Descartar automáticamente si hay error de sesión expirada
     useEffect(() => {
