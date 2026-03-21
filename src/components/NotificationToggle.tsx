@@ -2,6 +2,16 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+// Timeout helper para navigator.serviceWorker.ready (puede colgarse en Android)
+async function getServiceWorkerRegistration(timeoutMs = 5000): Promise<ServiceWorkerRegistration> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Service worker no disponible. Cerrá y rebrí la app.')), timeoutMs)
+    )
+  ])
+}
+
 export default function NotificationToggle() {
   const [isEnabled, setIsEnabled] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
@@ -21,11 +31,12 @@ export default function NotificationToggle() {
     setIsSupported(true)
 
     try {
-      const registration = await navigator.serviceWorker.ready
+      const registration = await getServiceWorkerRegistration(5000)
       const subscription = await registration.pushManager.getSubscription()
       setIsEnabled(!!subscription)
     } catch (error) {
       console.error('Error al verificar estado de notificaciones:', error)
+      // En caso de timeout u otro error, mostrar como no habilitado pero permitir el toggle
     } finally {
       setIsLoading(false)
     }
@@ -48,13 +59,12 @@ export default function NotificationToggle() {
         setIsEnabled(true)
       }
     } catch (error) {
-      // Los errores de enable/disable traen mensajes amigables
       const mensaje = error instanceof Error ? error.message : 'Error al cambiar las notificaciones. Intentá de nuevo.'
       alert(mensaje)
 
       // Revalidar estado real
       try {
-        const registration = await navigator.serviceWorker.ready
+        const registration = await getServiceWorkerRegistration(3000)
         const subscription = await registration.pushManager.getSubscription()
         setIsEnabled(!!subscription)
       } catch {
@@ -66,12 +76,10 @@ export default function NotificationToggle() {
   }
 
   async function enableNotifications() {
-    // Si el permiso ya está denegado, indicar cómo habilitarlo desde el sistema
     if (Notification.permission === 'denied') {
       throw new Error('Las notificaciones están bloqueadas en este dispositivo. Para activarlas andá a Configuración → Aplicaciones → Chrome → Notificaciones.')
     }
 
-    // Solo pedimos permiso si todavía no fue otorgado (evita comportamiento raro en iOS/Android)
     if (Notification.permission !== 'granted') {
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
@@ -79,14 +87,14 @@ export default function NotificationToggle() {
       }
     }
 
-    const registration = await navigator.serviceWorker.ready
+    const registration = await getServiceWorkerRegistration(10000)
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     if (!vapidPublicKey) {
       throw new Error('Error de configuración. Contactá al administrador.')
     }
 
-    // Si hay una suscripción anterior inválida, limpiarla antes de crear una nueva
+    // Limpiar suscripción inválida anterior si existe
     const existingSub = await registration.pushManager.getSubscription()
     if (existingSub) {
       await existingSub.unsubscribe()
@@ -103,7 +111,6 @@ export default function NotificationToggle() {
       throw new Error('No se pudo activar las notificaciones. Verificá que la app esté instalada en la pantalla de inicio e intentá de nuevo.')
     }
 
-    // Guardar suscripción en el servidor
     const jwtToken = localStorage.getItem('fidelizacion_token')
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
@@ -120,7 +127,7 @@ export default function NotificationToggle() {
   }
 
   async function disableNotifications() {
-    const registration = await navigator.serviceWorker.ready
+    const registration = await getServiceWorkerRegistration(10000)
     const subscription = await registration.pushManager.getSubscription()
 
     if (subscription) {
@@ -160,22 +167,30 @@ export default function NotificationToggle() {
         <div className="flex-1">
           <h3 className="text-white font-semibold">Notificaciones Push</h3>
           <p className="text-slate-400 text-sm">
-            {isEnabled
-              ? 'Recibís notificaciones de tu pastelería favorita 🎂'
-              : 'Recibí notificaciones de tu pastelería favorita'
+            {isLoading
+              ? 'Verificando...'
+              : isEnabled
+                ? 'Recibís notificaciones de tu pastelería favorita 🎂'
+                : 'Recibí notificaciones de tu pastelería favorita'
             }
           </p>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isEnabled}
-            onChange={toggleNotifications}
-            disabled={isLoading}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-        </label>
+        {isLoading ? (
+          <div className="w-11 h-6 flex items-center justify-center">
+            <div className="w-4 h-4 border-2 border-slate-400 border-t-blue-400 rounded-full animate-spin" />
+          </div>
+        ) : (
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isEnabled}
+              onChange={toggleNotifications}
+              disabled={isLoading}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        )}
       </div>
     </div>
   )
