@@ -222,15 +222,34 @@ function CarritoPageContent() {
         nombreCliente = datosCliente?.nombre
         telefonoCliente = datosCliente?.telefono
       } else if (token) {
-        // Modo normal - obtener clienteId del token
-        const perfilRes = await fetch('/api/perfil', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (perfilRes.ok) {
-          const perfilData = await perfilRes.json()
-          clienteId = perfilData.data.id
-          nombreCliente = perfilData.data.nombre
-          telefonoCliente = perfilData.data.phone
+        // Modo normal - obtener clienteId del token (con caché de sesión para evitar re-fetch)
+        const PERFIL_CACHE_KEY = 'perfil_carrito_cache'
+        const PERFIL_CACHE_TTL = 5 * 60 * 1000 // 5 minutos
+        let perfilData: any = null
+
+        const cached = sessionStorage.getItem(PERFIL_CACHE_KEY)
+        if (cached) {
+          const { data, timestamp } = JSON.parse(cached)
+          if (Date.now() - timestamp < PERFIL_CACHE_TTL) {
+            perfilData = data
+          }
+        }
+
+        if (!perfilData) {
+          const perfilRes = await fetch('/api/perfil', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          if (perfilRes.ok) {
+            const json = await perfilRes.json()
+            perfilData = json.data
+            sessionStorage.setItem(PERFIL_CACHE_KEY, JSON.stringify({ data: perfilData, timestamp: Date.now() }))
+          }
+        }
+
+        if (perfilData) {
+          clienteId = perfilData.id
+          nombreCliente = perfilData.nombre
+          telefonoCliente = perfilData.phone
         }
       }
 

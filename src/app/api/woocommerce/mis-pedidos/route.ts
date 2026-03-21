@@ -158,54 +158,49 @@ export async function GET(req: NextRequest) {
         const pedidosCompletados = pedidosFiltrados.filter((order: any) => order.status === 'completed')
 
         // Procesar cada pedido completado
-        await Promise.all(
+        const resultados = await Promise.allSettled(
           pedidosCompletados.map(async (order: any) => {
-            try {
-              // Verificar si ya existe un evento PEDIDO_TORTA para este pedido
-              const eventoExistente = await prisma.eventoScan.findFirst({
-                where: {
+            // Verificar si ya existe un evento PEDIDO_TORTA para este pedido
+            const eventoExistente = await prisma.eventoScan.findFirst({
+              where: {
+                clienteId: cliente.id,
+                tipoEvento: 'PEDIDO_TORTA',
+                notas: `Pedido WooCommerce #${order.id}`,
+              }
+            })
+
+            // Si no existe, crear el evento
+            if (!eventoExistente) {
+              await prisma.eventoScan.create({
+                data: {
+                  timestamp: getDatetimeArgentina(),
                   clienteId: cliente.id,
+                  localId: local.id,
                   tipoEvento: 'PEDIDO_TORTA',
+                  metodoValidacion: 'QR',
+                  contabilizada: true,
                   notas: `Pedido WooCommerce #${order.id}`,
                 }
               })
 
-              // Si no existe, crear el evento
-              if (!eventoExistente) {
-                // Parsear el timestamp correctamente
-                let timestampPedido = new Date()
-                if (order.date_completed) {
-                  timestampPedido = new Date(order.date_completed)
-                } else if (order.date_modified) {
-                  timestampPedido = new Date(order.date_modified)
-                }
+              console.log(`[Mis Pedidos] ✅ Evento PEDIDO_TORTA creado automáticamente para pedido #${order.id}`)
 
-                await prisma.eventoScan.create({
-                  data: {
-                    timestamp: getDatetimeArgentina(), // ✅ Fix Bug #9: Usar fecha actual Argentina, no de WooCommerce
-                    clienteId: cliente.id,
-                    localId: local.id,
-                    tipoEvento: 'PEDIDO_TORTA',
-                    metodoValidacion: 'QR',
-                    contabilizada: true,
-                    notas: `Pedido WooCommerce #${order.id}`,
-                  }
-                })
-
-                console.log(`[Mis Pedidos] ✅ Evento PEDIDO_TORTA creado automáticamente para pedido #${order.id}`)
-
-                // Evaluar si el cliente sube de nivel
-                const resultado = await evaluarNivel(cliente.id)
-                if (resultado) {
-                  console.log(`[Mis Pedidos] 🎉 Cliente ${cliente.nombre || cliente.id} subió de nivel: ${resultado.nombre}`)
-                }
+              // Evaluar si el cliente sube de nivel
+              const resultado = await evaluarNivel(cliente.id)
+              if (resultado) {
+                console.log(`[Mis Pedidos] 🎉 Cliente ${cliente.nombre || cliente.id} subió de nivel: ${resultado.nombre}`)
               }
-            } catch (error) {
-              // No bloqueamos la respuesta si hay error al crear el evento
-              console.error(`[Mis Pedidos] Error creando evento para pedido #${order.id}:`, error)
             }
           })
         )
+
+        // Log de errores con detalle para debugging
+        const fallidos = resultados.filter(r => r.status === 'rejected')
+        if (fallidos.length > 0) {
+          console.error(`[Mis Pedidos] ${fallidos.length}/${pedidosCompletados.length} eventos PEDIDO_TORTA fallaron:`,
+            fallidos.map(r => (r as PromiseRejectedResult).reason)
+          )
+        }
       }
     } catch (error) {
       // No bloqueamos la respuesta si hay error en el registro automático
