@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+// ⚡ Caché server-side en memoria: evita llamadas a WooCommerce en cada request
+// Se invalida automáticamente al vencer el TTL
+interface ServerCache {
+  data: any
+  timestamp: number
+}
+const SERVER_CACHE_TTL = 2 * 60 * 60 * 1000 // 2 horas en ms
+let serverCache: ServerCache | null = null
+
 /**
  * Extrae el rendimiento de la descripción del producto
  * Busca patrones como "Rendimiento: 10 a 12 porciones medianas", "Para 20 personas", etc.
@@ -187,9 +196,14 @@ const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder:
 }
 
 export async function GET(req: NextRequest) {
-  // ⚡ OPTIMIZACIÓN EXTREMA: Cache de 2 horas (las tortas no cambian frecuentemente)
-  // Con lazy loading de variaciones, la carga inicial es muy rápida
-  const cacheTime = 7200 // 2 horas en segundos
+  const cacheTime = 7200 // 2 horas en segundos para Data Cache de Next.js
+
+  // ⚡ Caché en memoria: si hay datos frescos, responder sin llamar a WooCommerce
+  if (serverCache && Date.now() - serverCache.timestamp < SERVER_CACHE_TTL) {
+    return NextResponse.json(serverCache.data, {
+      headers: { 'X-Cache': 'HIT' }
+    })
+  }
 
   try {
     const wooUrl = process.env.WOOCOMMERCE_URL
@@ -210,7 +224,8 @@ export async function GET(req: NextRequest) {
       'User-Agent': 'FidelizacionApp/1.0',
     }
 
-    // Paso 0: Obtener información de productos adicionales por SKU
+    // ⚡ PARALELIZAR: Steps 0, 1 y 2.5 son independientes entre sí
+    // Step 0: batch SKUs adicionales | Step 1: categoría | Step 2.5: SKU 20
     const skusSimples = Object.values(ADICIONALES_POR_PRODUCTO)
       .flat()
       .map(a => a.sku)
@@ -219,88 +234,57 @@ export async function GET(req: NextRequest) {
       .flat()
       .flatMap(grupo => grupo.opciones.map(opt => opt.sku))
 
-    // Agregar SKUs de productos mini
     const skusMinis = Object.values(MINI_PRODUCTOS_POR_PRODUCTO)
-
     const adicionalesSkus = [...new Set([...skusSimples, ...skusAgrupados, ...skusMinis])]
 
-    // Mapeo de SKU -> {id, precio, nombre} para productos adicionales
-    const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
-    // Mapeo de ID -> {id, precio, nombre} para productos sin SKU
-    const adicionalesInfoPorId: { [id: number]: { id: number; precio: number; nombre: string } } = {}
-
-    if (adicionalesSkus.length > 0) {
+    // Armar las promesas paralelas
+    const fetchAdicionalesPromise = (async () => {
+      const adicionalesInfo: { [sku: string]: { id: number; precio: number; nombre: string } } = {}
+      if (adicionalesSkus.length === 0) return adicionalesInfo
       try {
-        // ⚡ OPTIMIZACIÓN CRÍTICA: Buscar todos los SKUs en LOTES DE 10
-        // En lugar de 17 llamadas individuales, hacer 2 llamadas batch
-        // WooCommerce permite buscar múltiples SKUs separados por coma
         const batchSize = 10
         const batches = []
-
         for (let i = 0; i < adicionalesSkus.length; i += batchSize) {
           batches.push(adicionalesSkus.slice(i, i + batchSize))
         }
-
-        const batchPromises = batches.map(async (skuBatch) => {
+        const batchResults = await Promise.all(batches.map(async (skuBatch) => {
           try {
-            // Buscar múltiples SKUs en una sola llamada
-            const skusParam = skuBatch.join(',')
             const batchResponse = await fetch(
-              `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(skusParam)}&per_page=100`,
-              {
-                headers,
-                next: { revalidate: cacheTime }
-              }
+              `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(skuBatch.join(','))}&per_page=100`,
+              { headers, next: { revalidate: cacheTime } }
             )
-
             if (batchResponse.ok) {
-              const products = await batchResponse.json()
-              return products.map((prod: any) => ({
-                sku: prod.sku,
-                info: {
-                  id: prod.id,
-                  precio: parseFloat(prod.price || '0'),
-                  nombre: prod.name
-                }
-              }))
+              const prods = await batchResponse.json()
+              return prods.map((prod: any) => ({ sku: prod.sku, info: { id: prod.id, precio: parseFloat(prod.price || '0'), nombre: prod.name } }))
             }
-          } catch (error) {
-            console.error(`[Tortas API] Error obteniendo batch de SKUs:`, error)
-          }
+          } catch (e) { console.error('[Tortas API] Error batch SKUs:', e) }
           return []
-        })
+        }))
+        batchResults.flat().forEach(r => { if (r?.sku) adicionalesInfo[r.sku] = r.info })
+        console.log(`[Tortas API] ${Object.keys(adicionalesInfo).length} adicionales en ${batches.length} llamadas`)
+      } catch (e) { console.error('[Tortas API] Error adicionales:', e) }
+      return adicionalesInfo
+    })()
 
-        const batchResults = await Promise.all(batchPromises)
-
-        // Mapear todos los resultados
-        batchResults.flat().forEach(result => {
-          if (result && result.sku) {
-            adicionalesInfo[result.sku] = result.info
-          }
-        })
-
-        console.log(`[Tortas API] Info de ${Object.keys(adicionalesInfo).length} adicionales obtenida en ${batches.length} llamadas batch`)
-      } catch (error) {
-        console.error('[Tortas API] Error obteniendo info de adicionales:', error)
-      }
-    }
-
-    // ℹ️ Los productos sin SKU usan nombres hardcodeados (no se buscan en WooCommerce)
-    console.log('[Tortas API] Productos sin SKU (solo comentarios):', Object.keys(PRODUCTOS_SIN_SKU).join(', '))
-
-    // Paso 1: Obtener el ID de la categoría "tortas clasicas"
-    const controller1 = new AbortController()
-    const timeout1 = setTimeout(() => controller1.abort(), 20000) // Aumentado a 20s
-
-    const categoriesResponse = await fetch(
+    const fetchCategoriaPromise = fetch(
       `${wooUrl}/wp-json/wc/v3/products/categories?search=tortas clasicas&per_page=50`,
-      {
-        headers,
-        signal: controller1.signal,
-        next: { revalidate: cacheTime } // Caché de Next.js
-      }
+      { headers, next: { revalidate: cacheTime } }
     )
-    clearTimeout(timeout1)
+
+    const fetchSku20Promise = fetch(
+      `${wooUrl}/wp-json/wc/v3/products?sku=20&per_page=1&status=publish`,
+      { headers, next: { revalidate: cacheTime } }
+    )
+
+    // Ejecutar los 3 en paralelo
+    const [adicionalesInfo, categoriesResponse, sku20Response] = await Promise.all([
+      fetchAdicionalesPromise,
+      fetchCategoriaPromise,
+      fetchSku20Promise,
+    ])
+
+    // Mapeo de ID -> {id, precio, nombre} para productos sin SKU
+    const adicionalesInfoPorId: { [id: number]: { id: number; precio: number; nombre: string } } = {}
 
     if (!categoriesResponse.ok) {
       return NextResponse.json(
@@ -310,8 +294,6 @@ export async function GET(req: NextRequest) {
     }
 
     const categories = await categoriesResponse.json()
-
-    // Buscar la categoría que coincida exactamente
     const tortasCategory = categories.find((cat: any) =>
       cat.name.toLowerCase() === 'tortas clasicas' ||
       cat.slug === 'tortas-clasicas'
@@ -326,21 +308,11 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Paso 2: Obtener productos de esa categoría
-    const controller2 = new AbortController()
-    const timeout2 = setTimeout(() => controller2.abort(), 30000) // Aumentado a 30s
-
-    // ⚡ SOLUCIÓN BALANCEADA: 25 productos (cubre las 22 tortas + margen)
-    // Con batch queries y sin variaciones, carga rápida
+    // Paso 2: Obtener productos de esa categoría (depende del resultado de categoría)
     const productsResponse = await fetch(
       `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=25&status=publish&orderby=menu_order&order=asc`,
-      {
-        headers,
-        signal: controller2.signal,
-        next: { revalidate: cacheTime } // Caché de Next.js
-      }
+      { headers, next: { revalidate: cacheTime } }
     )
-    clearTimeout(timeout2)
 
     if (!productsResponse.ok) {
       return NextResponse.json(
@@ -351,21 +323,12 @@ export async function GET(req: NextRequest) {
 
     let products = await productsResponse.json()
 
-    // 🎨 PASO 2.5: Agregar Torta Temática Buttercream (SKU 20) si no está en la categoría
+    // Paso 2.5 ya fue ejecutado en paralelo: procesar resultado de SKU 20
     try {
-      const sku20Response = await fetch(
-        `${wooUrl}/wp-json/wc/v3/products?sku=20&per_page=1&status=publish`,
-        {
-          headers,
-          next: { revalidate: cacheTime }
-        }
-      )
-
       if (sku20Response.ok) {
         const sku20Products = await sku20Response.json()
         if (sku20Products.length > 0) {
           const tortaTematica = sku20Products[0]
-          // Verificar si ya está en la lista (por si está en la categoría)
           const yaExiste = products.some((p: any) => p.id === tortaTematica.id)
           if (!yaExiste) {
             products.push(tortaTematica)
@@ -732,7 +695,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`[WooCommerce Tortas] Obtenidos ${productsWithVariations.length} productos`)
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       categoria: {
         id: tortasCategory.id,
@@ -741,6 +704,13 @@ export async function GET(req: NextRequest) {
       },
       count: productsWithVariations.length,
       products: productsWithVariations,
+    }
+
+    // Guardar en caché server-side para los próximos 2 horas
+    serverCache = { data: responseData, timestamp: Date.now() }
+
+    return NextResponse.json(responseData, {
+      headers: { 'X-Cache': 'MISS' }
     })
   } catch (error) {
     console.error('[WooCommerce Tortas] Error:', error)
