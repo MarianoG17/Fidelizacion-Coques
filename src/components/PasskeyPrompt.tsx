@@ -53,6 +53,7 @@ export default function PasskeyPrompt({ autoHide = true }: PasskeyPromptProps) {
             // Ocultar el banner
             setDismissed(true)
             localStorage.setItem('passkey_prompt_dismissed', 'true')
+            localStorage.setItem('passkey_registered', 'true')
         } catch (err) {
             // El error ya se maneja en el hook
         }
