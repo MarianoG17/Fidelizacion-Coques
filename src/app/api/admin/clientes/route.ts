@@ -34,39 +34,43 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Calcular visitas únicas (por día) para cada cliente
-    const clientesConEstadisticas = await Promise.all(
-      clientes.map(async (cliente) => {
-        // Contar días únicos de visitas reales (sin bonus)
-        const visitasRealesResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
-          SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
-          FROM "EventoScan"
-          WHERE "clienteId" = ${cliente.id}
-            AND "contabilizada" = true
-            AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
-            AND (LOWER("notas") NOT LIKE '%bonus%' OR "notas" IS NULL)
-        `
-        
-        // Contar días únicos de visitas bonus
-        const visitasBonusResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
-          SELECT COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint as count
-          FROM "EventoScan"
-          WHERE "clienteId" = ${cliente.id}
-            AND "contabilizada" = true
-            AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
-            AND LOWER("notas") LIKE '%bonus%'
-        `
+    // Batch: obtener visitas de TODOS los clientes en 1 sola query (en vez de 2 por cliente)
+    const clienteIds = clientes.map(c => c.id)
+    const visitasResult = await prisma.$queryRaw<Array<{
+      clienteId: string
+      esBonus: boolean
+      count: bigint
+    }>>`
+      SELECT
+        "clienteId",
+        (LOWER("notas") LIKE '%bonus%') AS "esBonus",
+        COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint AS count
+      FROM "EventoScan"
+      WHERE "clienteId" = ANY(${clienteIds}::text[])
+        AND "contabilizada" = true
+        AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+      GROUP BY "clienteId", (LOWER("notas") LIKE '%bonus%')
+    `
 
-        const visitasReales = Number(visitasRealesResult[0]?.count || 0)
-        const visitasBonus = Number(visitasBonusResult[0]?.count || 0)
+    // Indexar por clienteId para O(1) lookup
+    const visitasMap = new Map<string, { reales: number; bonus: number }>()
+    for (const row of visitasResult) {
+      if (!visitasMap.has(row.clienteId)) {
+        visitasMap.set(row.clienteId, { reales: 0, bonus: 0 })
+      }
+      const entry = visitasMap.get(row.clienteId)!
+      if (row.esBonus) {
+        entry.bonus = Number(row.count)
+      } else {
+        entry.reales = Number(row.count)
+      }
+    }
 
-        return {
-          ...cliente,
-          visitasReales,
-          visitasBonus,
-        }
-      })
-    )
+    const clientesConEstadisticas = clientes.map(cliente => ({
+      ...cliente,
+      visitasReales: visitasMap.get(cliente.id)?.reales ?? 0,
+      visitasBonus: visitasMap.get(cliente.id)?.bonus ?? 0,
+    }))
 
     return NextResponse.json({ data: clientesConEstadisticas })
   } catch (error) {
