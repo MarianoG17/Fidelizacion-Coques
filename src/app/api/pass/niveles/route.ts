@@ -37,8 +37,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 })
     }
 
-    // Obtener todos los niveles con sus beneficios
-    const niveles = await prisma.nivel.findMany({
+    // Obtener solo niveles visibles (no ocultos) — los VIP se excluyen del progreso público
+    // Excepción: si el cliente tiene un nivel oculto, ese se muestra igual en su pass
+    const nivelesPublicos = await prisma.nivel.findMany({
+      where: { esOculto: false } as any,
       orderBy: { orden: 'asc' },
       select: {
         id: true,
@@ -54,6 +56,10 @@ export async function GET(req: NextRequest) {
         },
       },
     })
+
+    // Si el cliente tiene nivel oculto y no está en la lista, agregarlo solo para "nivelActual"
+    const nivelClienteEsOculto = (cliente.nivel as any)?.esOculto === true
+    const niveles = nivelesPublicos
 
     // Obtener configuración del multiplicador de tortas
     const config = await prisma.configuracionApp.findFirst()
@@ -108,9 +114,9 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // Calcular próximo nivel
-    const nivelActualOrden = cliente.nivel?.orden || 0
-    const proximoNivel = nivelesData.find((n) => n.orden > nivelActualOrden)
+    // Calcular próximo nivel (solo aplica si el cliente NO tiene nivel oculto)
+    const nivelActualOrden = nivelClienteEsOculto ? Infinity : (cliente.nivel?.orden || 0)
+    const proximoNivel = nivelClienteEsOculto ? null : nivelesData.find((n) => n.orden > nivelActualOrden)
 
     let progreso = null
     if (proximoNivel) {

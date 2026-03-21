@@ -24,7 +24,7 @@ export default function AdminNivelesPage() {
   const [niveles, setNiveles] = useState<Nivel[]>([])
   const [cargando, setCargando] = useState(true)
   const [editando, setEditando] = useState<string | null>(null)
-  const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0 })
+  const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false })
 
   const adminKey = typeof window !== 'undefined' ? localStorage.getItem('admin_key') : null
 
@@ -86,6 +86,7 @@ export default function AdminNivelesPage() {
       visitas: nivel.criterios.visitas,
       usosCruzados: nivel.criterios.usosCruzados,
       descuentoPedidosTortas: nivel.descuentoPedidosTortas,
+      esOculto: (nivel as any).esOculto || false,
     })
   }
 
@@ -129,6 +130,7 @@ export default function AdminNivelesPage() {
                   <th className="text-left p-4 text-slate-300 font-semibold">Visitas Req.</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Usos Cruzados</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Descuento Tortas</th>
+                  <th className="text-left p-4 text-slate-300 font-semibold">🔒 Oculto</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Clientes</th>
                   <th className="text-left p-4 text-slate-300 font-semibold">Acciones</th>
                 </tr>
@@ -207,6 +209,26 @@ export default function AdminNivelesPage() {
                       ) : (
                         <span className="px-3 py-1 bg-purple-600 rounded-full text-sm font-semibold">
                           {nivel.descuentoPedidosTortas}%
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {editando === nivel.id ? (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.esOculto}
+                            onChange={(e) => setFormData({ ...formData, esOculto: e.target.checked })}
+                            className="w-4 h-4 accent-yellow-400"
+                          />
+                          <span className="text-xs text-yellow-300">VIP</span>
+                        </label>
+                      ) : (
+                        <span>
+                          {(nivel as any).esOculto
+                            ? <span className="px-2 py-1 bg-yellow-700 text-yellow-200 rounded-full text-xs font-semibold">🔒 VIP</span>
+                            : <span className="text-slate-600 text-xs">—</span>
+                          }
                         </span>
                       )}
                     </td>

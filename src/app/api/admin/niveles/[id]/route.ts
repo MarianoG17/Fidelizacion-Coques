@@ -16,7 +16,7 @@ export async function PATCH(
     try {
         const { id } = params
         const body = await req.json()
-        const { visitas, usosCruzados, descuentoPedidosTortas } = body
+        const { visitas, usosCruzados, descuentoPedidosTortas, esOculto } = body
 
         // Validaciones
         if (
@@ -49,6 +49,10 @@ export async function PATCH(
 
         if (descuentoPedidosTortas !== undefined) {
             updateData.descuentoPedidosTortas = descuentoPedidosTortas
+        }
+
+        if (esOculto !== undefined) {
+            updateData.esOculto = Boolean(esOculto)
         }
 
         const nivel = await prisma.nivel.update({

@@ -195,7 +195,17 @@ export async function evaluarNivel(clienteId: string) {
   const periodoDias = config?.nivelesPeriodoDias || 30
   const tortasMultiplicador = config?.tortasMultiplicador || 3
 
-  const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' } }) // Orden ascendente: Bronce -> Plata -> Oro
+  // Si el cliente tiene un nivel oculto (VIP manual), no evaluar — ese nivel no se mueve automáticamente
+  if ((cliente.nivel as any)?.esOculto) {
+    console.log(`[evaluarNivel] Cliente ${clienteId} tiene nivel oculto (${cliente.nivel?.nombre}), se omite evaluación automática`)
+    return null
+  }
+
+  // Solo niveles visibles (no ocultos) participan de la auto-promoción
+  const niveles = await prisma.nivel.findMany({
+    where: { esOculto: false } as any,
+    orderBy: { orden: 'asc' },
+  }) // Orden ascendente: Bronce -> Plata -> Oro
 
   // Usar timezone Argentina — el servidor corre en UTC (ver APRENDIZAJES.md)
   const hacePeriodo = getHaceNDias(periodoDias)
