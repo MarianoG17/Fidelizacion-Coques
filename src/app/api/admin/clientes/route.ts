@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         fechaCumpleanos: true,
         fuenteConocimiento: true,
         authProvider: true,
+        pushSub: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -68,6 +69,8 @@ export async function GET(req: NextRequest) {
 
     const clientesConEstadisticas = clientes.map(cliente => ({
       ...cliente,
+      tienePush: !!cliente.pushSub,
+      pushSub: undefined, // No exponer la suscripción completa al frontend
       visitasReales: visitasMap.get(cliente.id)?.reales ?? 0,
       visitasBonus: visitasMap.get(cliente.id)?.bonus ?? 0,
     }))

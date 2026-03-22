@@ -18,6 +18,7 @@ interface Cliente {
   fechaCumpleanos: string | null
   fuenteConocimiento: string | null
   authProvider: string | null
+  tienePush: boolean
   createdAt: string
   _count: { eventos: number }
 }
@@ -385,6 +386,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   Auth
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  Push
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Desde
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -466,6 +470,11 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   <td className="p-4">
                     <span className="text-lg" title={cliente.authProvider === 'google' ? 'Google OAuth' : 'Email/Teléfono'}>
                       {getAuthProviderIcon(cliente.authProvider)}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <span className="text-lg" title={cliente.tienePush ? 'Notificaciones push activas' : 'Sin notificaciones push'}>
+                      {cliente.tienePush ? '🔔' : '🔕'}
                     </span>
                   </td>
                   <td className="p-4">
