@@ -184,11 +184,18 @@ export async function GET(req: NextRequest) {
       autosEnDeltaWash.map((a: any) => a.patente.toUpperCase().replace(/[^A-Z0-9]/g, ''))
     )
 
+    // Umbral: autos sin actualización por más de 12 horas se limpian aunque no venga de DeltaWash
+    const HORAS_LIMITE = 12
+    const limiteAntigüedad = new Date(Date.now() - HORAS_LIMITE * 60 * 60 * 1000)
+
     let marcadosEntregados = 0
 
     for (const estadoAuto of autosActivosEnFidelizacion) {
-      if (!patentesEnDeltaWash.has(estadoAuto.auto.patente)) {
-        // Auto ya no está en DeltaWash → marcar como entregado
+      const noEstaEnDeltaWash = !patentesEnDeltaWash.has(estadoAuto.auto.patente)
+      const estadoViejo = estadoAuto.updatedAt < limiteAntigüedad
+
+      if (noEstaEnDeltaWash || estadoViejo) {
+        const razon = noEstaEnDeltaWash ? 'no está en DeltaWash' : `sin actualización por más de ${HORAS_LIMITE}h`
         await prisma.estadoAuto.update({
           where: { id: estadoAuto.id },
           data: {
@@ -197,7 +204,7 @@ export async function GET(req: NextRequest) {
           },
         })
         marcadosEntregados++
-        console.log(`[Sync DeltaWash] Auto ${estadoAuto.auto.patente} marcado como ENTREGADO`)
+        console.log(`[Sync DeltaWash] Auto ${estadoAuto.auto.patente} marcado como ENTREGADO (${razon})`)
       }
     }
 
