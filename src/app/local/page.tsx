@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { ValidacionResult, MesaLayout, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
-import { formatearPatenteDisplay } from '@/lib/patente'
+import { ValidacionResult, MesaLayout, NIVEL_COLORS } from '@/types'
 import VistaSalon from './components/VistaSalon'
 
 const LOCAL_API_KEY = process.env.NEXT_PUBLIC_LOCAL_API_KEY || ''
@@ -988,57 +987,6 @@ export default function LocalPage() {
             </div>
           </div>
 
-          {/* Autos del cliente */}
-          {c.autos && c.autos.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Autos registrados
-              </h3>
-              <div className="space-y-2">
-                {c.autos.map((auto) => (
-                  <div
-                    key={auto.id}
-                    className={`rounded-xl p-3 ${auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
-                      ? 'border-2'
-                      : 'border border-gray-200 bg-gray-50'
-                      }`}
-                    style={
-                      auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO'
-                        ? {
-                          backgroundColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado] + '15',
-                          borderColor: ESTADO_AUTO_COLORS[auto.estadoActual.estado],
-                        }
-                        : {}
-                    }
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {formatearPatenteDisplay(auto.patente)}
-                        </p>
-                        {(auto.marca || auto.modelo) && (
-                          <p className="text-sm text-gray-600">
-                            {[auto.marca, auto.modelo].filter(Boolean).join(' ')}
-                          </p>
-                        )}
-                      </div>
-                      {auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO' && (
-                        <div className="text-right">
-                          <p className="text-xs text-gray-600">En lavadero</p>
-                          <p
-                            className="font-semibold text-sm"
-                            style={{ color: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }}
-                          >
-                            {ESTADO_AUTO_LABELS[auto.estadoActual.estado]}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Beneficios activos - seleccionables */}
           {c.beneficiosActivos.filter((b) => !b.condiciones?.soloApp).length > 0 ? (
