@@ -37,6 +37,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [maxPorDia, setMaxPorDia] = useState<number>(1)
   const [usoUnico, setUsoUnico] = useState(false)
   const [noCombinableConNivel, setNoCombinableConNivel] = useState(false)
+  const [grupoExclusivo, setGrupoExclusivo] = useState('')
   const [activo, setActivo] = useState(true)
   const [nivelesSeleccionados, setNivelesSeleccionados] = useState<string[]>([])
   const [niveles, setNiveles] = useState<Nivel[]>([])
@@ -68,6 +69,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       const condiciones = (beneficio as any).condiciones
       if (condiciones) {
         setNoCombinableConNivel(condiciones.noCombinableConNivel || false)
+        setGrupoExclusivo(condiciones.grupoExclusivo || '')
         if (condiciones.requiereFechaCumpleanos) {
           setEsBeneficioCumpleanos(true)
           setDiasAntes(condiciones.diasAntes || 3)
@@ -138,6 +140,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         maxPorDia,
         usoUnico,
         noCombinableConNivel,
+        ...(grupoExclusivo.trim() ? { grupoExclusivo: grupoExclusivo.trim() } : {}),
       }
 
       // Si es tipo descuento, agregar el campo descuento
@@ -408,6 +411,23 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
           <p className="text-xs text-slate-500 -mt-4">
             Si está marcado, cuando este beneficio esté activo no se aplicará el descuento por nivel en el carrito
           </p>
+
+          {/* Grupo exclusivo */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              🔒 Grupo exclusivo <span className="text-slate-500 font-normal">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              value={grupoExclusivo}
+              onChange={(e) => setGrupoExclusivo(e.target.value)}
+              placeholder="Ej: cafe, descuento-general"
+              className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 placeholder-slate-500"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Si dos beneficios activos tienen el mismo grupo, solo se muestra el de mayor descuento. Útil para evitar que el beneficio del lavadero y el del nivel se apliquen juntos.
+            </p>
+          </div>
 
           {/* Configuración de Beneficio de Cumpleaños */}
           <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-500/30 rounded-xl p-4">

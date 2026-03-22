@@ -175,7 +175,32 @@ export async function getBeneficiosActivos(clienteId: string) {
     })
   )
 
-  return beneficiosActivos.filter(Boolean)
+  const activos = beneficiosActivos.filter(Boolean)
+
+  // Deduplicar por grupoExclusivo: si dos beneficios activos tienen el mismo grupo,
+  // solo mostrar el de mayor descuento (condiciones.descuento o condiciones.porcentajeDescuento)
+  const porGrupo = new Map<string, any>()
+  const sinGrupo: any[] = []
+
+  for (const b of activos) {
+    const grupo = (b.condiciones as any)?.grupoExclusivo
+    if (!grupo) {
+      sinGrupo.push(b)
+      continue
+    }
+    const existente = porGrupo.get(grupo)
+    if (!existente) {
+      porGrupo.set(grupo, b)
+    } else {
+      const descB = (b.condiciones as any)?.descuento || (b.condiciones as any)?.porcentajeDescuento / 100 || 0
+      const descExistente = (existente.condiciones as any)?.descuento || (existente.condiciones as any)?.porcentajeDescuento / 100 || 0
+      if (descB > descExistente) {
+        porGrupo.set(grupo, b)
+      }
+    }
+  }
+
+  return [...sinGrupo, ...Array.from(porGrupo.values())]
 }
 
 /**

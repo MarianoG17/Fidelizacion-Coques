@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
                 usosTotal: beneficio._count.eventos,
                 createdAt: beneficio.createdAt,
                 updatedAt: beneficio.updatedAt,
+                condiciones, // exponer condiciones completo para que el form pueda leer grupoExclusivo y otros campos
             }
         })
 
