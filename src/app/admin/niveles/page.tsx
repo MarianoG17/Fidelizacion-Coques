@@ -25,6 +25,9 @@ export default function AdminNivelesPage() {
   const [cargando, setCargando] = useState(true)
   const [editando, setEditando] = useState<string | null>(null)
   const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false })
+  const [mostrarCrear, setMostrarCrear] = useState(false)
+  const [nuevoNivel, setNuevoNivel] = useState({ nombre: '', descripcionBeneficios: '', visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false })
+  const [creando, setCreando] = useState(false)
 
   const adminKey = typeof window !== 'undefined' ? localStorage.getItem('admin_key') : null
 
@@ -80,6 +83,31 @@ export default function AdminNivelesPage() {
     }
   }
 
+  async function crearNivel() {
+    if (!nuevoNivel.nombre.trim()) return alert('El nombre es requerido')
+    setCreando(true)
+    try {
+      const res = await fetch('/api/admin/niveles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey! },
+        body: JSON.stringify(nuevoNivel),
+      })
+      if (res.ok) {
+        await fetchNiveles()
+        setMostrarCrear(false)
+        setNuevoNivel({ nombre: '', descripcionBeneficios: '', visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false })
+        alert('Nivel creado exitosamente')
+      } else {
+        const error = await res.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (e) {
+      alert('Error al crear nivel')
+    } finally {
+      setCreando(false)
+    }
+  }
+
   function iniciarEdicion(nivel: Nivel) {
     setEditando(nivel.id)
     setFormData({
@@ -118,6 +146,93 @@ export default function AdminNivelesPage() {
             entre distintos locales.
           </p>
         </div>
+
+        {/* Botón crear nivel */}
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() => setMostrarCrear(!mostrarCrear)}
+            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+          >
+            {mostrarCrear ? 'Cancelar' : '+ Crear nivel'}
+          </button>
+        </div>
+
+        {/* Formulario de creación */}
+        {mostrarCrear && (
+          <div className="bg-slate-800 rounded-2xl p-6 mb-6 border border-green-600">
+            <h3 className="text-lg font-bold mb-4 text-green-400">Nuevo Nivel</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Nombre *</label>
+                <input
+                  type="text"
+                  value={nuevoNivel.nombre}
+                  onChange={(e) => setNuevoNivel({ ...nuevoNivel, nombre: e.target.value })}
+                  placeholder="ej: Diamante"
+                  className="w-full bg-slate-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Descripción de beneficios</label>
+                <input
+                  type="text"
+                  value={nuevoNivel.descripcionBeneficios}
+                  onChange={(e) => setNuevoNivel({ ...nuevoNivel, descripcionBeneficios: e.target.value })}
+                  placeholder="ej: Beneficios exclusivos"
+                  className="w-full bg-slate-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Visitas requeridas</label>
+                <input
+                  type="number" min="0"
+                  value={nuevoNivel.visitas}
+                  onChange={(e) => setNuevoNivel({ ...nuevoNivel, visitas: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-slate-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Usos cruzados</label>
+                <input
+                  type="number" min="0"
+                  value={nuevoNivel.usosCruzados}
+                  onChange={(e) => setNuevoNivel({ ...nuevoNivel, usosCruzados: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-slate-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Descuento tortas (%)</label>
+                <input
+                  type="number" min="0" max="100"
+                  value={nuevoNivel.descuentoPedidosTortas}
+                  onChange={(e) => setNuevoNivel({ ...nuevoNivel, descuentoPedidosTortas: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-slate-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+              <div className="flex items-center gap-3 mt-4">
+                <input
+                  type="checkbox"
+                  id="nuevoEsOculto"
+                  checked={nuevoNivel.esOculto}
+                  onChange={(e) => setNuevoNivel({ ...nuevoNivel, esOculto: e.target.checked })}
+                  className="w-4 h-4 accent-yellow-400"
+                />
+                <label htmlFor="nuevoEsOculto" className="text-sm text-yellow-300 cursor-pointer">
+                  🔒 Nivel VIP oculto (solo visible para quien lo tiene)
+                </label>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={crearNivel}
+                disabled={creando}
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 rounded-lg text-sm font-semibold transition"
+              >
+                {creando ? 'Creando...' : 'Crear nivel'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Tabla de niveles */}
         <div className="bg-slate-800 rounded-2xl overflow-hidden shadow-xl">
