@@ -50,6 +50,9 @@ export async function GET(req: NextRequest) {
         descuentoPedidosTortas: true,
         criterios: true,
         beneficios: {
+          where: {
+            beneficio: { activo: true },
+          },
           include: {
             beneficio: true,
           },
