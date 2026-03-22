@@ -35,28 +35,31 @@ export async function getBeneficiosActivos(clienteId: string) {
     beneficiosDelNivel.map(async (beneficio: any) => {
       if (!beneficio.activo) return null
 
-      // Si requiere estado externo, verificar que al menos un auto esté en ese estado
+      // Si requiere estado externo, verificar condiciones según el tipo de beneficio
       if (beneficio.requiereEstadoExterno) {
-        // Para beneficio de lavadero, activar cuando el auto está EN_PROCESO o LISTO
-        // (ambos estados indican que el auto está en el lavadero)
-        const estadosValidos = beneficio.id === 'beneficio-20porciento-lavadero'
-          ? ['EN_PROCESO', 'LISTO']
-          : [beneficio.estadoExternoTrigger]
-
-        const autoConEstado = cliente.autos?.find(
-          (auto: any) => auto.estadoActual && estadosValidos.includes(auto.estadoActual.estado)
-        )
-        if (!autoConEstado) return null
-
-        // Para beneficio de lavadero, verificar que no pasó de las 19:00
         if (beneficio.id === 'beneficio-20porciento-lavadero') {
+          // Beneficio lavadero: activo durante todo el día que el auto estuvo en el lavadero, hasta las 19:00
+          // (incluye ENTREGADO — si el auto pasó por el lavadero hoy, el beneficio dura todo el día)
           const ahora = new Date()
           const cierreHoy = new Date(ahora)
-          cierreHoy.setHours(19, 0, 0, 0) // 19:00 Argentina
+          cierreHoy.setHours(19, 0, 0, 0)
+          if (ahora > cierreHoy) return null
 
-          if (ahora > cierreHoy) {
-            return null // Ya cerró el local, beneficio expirado
-          }
+          const estadosLavadero = ['RECIBIDO', 'EN_LAVADO', 'EN_SECADO', 'EN_PROCESO', 'LISTO', 'ENTREGADO']
+          const inicioHoy = getInicioHoyArgentina()
+          const autoLavadoHoy = cliente.autos?.find(
+            (auto: any) =>
+              auto.estadoActual &&
+              estadosLavadero.includes(auto.estadoActual.estado) &&
+              new Date(auto.estadoActual.updatedAt) >= inicioHoy
+          )
+          if (!autoLavadoHoy) return null
+        } else {
+          // Otros beneficios con estado externo: verificar estado actual exacto
+          const autoConEstado = cliente.autos?.find(
+            (auto: any) => auto.estadoActual && auto.estadoActual.estado === beneficio.estadoExternoTrigger
+          )
+          if (!autoConEstado) return null
         }
       }
 
