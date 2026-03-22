@@ -626,9 +626,15 @@ export default function PassPage() {
                   <h3 className="text-xl font-bold text-white mb-1">
                     Realizá tu pedido
                   </h3>
-                  <p className="text-white/90 text-sm">
-                    Pedí tu torta favorita online
-                  </p>
+                  {pass.nivel?.descuentoPedidosTortas && pass.nivel.descuentoPedidosTortas > 0 ? (
+                    <p className="text-white font-semibold text-sm bg-white/20 rounded-lg px-2 py-0.5 inline-block">
+                      🎁 {pass.nivel.descuentoPedidosTortas}% off por ser nivel {pass.nivel.nombre}
+                    </p>
+                  ) : (
+                    <p className="text-white/90 text-sm">
+                      Pedí tu torta favorita online
+                    </p>
+                  )}
                 </div>
               </div>
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

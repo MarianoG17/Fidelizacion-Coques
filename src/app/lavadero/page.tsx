@@ -38,7 +38,7 @@ export default function LavaderoPage() {
   const [autosActivos, setAutosActivos] = useState<AutoActivo[]>([])
   const [mostrarScanner, setMostrarScanner] = useState(false)
 
-  // Verificar autenticación al cargar
+  // Verificar autenticación y cargar autos activos al montar
   useEffect(() => {
     const token = localStorage.getItem('empleado_token')
     if (!token) {
@@ -47,7 +47,22 @@ export default function LavaderoPage() {
     }
     setAuthenticated(true)
     setLoading(false)
+    cargarAutosActivos()
   }, [router])
+
+  async function cargarAutosActivos() {
+    try {
+      const res = await fetch('/api/estados-auto?activos=true', {
+        headers: { 'x-api-key': LAVADERO_API_KEY },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setAutosActivos(json.data || [])
+      }
+    } catch {
+      // silencioso — si falla, el panel sigue funcionando vacío
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('empleado_token')

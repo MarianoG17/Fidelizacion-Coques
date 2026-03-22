@@ -150,11 +150,46 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/estados-auto?clienteId=... — obtener todos los autos del cliente
+// GET /api/estados-auto — dos modos:
+//   ?activos=true → lista todos los autos EN_PROCESO o LISTO del lavadero autenticado
+//   ?clienteId=... / ?phone=... → autos del cliente
 export async function GET(req: NextRequest) {
   try {
     const clienteId = req.nextUrl.searchParams.get('clienteId')
     const phone = req.nextUrl.searchParams.get('phone')
+    const activos = req.nextUrl.searchParams.get('activos')
+
+    // Modo lavadero: listar autos activos para poblar el panel al cargar
+    if (activos === 'true') {
+      const local = await requireLavaderoAuth(req)
+      if (!local) return unauthorized('API Key inválida o no es lavadero')
+
+      const estadosActivos = await prisma.estadoAuto.findMany({
+        where: {
+          estado: { in: ['EN_PROCESO', 'LISTO'] },
+          localOrigenId: local.id,
+        },
+        include: {
+          auto: {
+            include: {
+              cliente: { select: { phone: true, nombre: true } },
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      })
+
+      const data = estadosActivos.map((ea) => ({
+        phone: ea.auto.cliente.phone,
+        nombre: ea.auto.cliente.nombre,
+        patente: ea.auto.patente,
+        marca: ea.auto.marca,
+        modelo: ea.auto.modelo,
+        estado: ea.estado,
+      }))
+
+      return NextResponse.json({ data })
+    }
 
     if (!clienteId && !phone) return badRequest('Se requiere clienteId o phone')
 
