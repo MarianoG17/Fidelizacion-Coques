@@ -17,7 +17,9 @@ const registerSchema = z.object({
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   nombre: z.string().min(1, 'El nombre es requerido'),
   phone: z.string().regex(/^\d{10}$/, 'Teléfono inválido (formato: 1112345678)'),
-  codigoReferido: z.string().optional(), // Código de referido opcional
+  codigoReferido: z.string().optional(),
+  fuenteConocimiento: z.string().optional(), // Ej: "FORZA", "Instagram", etc.
+  nivelNombre: z.string().optional(),        // Ej: "Plata" — nivel inicial personalizado
 })
 
 export async function POST(req: NextRequest) {
@@ -74,6 +76,13 @@ export async function POST(req: NextRequest) {
         await prisma.nivel.findFirst({ where: { orden: 1 } })
       : await prisma.nivel.findFirst({ where: { orden: 1 } })
 
+    // Si se pide un nivel específico (ej: QR de FORZA con nivel=plata), usarlo
+    const nivelFinal = validatedData.nivelNombre
+      ? (await prisma.nivel.findFirst({
+          where: { nombre: { equals: validatedData.nivelNombre, mode: 'insensitive' } },
+        })) ?? nivelBronce
+      : nivelBronce
+
     // Buscar el cliente que refirió si hay código
     let referidoPorId: string | undefined
     if (validatedData.codigoReferido) {
@@ -102,7 +111,8 @@ export async function POST(req: NextRequest) {
         fuenteOrigen: 'AUTOREGISTRO',
         consentimientoAt: new Date(),
         otpSecret,
-        nivelId: nivelBronce?.id, // Asignar nivel Bronce desde el registro
+        nivelId: nivelFinal?.id,
+        fuenteConocimiento: validatedData.fuenteConocimiento || null,
         codigoReferido: codigoReferidoCliente, // Código único para compartir
         referidoPorId, // ID del cliente que lo refirió (si existe)
       },

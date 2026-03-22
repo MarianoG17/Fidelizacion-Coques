@@ -21,6 +21,8 @@ function ActivarContent() {
   const [codigoReferido, setCodigoReferido] = useState<string | null>(null)
   const [referidorNombre, setReferidorNombre] = useState<string | null>(null)
   const [codigoInvalido, setCodigoInvalido] = useState(false)
+  const [fuenteQR, setFuenteQR] = useState<string | null>(null)
+  const [nivelQR, setNivelQR] = useState<string | null>(null)
   const [cargandoReferido, setCargandoReferido] = useState(false)
   const [soportaPasskey, setSoportaPasskey] = useState(false)
   const [passkeyError, setPasskeyError] = useState('')
@@ -52,6 +54,14 @@ function ActivarContent() {
         setCodigoReferido(ref)
       })
       .finally(() => setCargandoReferido(false))
+  }, [searchParams])
+
+  // Leer parámetros de QR personalizado (fuente y nivel)
+  useEffect(() => {
+    const fuente = searchParams.get('fuente')
+    const nivel = searchParams.get('nivel')
+    if (fuente) setFuenteQR(fuente)
+    if (nivel) setNivelQR(nivel)
   }, [searchParams])
 
   // Verificar soporte de passkey en el dispositivo
@@ -100,6 +110,8 @@ function ActivarContent() {
           nombre: nombre.trim(),
           phone: phoneFormatted,
           codigoReferido: codigoReferido || undefined,
+          fuenteConocimiento: fuenteQR || undefined,
+          nivelNombre: nivelQR || undefined,
         }),
       })
 
@@ -276,6 +288,21 @@ function ActivarContent() {
             Acumulá beneficios en Coques y el Lavadero
           </p>
         </div>
+
+        {/* Banner QR personalizado (ej: FORZA) */}
+        {fuenteQR && (
+          <div className="bg-gradient-to-r from-slate-700 to-slate-900 rounded-2xl p-5 mb-6 shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🏋️</span>
+              <div>
+                <p className="text-white font-bold text-lg">¡Bienvenido desde {fuenteQR}!</p>
+                <p className="text-white/80 text-sm">
+                  {nivelQR ? `Vas a arrancar como miembro nivel ${nivelQR.charAt(0).toUpperCase() + nivelQR.slice(1)}` : 'Registrate y empezá a acumular beneficios'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Banner de carga de referido */}
         {cargandoReferido && (
