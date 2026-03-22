@@ -1,7 +1,7 @@
 ﻿// Service Worker para PWA - Fidelización Zona
 // ✅ OPTIMIZACIÓN: v9 con estrategia mejorada
-const CACHE_NAME = 'fidelizacion-zona-v11'
-const ICON_VERSION = 'v11'
+const CACHE_NAME = 'fidelizacion-zona-v12'
+const ICON_VERSION = 'v12'
 
 // Recursos críticos (bloquean instalación si fallan)
 const CRITICAL_ASSETS = [
@@ -13,15 +13,15 @@ const CRITICAL_ASSETS = [
 
 // Recursos no críticos (no bloquean instalación)
 const NON_CRITICAL_ASSETS = [
-    `/icon-192x192-v2.png?v=${ICON_VERSION}`,
-    `/icon-512x512-v2.png?v=${ICON_VERSION}`,
+    `/icon-192x192-v3.png?v=${ICON_VERSION}`,
+    `/icon-512x512-v3.png?v=${ICON_VERSION}`,
     '/activar',
     '/local'
 ]
 
 // ✅ OPTIMIZACIÓN: Instalación mejorada sin bloqueos
 self.addEventListener('install', (event) => {
-    console.log('🔧 SW: Installing v11...')
+    console.log('🔧 SW: Installing v12...')
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             // Cachear críticos (bloquea si falla)
@@ -127,8 +127,8 @@ self.addEventListener('push', (event) => {
     const data = event.data.json()
     const options = {
         body: data.body || 'Nuevo mensaje de Coques',
-        icon: '/icon-192x192-v2.png',
-        badge: '/icon-192x192-v2.png',
+        icon: '/icon-192x192-v3.png',
+        badge: '/icon-192x192-v3.png',
         vibrate: [200, 100, 200],
         tag: data.tag || 'notification',
         data: data.data || {},

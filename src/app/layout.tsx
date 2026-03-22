@@ -50,9 +50,9 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
 
         {/* Icons */}
-        <link rel="icon" href="/icon-192x192-v2.png" sizes="192x192" type="image/png" />
-        <link rel="icon" href="/icon-512x512-v2.png" sizes="512x512" type="image/png" />
-        <link rel="apple-touch-icon" href="/icon-192x192-v2.png" />
+        <link rel="icon" href="/icon-192x192-v3.png" sizes="192x192" type="image/png" />
+        <link rel="icon" href="/icon-512x512-v3.png" sizes="512x512" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon-192x192-v3.png" />
 
         {/* Apple Web App */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
