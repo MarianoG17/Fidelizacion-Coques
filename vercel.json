@@ -3,10 +3,6 @@
     {
       "path": "/api/jobs/notificaciones-cumpleanos",
       "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/jobs/sincronizar-deltawash",
-      "schedule": "0 * * * *"
     }
   ]
 }
