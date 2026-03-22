@@ -38,6 +38,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [usoUnico, setUsoUnico] = useState(false)
   const [noCombinableConNivel, setNoCombinableConNivel] = useState(false)
   const [grupoExclusivo, setGrupoExclusivo] = useState('')
+  const [soloApp, setSoloApp] = useState(false)
   const [activo, setActivo] = useState(true)
   const [nivelesSeleccionados, setNivelesSeleccionados] = useState<string[]>([])
   const [niveles, setNiveles] = useState<Nivel[]>([])
@@ -70,6 +71,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       if (condiciones) {
         setNoCombinableConNivel(condiciones.noCombinableConNivel || false)
         setGrupoExclusivo(condiciones.grupoExclusivo || '')
+        setSoloApp(condiciones.soloApp || false)
         if (condiciones.requiereFechaCumpleanos) {
           setEsBeneficioCumpleanos(true)
           setDiasAntes(condiciones.diasAntes || 3)
@@ -140,6 +142,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         maxPorDia,
         usoUnico,
         noCombinableConNivel,
+        soloApp,
         ...(grupoExclusivo.trim() ? { grupoExclusivo: grupoExclusivo.trim() } : {}),
       }
 
@@ -428,6 +431,23 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
               Si dos beneficios activos tienen el mismo grupo, solo se muestra el de mayor descuento. Útil para evitar que el beneficio del lavadero y el del nivel se apliquen juntos.
             </p>
           </div>
+
+          {/* Solo disponible desde la app */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="soloApp"
+              checked={soloApp}
+              onChange={(e) => setSoloApp(e.target.checked)}
+              className="w-5 h-5 rounded bg-slate-700 border-slate-600 accent-blue-500"
+            />
+            <label htmlFor="soloApp" className="text-slate-300 font-medium">
+              📱 Solo disponible desde la app
+            </label>
+          </div>
+          <p className="text-xs text-slate-500 -mt-4">
+            Si está marcado, este beneficio no aparece en la vista de escaneo del staff. Solo el cliente puede verlo y canjearlo desde la app.
+          </p>
 
           {/* Configuración de Beneficio de Cumpleaños */}
           <div className="bg-gradient-to-r from-pink-900/20 to-purple-900/20 border border-pink-500/30 rounded-xl p-4">

@@ -24,7 +24,7 @@ export default function AdminNivelesPage() {
   const [niveles, setNiveles] = useState<Nivel[]>([])
   const [cargando, setCargando] = useState(true)
   const [editando, setEditando] = useState<string | null>(null)
-  const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false })
+  const [formData, setFormData] = useState({ visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false, descripcionBeneficios: '' })
   const [mostrarCrear, setMostrarCrear] = useState(false)
   const [nuevoNivel, setNuevoNivel] = useState({ nombre: '', descripcionBeneficios: '', visitas: 0, usosCruzados: 0, descuentoPedidosTortas: 0, esOculto: false })
   const [creando, setCreando] = useState(false)
@@ -115,6 +115,7 @@ export default function AdminNivelesPage() {
       usosCruzados: nivel.criterios.usosCruzados,
       descuentoPedidosTortas: nivel.descuentoPedidosTortas,
       esOculto: (nivel as any).esOculto || false,
+      descripcionBeneficios: nivel.descripcionBeneficios || '',
     })
   }
 
@@ -259,9 +260,19 @@ export default function AdminNivelesPage() {
                     <td className="p-4">
                       <div>
                         <p className="text-white font-semibold">{nivel.nombre}</p>
-                        <p className="text-slate-400 text-sm">
-                          {nivel.descripcionBeneficios}
-                        </p>
+                        {editando === nivel.id ? (
+                          <textarea
+                            value={formData.descripcionBeneficios}
+                            onChange={(e) => setFormData({ ...formData, descripcionBeneficios: e.target.value })}
+                            rows={3}
+                            placeholder="Descripción de beneficios del nivel"
+                            className="w-full mt-1 bg-slate-700 rounded px-2 py-1 text-white text-sm resize-none"
+                          />
+                        ) : (
+                          <p className="text-slate-400 text-sm whitespace-pre-line">
+                            {nivel.descripcionBeneficios}
+                          </p>
+                        )}
                       </div>
                     </td>
                     <td className="p-4">
