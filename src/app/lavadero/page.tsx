@@ -79,8 +79,9 @@ export default function LavaderoPage() {
     setCargando(true)
     setMensaje('')
 
-    // Solo números, sin prefijo +549
-    const phoneFormatted = phoneTarget.replace(/\D/g, '')
+    // Enviar el teléfono tal como viene (E.164 desde DB o dígitos del form manual)
+    // La API normaliza internamente con toE164()
+    const phoneFormatted = phoneTarget.trim()
 
     const patenteNormalizada = normalizarPatente(patenteTarget)
 

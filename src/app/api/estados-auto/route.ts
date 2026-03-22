@@ -6,12 +6,13 @@ import { requireLavaderoAuth, unauthorized, badRequest, serverError } from '@/li
 import { triggerBeneficiosPorEstado } from '@/lib/beneficios'
 import { EstadoAutoEnum } from '@prisma/client'
 import { normalizarPatente } from '@/lib/patente'
+import { toE164 } from '@/lib/phone'
 
 export const dynamic = 'force-dynamic'
 
 const updateEstadoSchema = z.object({
-  phone: z.string().regex(/^\+[1-9]\d{7,14}$/),
-  patente: z.string().min(1, 'Patente es requerida'),  // ahora es obligatoria
+  phone: z.string().min(1, 'Teléfono es requerido'), // acepta cualquier formato, se normaliza abajo
+  patente: z.string().min(1, 'Patente es requerida'),
   estado: z.enum(['RECIBIDO', 'EN_LAVADO', 'EN_SECADO', 'LISTO', 'ENTREGADO']),
   marca: z.string().optional(),
   modelo: z.string().optional(),
@@ -32,13 +33,21 @@ export async function POST(req: NextRequest) {
 
     const { phone, estado, patente, marca, modelo, notas } = parsed.data
 
+    // Normalizar teléfono a E.164
+    let phoneE164: string
+    try {
+      phoneE164 = toE164(phone)
+    } catch {
+      return badRequest('Teléfono inválido')
+    }
+
     // Normalizar patente
     const patenteNormalizada = normalizarPatente(patente)
     if (!patenteNormalizada) return badRequest('Patente inválida')
 
     // Buscar cliente por teléfono
     const cliente = await prisma.cliente.findUnique({
-      where: { phone },
+      where: { phone: phoneE164 },
     })
 
     if (!cliente) {
