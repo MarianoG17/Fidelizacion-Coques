@@ -345,7 +345,8 @@ export async function evaluarNivel(clienteId: string) {
       const config = await prisma.configuracionApp.findFirst()
       if (config?.pushNuevoNivel && config.pushHabilitado) {
         try {
-          const nivelIcono = siguienteNivel.nombre === 'Oro' ? '🥇' : siguienteNivel.nombre === 'Plata' ? '🥈' : '🥉'
+          const nivelIconos: Record<string, string> = { 'Oro': '🥇', 'Plata': '🥈', 'Bronce': '🥉' }
+          const nivelIcono = nivelIconos[siguienteNivel.nombre] || '🎖️'
           await sendPushNotification(cliente.pushSub, {
             title: `${nivelIcono} ¡Subiste a nivel ${siguienteNivel.nombre}!`,
             body: `¡Felicitaciones! Alcanzaste el nivel ${siguienteNivel.nombre} y desbloqueaste nuevos beneficios exclusivos.`,
@@ -356,6 +357,10 @@ export async function evaluarNivel(clienteId: string) {
               type: 'nuevo_nivel',
               nivelId: siguienteNivel.id
             }
+          }, {
+            clienteId,
+            tipo: 'NUEVO_NIVEL',
+            metadata: { nivelId: siguienteNivel.id, nivelNombre: siguienteNivel.nombre },
           })
           console.log(`[evaluarNivel] ✅ Push notification enviada: Nuevo nivel ${siguienteNivel.nombre}`)
         } catch (error) {

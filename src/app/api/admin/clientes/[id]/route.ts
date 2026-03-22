@@ -169,6 +169,10 @@ export async function PATCH(
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
             data: { url: '/logros', type: 'nuevo_nivel', nivelId },
+          }, {
+            clienteId: id,
+            tipo: 'NUEVO_NIVEL',
+            metadata: { nivelId, nivelNombre: nuevoNivel?.nombre },
           })
         }
       } catch (pushError) {
