@@ -23,6 +23,7 @@ export interface PassData {
     nombre: string
     orden: number
     descripcionBeneficios?: string
+    descuentoPedidosTortas?: number
   } | null
   beneficiosActivos: BeneficioActivo[]
   autos: AutoData[]  // todos los autos del cliente
