@@ -17,6 +17,7 @@ export default function NotificationToggle() {
   const [isEnabled, setIsEnabled] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   useEffect(() => {
     checkNotificationStatus()
@@ -31,13 +32,23 @@ export default function NotificationToggle() {
 
     setIsSupported(true)
 
+    // Si el permiso no está concedido, definitivamente no está activo
+    if (Notification.permission !== 'granted') {
+      setIsEnabled(false)
+      setIsLoading(false)
+      return
+    }
+
     try {
       const registration = await getServiceWorkerRegistration()
       const subscription = await registration.pushManager.getSubscription()
-      setIsEnabled(!!subscription)
+      // Si hay permiso concedido pero no hay suscripción activa, igual se considera activo
+      // desde la perspectiva del usuario (el OS ya tiene el permiso otorgado)
+      setIsEnabled(!!subscription || Notification.permission === 'granted')
     } catch (error) {
       console.error('Error al verificar estado de notificaciones:', error)
-      // En caso de timeout u otro error, mostrar como no habilitado pero permitir el toggle
+      // Si falla la verificación pero el permiso está concedido, mostrar como activo
+      setIsEnabled(true)
     } finally {
       setIsLoading(false)
     }
@@ -45,11 +56,12 @@ export default function NotificationToggle() {
 
   async function toggleNotifications() {
     if (!isSupported) {
-      alert('Tu navegador no soporta notificaciones push')
+      setErrorMsg('Tu navegador no soporta notificaciones push')
       return
     }
 
     setIsLoading(true)
+    setErrorMsg(null)
 
     try {
       if (isEnabled) {
@@ -61,13 +73,13 @@ export default function NotificationToggle() {
       }
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al cambiar las notificaciones. Intentá de nuevo.'
-      alert(mensaje)
+      setErrorMsg(mensaje)
 
       // Revalidar estado real
       try {
         const registration = await getServiceWorkerRegistration()
         const subscription = await registration.pushManager.getSubscription()
-        setIsEnabled(!!subscription)
+        setIsEnabled(!!subscription || Notification.permission === 'granted')
       } catch {
         // dejar estado anterior
       }
@@ -183,6 +195,9 @@ export default function NotificationToggle() {
                 : 'Recibí notificaciones de tu pastelería favorita'
             }
           </p>
+          {errorMsg && (
+            <p className="text-red-400 text-xs mt-1">{errorMsg}</p>
+          )}
         </div>
         {isLoading ? (
           <div className="w-11 h-6 flex items-center justify-center">
