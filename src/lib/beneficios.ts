@@ -340,28 +340,45 @@ export async function evaluarNivel(clienteId: string) {
     })
     console.log(`[evaluarNivel] 🔺 Cliente ${clienteId} SUBIÓ a nivel ${siguienteNivel.nombre} (${visitasRecientes} visitas, ${usosCruzados} usos cruzados, ${referidosActuales} referidos, perfil: ${perfilCompleto ? 'completo' : 'incompleto'})`)
 
-    // Enviar push notification si está habilitado
+    // Siempre guardar en BD para que aparezca en la campanita
+    const nivelIconos: Record<string, string> = { 'Oro': '🥇', 'Plata': '🥈', 'Bronce': '🥉' }
+    const nivelIcono = nivelIconos[siguienteNivel.nombre] || '🎖️'
+    const tituloNivel = `${nivelIcono} ¡Subiste a nivel ${siguienteNivel.nombre}!`
+    const cuerpoNivel = `¡Felicitaciones! Alcanzaste el nivel ${siguienteNivel.nombre} y desbloqueaste nuevos beneficios exclusivos.`
+    let notifNivelId: string | undefined
+    try {
+      const notif = await prisma.notificacion.create({
+        data: {
+          clienteId,
+          titulo: tituloNivel,
+          cuerpo: cuerpoNivel,
+          tipo: 'NUEVO_NIVEL',
+          url: '/logros',
+          enviada: false,
+          leida: false,
+          metadata: { nivelId: siguienteNivel.id, nivelNombre: siguienteNivel.nombre },
+        } as any,
+      })
+      notifNivelId = notif.id
+    } catch (e) {
+      console.error('[evaluarNivel] Error al guardar notificación:', e)
+    }
+
+    // Solo enviar push si tiene suscripción activa
     if (cliente.pushSub) {
       const config = await prisma.configuracionApp.findFirst()
       if (config?.pushNuevoNivel && config.pushHabilitado) {
         try {
-          const nivelIconos: Record<string, string> = { 'Oro': '🥇', 'Plata': '🥈', 'Bronce': '🥉' }
-          const nivelIcono = nivelIconos[siguienteNivel.nombre] || '🎖️'
-          await sendPushNotification(cliente.pushSub, {
-            title: `${nivelIcono} ¡Subiste a nivel ${siguienteNivel.nombre}!`,
-            body: `¡Felicitaciones! Alcanzaste el nivel ${siguienteNivel.nombre} y desbloqueaste nuevos beneficios exclusivos.`,
+          const enviado = await sendPushNotification(cliente.pushSub, {
+            title: tituloNivel,
+            body: cuerpoNivel,
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
-            data: {
-              url: '/logros',
-              type: 'nuevo_nivel',
-              nivelId: siguienteNivel.id
-            }
-          }, {
-            clienteId,
-            tipo: 'NUEVO_NIVEL',
-            metadata: { nivelId: siguienteNivel.id, nivelNombre: siguienteNivel.nombre },
+            data: { url: '/logros', type: 'nuevo_nivel', nivelId: siguienteNivel.id }
           })
+          if (enviado && notifNivelId) {
+            await prisma.notificacion.update({ where: { id: notifNivelId }, data: { enviada: true } })
+          }
           console.log(`[evaluarNivel] ✅ Push notification enviada: Nuevo nivel ${siguienteNivel.nombre}`)
         } catch (error) {
           console.error('[evaluarNivel] Error enviando push:', error)

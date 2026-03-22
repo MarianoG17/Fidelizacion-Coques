@@ -56,7 +56,6 @@ export async function GET(req: Request) {
           SELECT id, nombre, "fechaCumpleanos", "pushSub"
           FROM "Cliente"
           WHERE "fechaCumpleanos" IS NOT NULL
-            AND "pushSub" IS NOT NULL
             AND EXTRACT(MONTH FROM "fechaCumpleanos") = ${mes3Dias}
             AND EXTRACT(DAY FROM "fechaCumpleanos") = ${dia3Dias}
         `
@@ -71,7 +70,6 @@ export async function GET(req: Request) {
           SELECT id, nombre, "fechaCumpleanos", "pushSub"
           FROM "Cliente"
           WHERE "fechaCumpleanos" IS NOT NULL
-            AND "pushSub" IS NOT NULL
             AND EXTRACT(MONTH FROM "fechaCumpleanos") = ${mesHoy}
             AND EXTRACT(DAY FROM "fechaCumpleanos") = ${diaHoy}
         `
@@ -166,17 +164,15 @@ export async function GET(req: Request) {
                     }
                 })
 
-                const pushEnviado = await sendPushNotification(cliente.pushSub, {
-                    title: '🎁 Tu beneficio de cumpleaños está disponible',
-                    body: `¡Ya podés disfrutar tu ${porcentaje}% de descuento durante ${diasTotales} días! 🎉`,
-                    url: '/pass',
-                    icon: '/icon-192x192-v2.png',
-                    badge: '/icon-192x192-v2.png'
-                }, {
-                    clienteId: cliente.id,
-                    tipo: 'CUMPLEANOS_INICIO',
-                    metadata: { beneficioId: beneficioCumpleanos.id }
-                })
+                const pushEnviado = cliente.pushSub
+                    ? await sendPushNotification(cliente.pushSub, {
+                        title: '🎁 Tu beneficio de cumpleaños está disponible',
+                        body: `¡Ya podés disfrutar tu ${porcentaje}% de descuento durante ${diasTotales} días! 🎉`,
+                        url: '/pass',
+                        icon: '/icon-192x192-v2.png',
+                        badge: '/icon-192x192-v2.png'
+                    })
+                    : false
 
                 if (pushEnviado) {
                     await prisma.notificacion.update({
@@ -239,17 +235,15 @@ export async function GET(req: Request) {
                     }
                 })
 
-                const pushEnviado = await sendPushNotification(cliente.pushSub, {
-                    title: '🎂 ¡Feliz cumpleaños!',
-                    body: `Recordá que tenés ${porcentaje}% OFF hasta el ${diaExpira}/${mesExpira} 🎉`,
-                    url: '/pass',
-                    icon: '/icon-192x192-v2.png',
-                    badge: '/icon-192x192-v2.png'
-                }, {
-                    clienteId: cliente.id,
-                    tipo: 'CUMPLEANOS',
-                    metadata: { beneficioId: beneficioCumpleanos.id }
-                })
+                const pushEnviado = cliente.pushSub
+                    ? await sendPushNotification(cliente.pushSub, {
+                        title: '🎂 ¡Feliz cumpleaños!',
+                        body: `Recordá que tenés ${porcentaje}% OFF hasta el ${diaExpira}/${mesExpira} 🎉`,
+                        url: '/pass',
+                        icon: '/icon-192x192-v2.png',
+                        badge: '/icon-192x192-v2.png'
+                    })
+                    : false
 
                 if (pushEnviado) {
                     await prisma.notificacion.update({

@@ -157,26 +157,47 @@ export async function PATCH(
       },
     })
 
-    // Enviar push si se cambió el nivel manualmente y el cliente tiene suscripción
-    if (nivelId && clienteActualizado.pushSub) {
+    // Cuando se cambia el nivel: siempre guardar en BD (campanita), solo push si tiene suscripción
+    if (nivelId) {
+      const nuevoNivel = clienteActualizado.nivel
+      const titulo = `🎉 ¡Subiste a nivel ${nuevoNivel?.nombre}!`
+      const cuerpo = `¡Felicitaciones! Ahora sos parte del nivel ${nuevoNivel?.nombre} y tenés nuevos beneficios exclusivos.`
+      let notifId: string | undefined
       try {
-        const config = await prisma.configuracionApp.findFirst()
-        if (config?.pushNuevoNivel && config.pushHabilitado) {
-          const nuevoNivel = clienteActualizado.nivel
-          await sendPushNotification(clienteActualizado.pushSub, {
-            title: `🎉 ¡Subiste a nivel ${nuevoNivel?.nombre}!`,
-            body: `¡Felicitaciones! Ahora sos parte del nivel ${nuevoNivel?.nombre} y tenés nuevos beneficios exclusivos.`,
-            icon: '/icon-192x192.png',
-            badge: '/icon-192x192.png',
-            data: { url: '/logros', type: 'nuevo_nivel', nivelId },
-          }, {
+        const notif = await prisma.notificacion.create({
+          data: {
             clienteId: id,
+            titulo,
+            cuerpo,
             tipo: 'NUEVO_NIVEL',
+            url: '/logros',
+            enviada: false,
+            leida: false,
             metadata: { nivelId, nivelNombre: nuevoNivel?.nombre },
-          })
+          } as any,
+        })
+        notifId = notif.id
+      } catch (e) {
+        console.error('[PATCH cliente] Error al guardar notificación:', e)
+      }
+      if (clienteActualizado.pushSub) {
+        try {
+          const config = await prisma.configuracionApp.findFirst()
+          if (config?.pushNuevoNivel && config.pushHabilitado) {
+            const enviado = await sendPushNotification(clienteActualizado.pushSub, {
+              title: titulo,
+              body: cuerpo,
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png',
+              data: { url: '/logros', type: 'nuevo_nivel', nivelId },
+            })
+            if (enviado && notifId) {
+              await prisma.notificacion.update({ where: { id: notifId }, data: { enviada: true } })
+            }
+          }
+        } catch (pushError) {
+          console.error('[PATCH cliente] Error enviando push de nivel:', pushError)
         }
-      } catch (pushError) {
-        console.error('[PATCH cliente] Error enviando push de nivel:', pushError)
       }
     }
 

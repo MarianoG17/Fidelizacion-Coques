@@ -170,30 +170,46 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Webhook DeltaWash] Estado actualizado: ${patenteNormalizada} → ${estadoNormalizado}`)
 
-        // 9. Enviar push notification si cambió a LISTO
-        if (estadoCambio && estadoNormalizado === 'LISTO' && cliente.pushSub) {
-            // Verificar configuración
-            const config = await prisma.configuracionApp.findFirst()
-            if (config?.pushAutoListo && config.pushHabilitado) {
-                try {
-                    await sendPushNotification(cliente.pushSub, {
-                        title: '🚗 ¡Tu auto está listo!',
-                        body: `Tu ${auto.marca || 'auto'} ${patenteNormalizada} ya está terminado y listo para retirar.`,
-                        icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
-                        badge: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
-                        data: {
-                            url: '/pass',
-                            type: 'auto_listo',
-                            autoId: auto.id
-                        }
-                    }, {
+        // 9. Notificación "Auto listo" — siempre en BD, push solo si tiene suscripción
+        if (estadoCambio && estadoNormalizado === 'LISTO') {
+            const tituloAuto = '🚗 ¡Tu auto está listo!'
+            const cuerpoAuto = `Tu ${auto.marca || 'auto'} ${patenteNormalizada} ya está terminado y listo para retirar.`
+            let notifAutoId: string | undefined
+            try {
+                const notif = await prisma.notificacion.create({
+                    data: {
                         clienteId: cliente.id,
+                        titulo: tituloAuto,
+                        cuerpo: cuerpoAuto,
                         tipo: 'AUTO_LISTO',
-                        metadata: { autoId: auto.id, patente: patenteNormalizada }
-                    })
-                    console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Auto listo`)
-                } catch (error) {
-                    console.error('[Webhook DeltaWash] Error enviando push:', error)
+                        url: '/pass',
+                        enviada: false,
+                        leida: false,
+                        metadata: { autoId: auto.id, patente: patenteNormalizada },
+                    } as any,
+                })
+                notifAutoId = notif.id
+            } catch (e) {
+                console.error('[Webhook DeltaWash] Error al guardar notificación auto listo:', e)
+            }
+            if (cliente.pushSub) {
+                const config = await prisma.configuracionApp.findFirst()
+                if (config?.pushAutoListo && config.pushHabilitado) {
+                    try {
+                        const enviado = await sendPushNotification(cliente.pushSub, {
+                            title: tituloAuto,
+                            body: cuerpoAuto,
+                            icon: `${process.env.NEXT_PUBLIC_APP_URL || ''}/icon-192x192.png`,
+                            badge: `${process.env.NEXT_PUBLIC_APP_URL || ''}/icon-192x192.png`,
+                            data: { url: '/pass', type: 'auto_listo', autoId: auto.id }
+                        })
+                        if (enviado && notifAutoId) {
+                            await prisma.notificacion.update({ where: { id: notifAutoId }, data: { enviada: true } })
+                        }
+                        console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Auto listo`)
+                    } catch (error) {
+                        console.error('[Webhook DeltaWash] Error enviando push:', error)
+                    }
                 }
             }
         }
@@ -208,26 +224,42 @@ export async function POST(req: NextRequest) {
                     beneficiosActivados.map(b => b.nombre).join(', ')
                 )
 
-                // Enviar push notification de beneficio disponible
+                // Notificación "Beneficio disponible" — siempre en BD, push solo si tiene suscripción
+                const nombresBeneficios = beneficiosActivados.map(b => b.nombre).join(', ')
+                const tituloBenef = '🎁 ¡Nuevo beneficio disponible!'
+                const cuerpoBenef = `Tenés ${beneficiosActivados.length} beneficio${beneficiosActivados.length > 1 ? 's' : ''} disponible${beneficiosActivados.length > 1 ? 's' : ''}: ${nombresBeneficios}`
+                let notifBenefId: string | undefined
+                try {
+                    const notif = await prisma.notificacion.create({
+                        data: {
+                            clienteId: cliente.id,
+                            titulo: tituloBenef,
+                            cuerpo: cuerpoBenef,
+                            tipo: 'BENEFICIO',
+                            url: '/pass',
+                            enviada: false,
+                            leida: false,
+                            metadata: { beneficios: beneficiosActivados.map(b => ({ id: b.id, nombre: b.nombre })) },
+                        } as any,
+                    })
+                    notifBenefId = notif.id
+                } catch (e) {
+                    console.error('[Webhook DeltaWash] Error al guardar notificación beneficio:', e)
+                }
                 if (cliente.pushSub) {
                     const config = await prisma.configuracionApp.findFirst()
                     if (config?.pushBeneficioDisponible && config.pushHabilitado) {
                         try {
-                            const nombresBeneficios = beneficiosActivados.map(b => b.nombre).join(', ')
-                            await sendPushNotification(cliente.pushSub, {
-                                title: '🎁 ¡Nuevo beneficio disponible!',
-                                body: `Tenés ${beneficiosActivados.length} beneficio${beneficiosActivados.length > 1 ? 's' : ''} disponible${beneficiosActivados.length > 1 ? 's' : ''}: ${nombresBeneficios}`,
-                                icon: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
-                                badge: `${process.env.NEXT_PUBLIC_APP_URL || 'https://tu-dominio.vercel.app'}/icon-192x192.png`,
-                                data: {
-                                    url: '/pass',
-                                    type: 'beneficio_disponible'
-                                }
-                            }, {
-                                clienteId: cliente.id,
-                                tipo: 'BENEFICIO',
-                                metadata: { beneficios: beneficiosActivados.map(b => ({ id: b.id, nombre: b.nombre })) }
+                            const enviado = await sendPushNotification(cliente.pushSub, {
+                                title: tituloBenef,
+                                body: cuerpoBenef,
+                                icon: `${process.env.NEXT_PUBLIC_APP_URL || ''}/icon-192x192.png`,
+                                badge: `${process.env.NEXT_PUBLIC_APP_URL || ''}/icon-192x192.png`,
+                                data: { url: '/pass', type: 'beneficio_disponible' }
                             })
+                            if (enviado && notifBenefId) {
+                                await prisma.notificacion.update({ where: { id: notifBenefId }, data: { enviada: true } })
+                            }
                             console.log(`[Webhook DeltaWash] ✅ Push notification enviada: Beneficio disponible`)
                         } catch (error) {
                             console.error('[Webhook DeltaWash] Error enviando push:', error)
