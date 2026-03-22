@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminAuth } from '@/lib/middleware/admin-auth'
+import { sendPushNotification } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
@@ -155,6 +156,25 @@ export async function PATCH(
         nivel: true,
       },
     })
+
+    // Enviar push si se cambió el nivel manualmente y el cliente tiene suscripción
+    if (nivelId && clienteActualizado.pushSub) {
+      try {
+        const config = await prisma.configuracionApp.findFirst()
+        if (config?.pushNuevoNivel && config.pushHabilitado) {
+          const nuevoNivel = clienteActualizado.nivel
+          await sendPushNotification(clienteActualizado.pushSub, {
+            title: `🎉 ¡Subiste a nivel ${nuevoNivel?.nombre}!`,
+            body: `¡Felicitaciones! Ahora sos parte del nivel ${nuevoNivel?.nombre} y tenés nuevos beneficios exclusivos.`,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            data: { url: '/logros', type: 'nuevo_nivel', nivelId },
+          })
+        }
+      } catch (pushError) {
+        console.error('[PATCH cliente] Error enviando push de nivel:', pushError)
+      }
+    }
 
     return NextResponse.json({
       success: true,
