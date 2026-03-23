@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
             mesa: e.mesa ? { nombre: e.mesa.nombre } : null,
             beneficio: e.beneficio ? { nombre: e.beneficio.nombre } : null,
             tipoEvento: e.tipoEvento,
+            metodoValidacion: e.metodoValidacion,
             contabilizada: e.contabilizada,
             notas: e.notas,
         }))

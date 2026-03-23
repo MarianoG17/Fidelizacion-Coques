@@ -904,6 +904,7 @@ export default function LocalPage() {
                                     {new Date(cliente.timestamp).toLocaleTimeString('es-AR', {
                                       hour: '2-digit',
                                       minute: '2-digit',
+                                      timeZone: 'UTC',
                                     })}
                                   </span>
                                 </div>

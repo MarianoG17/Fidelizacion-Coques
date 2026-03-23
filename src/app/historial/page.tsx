@@ -236,7 +236,11 @@ export default function HistorialPage() {
                                                         <div className="flex items-start justify-between mb-2">
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-2 mb-1">
-                                                                    <h3 className="font-semibold text-gray-800">{visita.local.nombre}</h3>
+                                                                    <h3 className="font-semibold text-gray-800">
+                                                                        {visita.metodoValidacion === 'BONUS_CUESTIONARIO'
+                                                                            ? '🎂 Bonus por completar perfil'
+                                                                            : visita.local.nombre}
+                                                                    </h3>
                                                                     {esHoy && (
                                                                         <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-full">
                                                                             Hoy

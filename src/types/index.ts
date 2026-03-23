@@ -181,7 +181,9 @@ export interface VisitaHistorial {
   beneficio?: {
     nombre: string
   }
+  metodoValidacion?: string | null
   contabilizada: boolean
+  notas?: string | null
 }
 
 // ─── Perfil de Cliente ───────────────────────────────────────────────────────

@@ -239,7 +239,7 @@ export default function ClientePerfilPage() {
                                                 {ev.local && <p className="text-slate-500 text-xs">{ev.local.nombre}</p>}
                                             </div>
                                             <p className="text-slate-400 text-xs whitespace-nowrap ml-4">
-                                                {new Date(ev.timestamp).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                                {new Date(ev.timestamp).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' })}
                                             </p>
                                         </div>
                                     ))}
