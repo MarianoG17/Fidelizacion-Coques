@@ -89,46 +89,58 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Paso 2: Buscar pedidos — por customer ID si existe, si no por todos + filtro email
+    // Paso 2: Buscar pedidos por customer ID Y por email en paralelo para capturar tanto
+    // los pedidos de cuenta registrada como los pedidos de guest con el mismo email
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-    const ordersUrl = wooCustomerId
-      ? `${wooUrl}/wp-json/wc/v3/orders?customer=${wooCustomerId}&per_page=100&orderby=date&order=desc`
-      : `${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(cliente.email)}&per_page=100&orderby=date&order=desc`
+    const fetchOptions = { method: 'GET' as const, headers, signal: controller.signal, cache: 'no-store' as const }
 
-    const response = await fetch(ordersUrl, {
-      method: 'GET',
-      headers,
-      signal: controller.signal,
-      cache: 'no-store',
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[WooCommerce Mis Pedidos] Error:', response.status, errorText)
-      return NextResponse.json(
-        {
-          error: 'Error al obtener pedidos de WooCommerce',
-          status: response.status,
-          details: errorText
-        },
-        { status: response.status }
+    const fetchPromises: Promise<Response>[] = [
+      fetch(`${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(cliente.email)}&per_page=100&orderby=date&order=desc`, fetchOptions),
+    ]
+    if (wooCustomerId) {
+      fetchPromises.push(
+        fetch(`${wooUrl}/wp-json/wc/v3/orders?customer=${wooCustomerId}&per_page=100&orderby=date&order=desc`, fetchOptions)
       )
     }
 
-    const orders = await response.json()
-    console.log(`[Mis Pedidos] Total orders fetched: ${orders.length} (customer filter: ${wooCustomerId ? 'sí' : 'no'})`)
+    const responses = await Promise.allSettled(fetchPromises)
+    clearTimeout(timeoutId)
 
-    // Filtrar por email o cliente_app_id (necesario cuando no hay customer ID)
-    const pedidosFiltrados = wooCustomerId
-      ? orders // Ya están filtrados por WooCommerce
-      : orders.filter((order: any) => {
-          const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
-          return order.billing.email?.toLowerCase() === cliente.email?.toLowerCase() || clienteAppId === cliente.id
-        })
+    // Recolectar todos los pedidos de todas las respuestas exitosas
+    const allOrders: any[] = []
+    for (const result of responses) {
+      if (result.status === 'fulfilled' && result.value.ok) {
+        const data = await result.value.json()
+        if (Array.isArray(data)) allOrders.push(...data)
+      }
+    }
+
+    if (allOrders.length === 0 && responses[0].status === 'fulfilled' && !responses[0].value.ok) {
+      const errorText = await responses[0].value.text()
+      console.error('[WooCommerce Mis Pedidos] Error:', responses[0].value.status, errorText)
+      return NextResponse.json(
+        { error: 'Error al obtener pedidos de WooCommerce', status: responses[0].value.status },
+        { status: responses[0].value.status }
+      )
+    }
+
+    // Deduplicar por ID de pedido
+    const seenIds = new Set<number>()
+    const orders = allOrders.filter((order: any) => {
+      if (seenIds.has(order.id)) return false
+      seenIds.add(order.id)
+      return true
+    })
+
+    console.log(`[Mis Pedidos] Total orders fetched: ${allOrders.length}, únicos: ${orders.length}`)
+
+    // Filtrar por email o cliente_app_id
+    const pedidosFiltrados = orders.filter((order: any) => {
+      const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
+      return order.billing.email?.toLowerCase() === cliente.email?.toLowerCase() || clienteAppId === cliente.id
+    })
 
     console.log(`[Mis Pedidos] Pedidos del cliente: ${pedidosFiltrados.length}`)
 
