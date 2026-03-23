@@ -669,8 +669,8 @@ export default function PassPage() {
           </div>
         )}
 
-        {/* Beneficios Disponibles Hoy */}
-        {(beneficiosDisponibles.length > 0 || beneficiosUsados.length > 0) && (
+        {/* Beneficios Disponibles Hoy — se excluyen beneficios de tortas (ya están en el banner) */}
+        {(beneficiosDisponibles.filter(b => !/torta/i.test(b.nombre)).length > 0 || beneficiosUsados.filter(b => !/torta/i.test(b.nombre)).length > 0) && (
           <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl shadow-sm p-4 mb-4 border border-green-100">
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
               <span>🎁</span>
@@ -678,9 +678,9 @@ export default function PassPage() {
             </h2>
 
             {/* Beneficios disponibles */}
-            {beneficiosDisponibles.length > 0 && (
+            {beneficiosDisponibles.filter(b => !/torta/i.test(b.nombre)).length > 0 && (
               <div className="space-y-2 mb-3">
-                {beneficiosDisponibles.map((beneficio) => (
+                {beneficiosDisponibles.filter(b => !/torta/i.test(b.nombre)).map((beneficio) => (
                   <div
                     key={beneficio.id}
                     className="bg-white rounded-xl p-4 shadow-sm border-2 border-green-200"
@@ -710,9 +710,9 @@ export default function PassPage() {
             )}
 
             {/* Beneficios usados */}
-            {beneficiosUsados.length > 0 && (
+            {beneficiosUsados.filter(b => !/torta/i.test(b.nombre)).length > 0 && (
               <div className="space-y-2">
-                {beneficiosUsados.map((beneficio) => (
+                {beneficiosUsados.filter(b => !/torta/i.test(b.nombre)).map((beneficio) => (
                   <div
                     key={beneficio.id}
                     className="bg-white/60 rounded-xl p-4 border border-gray-200 opacity-75"

@@ -76,12 +76,15 @@ function ActivarContent() {
     verificarSoporte().then(setSoportaPasskey)
   }, [verificarSoporte])
 
-  // Formatear teléfono mientras el usuario tipea: "11 1234-5678"
+  // Formatear teléfono — acepta hasta 15 dígitos para interior e internacionales
+  // Solo aplica formato visual "XX XXXX-XXXX" para 10 dígitos (CABA/interior arg)
   function formatPhone(value: string): string {
-    const digits = value.replace(/\D/g, '').slice(0, 10)
-    if (digits.length <= 2) return digits
-    if (digits.length <= 6) return `${digits.slice(0, 2)} ${digits.slice(2)}`
-    return `${digits.slice(0, 2)} ${digits.slice(2, 6)}-${digits.slice(6)}`
+    const hasPlus = value.trimStart().startsWith('+')
+    const digits = value.replace(/\D/g, '').slice(0, 15)
+    if (digits.length === 10 && !hasPlus) {
+      return `${digits.slice(0, 2)} ${digits.slice(2, 6)}-${digits.slice(6)}`
+    }
+    return hasPlus ? `+${digits}` : digits
   }
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
