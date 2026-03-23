@@ -15,8 +15,9 @@ export async function GET(req: NextRequest) {
     where: { nombre: { equals: nombre, mode: 'insensitive' } },
     include: {
       beneficios: {
-        select: { nombre: true },
-        orderBy: { id: 'asc' },
+        include: {
+          beneficio: { select: { nombre: true, activo: true } },
+        },
       },
     },
   })
@@ -27,6 +28,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     nombre: nivel.nombre,
-    beneficios: nivel.beneficios.map((b) => b.nombre),
+    beneficios: nivel.beneficios
+      .filter((nb) => nb.beneficio.activo)
+      .map((nb) => nb.beneficio.nombre),
   })
 }
