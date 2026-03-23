@@ -6,6 +6,88 @@ import { sendPushNotification } from '@/lib/push'
 
 export const dynamic = 'force-dynamic'
 
+// GET /api/admin/clientes/[id] - Obtener perfil completo de un cliente
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const authError = requireAdminAuth(req)
+  if (authError) return authError
+
+  const { id } = params
+
+  const cliente = await prisma.cliente.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      nombre: true,
+      phone: true,
+      email: true,
+      estado: true,
+      nivel: { select: { nombre: true, orden: true } },
+      fechaCumpleanos: true,
+      fuenteConocimiento: true,
+      authProvider: true,
+      referidosActivados: true,
+      createdAt: true,
+      pushSub: true,
+      autos: {
+        select: {
+          id: true,
+          patente: true,
+          marca: true,
+          modelo: true,
+          alias: true,
+          estadoActual: { select: { estado: true, updatedAt: true } },
+        },
+      },
+      eventos: {
+        where: { contabilizada: true },
+        orderBy: { timestamp: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          timestamp: true,
+          tipoEvento: true,
+          notas: true,
+          local: { select: { nombre: true } },
+        },
+      },
+    },
+  })
+
+  if (!cliente) {
+    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 })
+  }
+
+  // Contar visitas
+  const visitasResult = await prisma.$queryRaw<Array<{ esBonus: boolean; count: bigint }>>`
+    SELECT
+      (LOWER("notas") LIKE '%bonus%') AS "esBonus",
+      COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint AS count
+    FROM "EventoScan"
+    WHERE "clienteId" = ${id}
+      AND "contabilizada" = true
+      AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+    GROUP BY (LOWER("notas") LIKE '%bonus%')
+  `
+  let visitasReales = 0, visitasBonus = 0
+  for (const r of visitasResult) {
+    if (r.esBonus) visitasBonus = Number(r.count)
+    else visitasReales = Number(r.count)
+  }
+
+  return NextResponse.json({
+    data: {
+      ...cliente,
+      tienePush: !!cliente.pushSub,
+      pushSub: undefined,
+      visitasReales,
+      visitasBonus,
+    },
+  })
+}
+
 // DELETE /api/admin/clientes/[id] - Eliminar un cliente (soft delete: cambiar estado a INACTIVO)
 export async function DELETE(
   req: NextRequest,

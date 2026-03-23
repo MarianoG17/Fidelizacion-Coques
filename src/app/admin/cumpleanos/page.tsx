@@ -197,13 +197,14 @@ export default function CumpleanosPage() {
                                                     </span>
                                                     <div className="space-y-1">
                                                         {cumples.map((c) => (
-                                                            <div
+                                                            <a
                                                                 key={c.id}
-                                                                className="text-xs bg-pink-600/30 text-pink-300 rounded px-1.5 py-0.5 truncate"
+                                                                href={`/admin/clientes/${c.id}`}
+                                                                className="block text-xs bg-pink-600/30 text-pink-300 rounded px-1.5 py-0.5 truncate hover:bg-pink-600/50 transition-colors"
                                                                 title={c.nombre}
                                                             >
                                                                 🎂 {c.nombre}
-                                                            </div>
+                                                            </a>
                                                         ))}
                                                     </div>
                                                 </>
