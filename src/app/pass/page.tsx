@@ -439,11 +439,11 @@ export default function PassPage() {
           <span className="text-xl">📡</span>
           <div className="flex-1">
             <p className="text-amber-800 text-sm font-medium">Sin conexión</p>
-            <p className="text-amber-600 text-xs">Mostrando datos guardados. El QR puede estar desactualizado.</p>
+            <p className="text-amber-600 text-sm">Mostrando datos guardados. El QR puede estar desactualizado.</p>
           </div>
           <button
             onClick={() => { setError(null); fetchPass() }}
-            className="text-amber-700 text-xs font-semibold underline"
+            className="text-amber-700 text-sm font-semibold underline"
           >
             Reintentar
           </button>
@@ -457,7 +457,7 @@ export default function PassPage() {
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             <div className="flex-1">
               <p className="font-semibold text-sm">Reconectando...</p>
-              <p className="text-xs text-blue-100">Intento {retryAttempt} de 3</p>
+              <p className="text-sm text-blue-100">Intento {retryAttempt} de 3</p>
             </div>
           </div>
         </div>
@@ -509,14 +509,14 @@ export default function PassPage() {
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{getNivelIcon(nivelesData.progreso.proximoNivel)}</span>
                 <div>
-                  <p className="text-xs text-gray-600 font-medium">Próximo nivel</p>
+                  <p className="text-sm text-gray-600 font-medium">Próximo nivel</p>
                   <p className="text-sm font-bold text-purple-700">{nivelesData.progreso.proximoNivel}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-600">Te faltan</p>
+                <p className="text-sm text-gray-600">Te faltan</p>
                 <p className="text-xl font-bold text-purple-700">{nivelesData.progreso.visitasFaltantes}</p>
-                <p className="text-xs text-gray-600">visitas</p>
+                <p className="text-sm text-gray-600">visitas</p>
               </div>
             </div>
             {/* Barra de progreso */}
@@ -531,10 +531,10 @@ export default function PassPage() {
                 }}
               />
             </div>
-            <p className="text-xs text-center text-gray-500 mt-1">
+            <p className="text-sm text-center text-gray-500 mt-1">
               {nivelesData.progreso.visitasActuales} / {nivelesData.progreso.visitasRequeridas} visitas en los últimos 60 días
             </p>
-            <p className="text-xs text-center text-gray-400 mt-1">
+            <p className="text-sm text-center text-gray-400 mt-1">
               💡 Seguí visitando para mantener tu nivel
             </p>
           </div>
@@ -543,8 +543,8 @@ export default function PassPage() {
         {/* Desglose de visitas - SIEMPRE visible cuando hay datos */}
         {nivelesData?.desglose && (
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 mb-4 border border-blue-100">
-            <p className="text-xs text-gray-600 font-medium mb-2">📊 Desglose de Visitas (últimos {nivelesData.desglose.periodoDias} días)</p>
-            <div className="space-y-1 text-xs">
+            <p className="text-sm text-gray-600 font-medium mb-2">📊 Desglose de Visitas (últimos {nivelesData.desglose.periodoDias} días)</p>
+            <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">🏪 Visitas al local:</span>
                 <span className="font-semibold text-gray-800">{nivelesData.desglose.visitasNormales}</span>
@@ -563,7 +563,7 @@ export default function PassPage() {
               </div>
             </div>
             {nivelesData.desglose.pedidosTortas > 0 && (
-              <p className="text-xs text-gray-500 mt-2 italic">
+              <p className="text-sm text-gray-500 mt-2 italic">
                 💡 Cada pedido de torta cuenta como {nivelesData.desglose.tortasMultiplicador} visitas
               </p>
             )}
@@ -593,13 +593,13 @@ export default function PassPage() {
 
             {/* Código numérico para fallback manual */}
             <div className="w-full">
-              <p className="text-xs text-center text-gray-400 mb-1">Código manual</p>
+              <p className="text-sm text-center text-gray-400 mb-1">Código manual</p>
               <div className="bg-gray-100 rounded-xl p-3 text-center">
                 <span className="text-3xl font-mono font-bold tracking-[0.3em] text-slate-800">
                   {pass.otp.token}
                 </span>
               </div>
-              <p className="text-xs text-center text-gray-400 mt-1">
+              <p className="text-sm text-center text-gray-400 mt-1">
                 Se actualiza automáticamente cada 30 segundos
               </p>
             </div>
@@ -683,12 +683,12 @@ export default function PassPage() {
                         </p>
                       )}
                       {auto.alias && (
-                        <p className="text-xs text-gray-500 italic mt-1">{auto.alias}</p>
+                        <p className="text-sm text-gray-500 italic mt-1">{auto.alias}</p>
                       )}
                     </div>
                     {auto.estadoActual && auto.estadoActual.estado !== 'ENTREGADO' && (
                       <div className="text-right">
-                        <p className="text-xs text-gray-500">En lavadero</p>
+                        <p className="text-sm text-gray-500">En lavadero</p>
                         <p
                           className="text-sm font-semibold"
                           style={{ color: ESTADO_AUTO_COLORS[auto.estadoActual.estado] }}
@@ -725,7 +725,7 @@ export default function PassPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-bold text-slate-800">{beneficio.nombre}</p>
-                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-sm rounded-full font-semibold">
                             Disponible
                           </span>
                         </div>
@@ -733,7 +733,7 @@ export default function PassPage() {
                           <p className="text-sm text-gray-600 mb-2">{beneficio.descripcion}</p>
                         )}
                         {beneficio.tipo === 'DESCUENTO' && beneficio.descuento && (
-                          <div className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold">
+                          <div className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
                             {Math.round(beneficio.descuento * 100)}% OFF
                           </div>
                         )}
@@ -758,20 +758,20 @@ export default function PassPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-semibold text-gray-600">{beneficio.nombre}</p>
                           {beneficio.yaUsado ? (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-sm rounded-full font-semibold">
                               ✓ Usado
                             </span>
                           ) : beneficio.expirado ? (
-                            <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded-full font-semibold">
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-sm rounded-full font-semibold">
                               ⏰ Expirado
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-sm rounded-full font-semibold">
                               ✓ Usado
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm text-gray-500">
                           {beneficio.yaUsado
                             ? `Beneficio de uso único ya utilizado`
                             : beneficio.expirado
@@ -788,7 +788,7 @@ export default function PassPage() {
 
             {beneficiosDisponibles.length > 0 && (
               <div className="mt-3 pt-3 border-t border-green-200">
-                <p className="text-xs text-center text-gray-600">
+                <p className="text-sm text-center text-gray-600">
                   💡 Mostrá tu QR al staff para aplicar estos beneficios
                 </p>
               </div>
@@ -824,28 +824,28 @@ export default function PassPage() {
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
             </svg>
-            <span className="text-xs font-medium">Pass</span>
+            <span className="text-sm font-medium">Pass</span>
           </Link>
 
           <Link href="/logros" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
-            <span className="text-xs font-medium">Logros</span>
+            <span className="text-sm font-medium">Logros</span>
           </Link>
 
           <Link href="/historial" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-xs font-medium">Historial</span>
+            <span className="text-sm font-medium">Historial</span>
           </Link>
 
           <Link href="/perfil" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="text-xs font-medium">Perfil</span>
+            <span className="text-sm font-medium">Perfil</span>
           </Link>
         </div>
       </nav>
@@ -928,7 +928,7 @@ function ErrorScreen({ message }: { message: string }) {
 
         {/* Tip para modo offline */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-700">
+          <p className="text-sm text-blue-700">
             💡 <strong>Tip:</strong> Si seguís teniendo problemas,
             activá y desactivá el modo avión para resetear tu conexión.
           </p>
