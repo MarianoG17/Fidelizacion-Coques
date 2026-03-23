@@ -1,14 +1,13 @@
 // src/app/api/admin/cumpleanos/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-    const adminKey = req.headers.get('x-admin-key')
-    if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
 
     const clientes = await prisma.cliente.findMany({
         where: {
