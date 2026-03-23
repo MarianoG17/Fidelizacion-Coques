@@ -183,8 +183,10 @@ function PassPageContent() {
       })
       if (res.ok) {
         const json = await res.json()
-        setBeneficiosDisponibles(json.data.disponibles || [])
-        setBeneficiosUsados(json.data.usados || [])
+        // Excluir beneficios de tortas — ya se muestran en el banner "Realizá tu pedido"
+        const esTorta = (b: any) => /torta/i.test(b.nombre)
+        setBeneficiosDisponibles((json.data.disponibles || []).filter((b: any) => !esTorta(b)))
+        setBeneficiosUsados((json.data.usados || []).filter((b: any) => !esTorta(b)))
       }
     } catch (err) {
       console.error('Error al cargar beneficios:', err)
