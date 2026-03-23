@@ -114,7 +114,6 @@ export const NIVEL_COLORS: Record<string, string> = {
   Bronce: '#cd7f32',
   Plata: '#9ca3af',
   Oro: '#f59e0b',
-  Platino: '#7c3aed',
 }
 
 // ─── Feedback ────────────────────────────────────────────────────────────────
