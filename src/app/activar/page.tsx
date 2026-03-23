@@ -23,6 +23,7 @@ function ActivarContent() {
   const [codigoInvalido, setCodigoInvalido] = useState(false)
   const [fuenteQR, setFuenteQR] = useState<string | null>(null)
   const [nivelQR, setNivelQR] = useState<string | null>(null)
+  const [beneficiosNivel, setBeneficiosNivel] = useState<string[]>([])
   const [cargandoReferido, setCargandoReferido] = useState(false)
   const [soportaPasskey, setSoportaPasskey] = useState(false)
   const [passkeyError, setPasskeyError] = useState('')
@@ -56,12 +57,18 @@ function ActivarContent() {
       .finally(() => setCargandoReferido(false))
   }, [searchParams])
 
-  // Leer parámetros de QR personalizado (fuente y nivel)
+  // Leer parámetros de QR personalizado (fuente y nivel) y buscar beneficios del nivel
   useEffect(() => {
     const fuente = searchParams.get('fuente')
     const nivel = searchParams.get('nivel')
     if (fuente) setFuenteQR(fuente)
-    if (nivel) setNivelQR(nivel)
+    if (nivel) {
+      setNivelQR(nivel)
+      fetch(`/api/public/nivel-beneficios?nombre=${encodeURIComponent(nivel)}`)
+        .then((r) => r.json())
+        .then((data) => { if (data.beneficios?.length) setBeneficiosNivel(data.beneficios) })
+        .catch(() => {})
+    }
   }, [searchParams])
 
   // Verificar soporte de passkey en el dispositivo
@@ -343,17 +350,11 @@ function ActivarContent() {
           <div className="bg-blue-50 rounded-2xl p-4 mb-6">
             <p className="text-sm font-semibold text-blue-800 mb-2">¿Qué ganás?</p>
             <ul className="space-y-1">
-              {(fuenteQR
-                ? [
-                    'Descuentos exclusivos en tortas y productos',
-                    'Beneficios exclusivos por nivel',
-                    'Acumulás puntos por cada compra',
-                  ]
-                : [
-                    'Café gratis mientras lavamos tu auto',
-                    'Beneficios exclusivos por nivel',
-                    'Notificaciones cuando tu auto está listo',
-                  ]
+              {(fuenteQR && beneficiosNivel.length > 0
+                ? beneficiosNivel
+                : fuenteQR
+                  ? ['Beneficios exclusivos por nivel', 'Descuentos especiales en tortas y productos']
+                  : ['Café gratis mientras lavamos tu auto', 'Beneficios exclusivos por nivel', 'Notificaciones cuando tu auto está listo']
               ).map((b) => (
                 <li key={b} className="flex items-start gap-2 text-sm text-blue-700">
                   <span className="text-blue-500 mt-0.5">✓</span>
