@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
         select: {
             id: true,
             nombre: true,
-            apellido: true,
             fechaCumpleanos: true,
         },
         orderBy: { nombre: 'asc' },
@@ -27,7 +26,7 @@ export async function GET(req: NextRequest) {
         const fecha = c.fechaCumpleanos!
         return {
             id: c.id,
-            nombre: `${c.nombre} ${c.apellido || ''}`.trim(),
+            nombre: c.nombre || 'Sin nombre',
             mes: fecha.getUTCMonth() + 1, // 1-12
             dia: fecha.getUTCDate(),
         }
