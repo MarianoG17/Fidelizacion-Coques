@@ -34,6 +34,7 @@ export default function HistorialPage() {
     const [activeTab, setActiveTab] = useState<Tab>('visitas')
     const [visitas, setVisitas] = useState<VisitaHistorial[]>([])
     const [pedidos, setPedidos] = useState<Pedido[]>([])
+    const [pedidosVisibles, setPedidosVisibles] = useState(5)
     const [loading, setLoading] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -322,7 +323,7 @@ export default function HistorialPage() {
                     <>
                         {pedidos.length > 0 ? (
                             <div className="space-y-4">
-                                {pedidos.map((pedido) => {
+                                {pedidos.slice(0, pedidosVisibles).map((pedido) => {
                                     const fecha = new Date(pedido.fechaCreacion)
                                     const esHoy = fecha.toDateString() === new Date().toDateString()
 
@@ -393,6 +394,14 @@ export default function HistorialPage() {
                                         </div>
                                     )
                                 })}
+                                {pedidosVisibles < pedidos.length && (
+                                    <button
+                                        onClick={() => setPedidosVisibles(prev => prev + 5)}
+                                        className="w-full mt-2 py-3 rounded-xl border border-gray-300 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                                    >
+                                        Ver más pedidos ({pedidos.length - pedidosVisibles} restantes)
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="text-center py-12">
