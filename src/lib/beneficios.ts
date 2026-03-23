@@ -1,5 +1,5 @@
 // src/lib/beneficios.ts
-import { getHaceNDias, getInicioHoyArgentina } from '@/lib/timezone'
+import { getHaceNDias, getInicioHoyArgentina, getDatetimeArgentina } from '@/lib/timezone'
 import { prisma } from './prisma'
 import { sendPushNotification } from './push'
 import { EstadoAutoEnum } from '@prisma/client'
@@ -83,7 +83,7 @@ export async function getBeneficiosActivos(clienteId: string) {
           return null
         }
 
-        const ahora = new Date()
+        const ahora = getDatetimeArgentina()
         const cumpleanos = new Date(cliente.fechaCumpleanos)
 
         // ✅ FIX: Manejar 29 de febrero en años no bisiestos

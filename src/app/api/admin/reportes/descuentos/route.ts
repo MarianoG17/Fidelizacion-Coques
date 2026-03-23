@@ -109,14 +109,16 @@ export async function GET(req: NextRequest) {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
+                    timeZone: 'UTC',
                 }),
                 hora: timestamp.toLocaleTimeString('es-AR', {
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit',
+                    timeZone: 'UTC',
                 }),
-                fechaHora: timestamp.toLocaleString('es-AR'),
-                dia: timestamp.toLocaleDateString('es-AR', { weekday: 'short' }),
+                fechaHora: timestamp.toLocaleString('es-AR', { timeZone: 'UTC' }),
+                dia: timestamp.toLocaleDateString('es-AR', { weekday: 'short', timeZone: 'UTC' }),
                 timestamp: timestamp.toISOString(),
 
                 // Cliente
@@ -130,7 +132,9 @@ export async function GET(req: NextRequest) {
                 beneficioId: evento.beneficio?.id || '',
                 beneficioNombre: evento.beneficio?.nombre || 'Beneficio eliminado',
                 beneficioDescripcionCaja: evento.beneficio?.descripcionCaja || '',
-                descuentoPorcentaje: condiciones.descuentoPorcentaje || 0,
+                descuentoPorcentaje: condiciones.descuento
+                    ? Math.round(condiciones.descuento * 100)
+                    : (condiciones.porcentajeDescuento || 0),
                 codigoAyresIT: condiciones.codigoAyresIT || '',
                 maxPorDia: condiciones.maxPorDia || '',
                 maxPorMes: condiciones.maxPorMes || '',
