@@ -120,10 +120,14 @@ export default function PushPermissionPrompt() {
 
             console.log('✅ Push subscription created:', subscription)
 
-            // Enviar la suscripción al servidor
+            // Enviar la suscripción al servidor (incluir JWT para auth con email/password)
+            const jwtToken = localStorage.getItem('fidelizacion_token')
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+            if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`
+
             const response = await fetch('/api/push/subscribe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify(subscription)
             })
 
