@@ -172,14 +172,14 @@ export default function LogrosPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-2xl">{getNivelIcon(nivelesData.progreso.proximoNivel)}</span>
                                         <div>
-                                            <p className="text-xs text-gray-600 font-medium">Próximo nivel</p>
+                                            <p className="text-sm text-gray-600 font-medium">Próximo nivel</p>
                                             <p className="text-sm font-bold text-purple-700">{nivelesData.progreso.proximoNivel}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-xs text-gray-600">Te faltan</p>
+                                        <p className="text-sm text-gray-600">Te faltan</p>
                                         <p className="text-xl font-bold text-purple-700">{nivelesData.progreso.visitasFaltantes}</p>
-                                        <p className="text-xs text-gray-600">visitas</p>
+                                        <p className="text-sm text-gray-600">visitas</p>
                                     </div>
                                 </div>
                                 {/* Barra de progreso */}
@@ -194,7 +194,7 @@ export default function LogrosPage() {
                                         }}
                                     />
                                 </div>
-                                <p className="text-xs text-center text-gray-500 mt-1">
+                                <p className="text-sm text-center text-gray-500 mt-1">
                                     {nivelesData.progreso.visitasActuales} / {nivelesData.progreso.visitasRequeridas} visitas
                                 </p>
                             </div>
@@ -225,7 +225,7 @@ export default function LogrosPage() {
                                                             {nivel.nombre}
                                                         </h4>
                                                         {esActual && (
-                                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                                                            <span className="text-sm bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
                                                                 Tu nivel actual
                                                             </span>
                                                         )}
@@ -235,7 +235,7 @@ export default function LogrosPage() {
 
                                             {/* Requisitos */}
                                             <div className="mb-3 pb-3 border-b border-gray-100">
-                                                <p className="text-xs text-gray-500">Requisito:</p>
+                                                <p className="text-sm text-gray-500">Requisito:</p>
                                                 <p className="text-sm font-semibold text-gray-700">
                                                     {nivel.visitasRequeridas} {nivel.visitasRequeridas === 1 ? 'visita' : 'visitas'}
                                                 </p>
@@ -243,18 +243,18 @@ export default function LogrosPage() {
 
                                             {/* Beneficios - TODOS visibles */}
                                             <div>
-                                                <p className="text-xs font-semibold text-gray-600 mb-2">Beneficios:</p>
+                                                <p className="text-sm font-semibold text-gray-600 mb-2">Beneficios:</p>
                                                 <ul className="space-y-1.5 max-h-48 overflow-y-auto">
                                                     {/* Beneficios del nivel */}
                                                     {nivel.beneficios.length > 0 ? (
                                                         nivel.beneficios.map((beneficio) => (
-                                                            <li key={beneficio.id} className="flex items-start gap-2 text-xs text-gray-600">
+                                                            <li key={beneficio.id} className="flex items-start gap-2 text-sm text-gray-600">
                                                                 <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
                                                                 <span className="flex-1">{beneficio.nombre}</span>
                                                             </li>
                                                         ))
                                                     ) : (
-                                                        <li className="text-xs text-gray-400 italic">Beneficios básicos</li>
+                                                        <li className="text-sm text-gray-400 italic">Beneficios básicos</li>
                                                     )}
                                                 </ul>
                                             </div>
@@ -291,14 +291,14 @@ export default function LogrosPage() {
                                     className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4 relative"
                                 >
                                     {!logro.visto && (
-                                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-sm font-bold px-2 py-1 rounded-full">
                                             NUEVO
                                         </div>
                                     )}
                                     <div className="text-4xl mb-2">{logro.icono}</div>
                                     <h3 className="font-semibold text-gray-800 text-sm mb-1">{logro.nombre}</h3>
-                                    <p className="text-xs text-gray-600 mb-2">{logro.descripcion}</p>
-                                    <div className="text-xs text-gray-500 text-right">
+                                    <p className="text-sm text-gray-600 mb-2">{logro.descripcion}</p>
+                                    <div className="text-sm text-gray-500 text-right">
                                         {new Date(logro.obtenidoEn).toLocaleDateString('es-AR', {
                                             day: 'numeric',
                                             month: 'short'
@@ -325,7 +325,7 @@ export default function LogrosPage() {
                                 >
                                     <div className="text-4xl mb-2 grayscale">{logro.icono}</div>
                                     <h3 className="font-semibold text-gray-600 text-sm mb-1">{logro.nombre}</h3>
-                                    <p className="text-xs text-gray-500">{logro.descripcion}</p>
+                                    <p className="text-sm text-gray-500">{logro.descripcion}</p>
                                 </div>
                             ))}
                         </div>
@@ -348,28 +348,28 @@ export default function LogrosPage() {
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
                         </svg>
-                        <span className="text-xs font-medium">Pass</span>
+                        <span className="text-sm font-medium">Pass</span>
                     </Link>
 
                     <Link href="/logros" className="flex flex-col items-center gap-1 text-purple-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                         </svg>
-                        <span className="text-xs font-medium">Logros</span>
+                        <span className="text-sm font-medium">Logros</span>
                     </Link>
 
                     <Link href="/historial" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-xs font-medium">Historial</span>
+                        <span className="text-sm font-medium">Historial</span>
                     </Link>
 
                     <Link href="/perfil" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <span className="text-xs font-medium">Perfil</span>
+                        <span className="text-sm font-medium">Perfil</span>
                     </Link>
                 </div>
             </nav>

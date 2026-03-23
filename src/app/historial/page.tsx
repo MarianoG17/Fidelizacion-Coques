@@ -237,7 +237,7 @@ export default function HistorialPage() {
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <h3 className="font-semibold text-gray-800">{visita.local.nombre}</h3>
                                                                     {esHoy && (
-                                                                        <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                                                                        <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-full">
                                                                             Hoy
                                                                         </span>
                                                                     )}
@@ -257,7 +257,7 @@ export default function HistorialPage() {
                                                             </div>
 
                                                             {!visita.contabilizada && (
-                                                                <span className="text-xs text-orange-600 font-medium">
+                                                                <span className="text-sm text-orange-600 font-medium">
                                                                     No contabilizada
                                                                 </span>
                                                             )}
@@ -337,7 +337,7 @@ export default function HistorialPage() {
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <h3 className="font-semibold text-gray-800">Pedido #{pedido.numero}</h3>
                                                         {esHoy && (
-                                                            <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                                                            <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-full">
                                                                 Hoy
                                                             </span>
                                                         )}
@@ -362,7 +362,7 @@ export default function HistorialPage() {
                                                         </p>
                                                     )}
                                                 </div>
-                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${getEstadoColor(pedido.estado)}`}>
+                                                <span className={`text-sm px-2 py-1 rounded-full font-medium ${getEstadoColor(pedido.estado)}`}>
                                                     {pedido.estadoTexto}
                                                 </span>
                                             </div>
@@ -388,7 +388,7 @@ export default function HistorialPage() {
                                                         ${formatearPrecio(pedido.total)}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-gray-500">{pedido.metodoPago}</p>
+                                                <p className="text-sm text-gray-500">{pedido.metodoPago}</p>
                                             </div>
                                         </div>
                                     )
@@ -417,28 +417,28 @@ export default function HistorialPage() {
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
                         </svg>
-                        <span className="text-xs font-medium">Pass</span>
+                        <span className="text-sm font-medium">Pass</span>
                     </Link>
 
                     <Link href="/logros" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                         </svg>
-                        <span className="text-xs font-medium">Logros</span>
+                        <span className="text-sm font-medium">Logros</span>
                     </Link>
 
                     <Link href="/historial" className="flex flex-col items-center gap-1 text-blue-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-xs font-medium">Historial</span>
+                        <span className="text-sm font-medium">Historial</span>
                     </Link>
 
                     <Link href="/perfil" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <span className="text-xs font-medium">Perfil</span>
+                        <span className="text-sm font-medium">Perfil</span>
                     </Link>
                 </div>
             </nav>
