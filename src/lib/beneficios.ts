@@ -215,6 +215,7 @@ export async function evaluarNivel(clienteId: string) {
   const cliente = await prisma.cliente.findUnique({
     where: { id: clienteId },
     include: { nivel: true },
+    // createdAt se usa para el período de gracia (nivel asignado por QR)
   })
   if (!cliente) return
 
@@ -286,7 +287,16 @@ export async function evaluarNivel(clienteId: string) {
   const referidosActuales = cliente.referidosActivados || 0
 
   // 🔻 PASO 1: Verificar si debe BAJAR de nivel (si no cumple requisitos del nivel actual)
-  if (nivelActual && nivelActualOrden > 1) { // Solo si no está en el nivel mínimo (Bronce)
+  // ⛔ Excepción: si el cliente se registró dentro del período de evaluación, no bajarlo.
+  // Esto protege a clientes con nivel asignado por QR (ej: FORZA con nivel=plata)
+  // que aún no tuvieron tiempo de acumular visitas.
+  const clienteCreatedAt = (cliente as any).createdAt
+  const dentroDelPeriodo = clienteCreatedAt && new Date(clienteCreatedAt) >= hacePeriodo
+  if (dentroDelPeriodo) {
+    console.log(`[evaluarNivel] Cliente ${clienteId} registrado dentro del período de evaluación, se omite bajada de nivel`)
+  }
+
+  if (nivelActual && nivelActualOrden > 1 && !dentroDelPeriodo) { // Solo si no está en el nivel mínimo (Bronce)
     const criteriosActual = nivelActual.criterios as {
       visitas?: number
       visitasMinimas?: number
