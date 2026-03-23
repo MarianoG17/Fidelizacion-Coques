@@ -24,6 +24,7 @@ function ActivarContent() {
   const [codigoInvalido, setCodigoInvalido] = useState(false)
   const [fuenteQR, setFuenteQR] = useState<string | null>(null)
   const [nivelQR, setNivelQR] = useState<string | null>(null)
+  const [staffQR, setStaffQR] = useState<string | null>(null)
   const [beneficiosNivel, setBeneficiosNivel] = useState<string[]>([])
   const [cargandoReferido, setCargandoReferido] = useState(false)
   const [soportaPasskey, setSoportaPasskey] = useState(false)
@@ -63,7 +64,9 @@ function ActivarContent() {
   useEffect(() => {
     const fuente = searchParams.get('fuente')
     const nivel = searchParams.get('nivel')
+    const staff = searchParams.get('staff')
     if (fuente) setFuenteQR(fuente)
+    if (staff) setStaffQR(staff)
     if (nivel) {
       setNivelQR(nivel)
       fetch(`/api/public/nivel-beneficios?nombre=${encodeURIComponent(nivel)}`)
@@ -136,7 +139,7 @@ function ActivarContent() {
           nombre: nombre.trim(),
           phone: phoneFormatted,
           codigoReferido: codigoReferido || undefined,
-          fuenteConocimiento: fuenteQR || undefined,
+          fuenteConocimiento: fuenteQR || (staffQR ? `STAFF_${staffQR}` : undefined),
           nivelNombre: nivelQR || undefined,
         }),
       })
