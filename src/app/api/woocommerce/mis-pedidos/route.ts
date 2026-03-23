@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
         id: true,
         email: true,
         nombre: true,
+        wooCustomerId: true,
       }
     })
 
@@ -61,24 +62,31 @@ export async function GET(req: NextRequest) {
       'User-Agent': 'FidelizacionApp/1.0',
     }
 
-    console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}`)
+    console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}, wooCustomerId cacheado: ${cliente.wooCustomerId || 'ninguno'}`)
 
-    // Paso 1: Buscar el ID del cliente en WooCommerce por email
-    let wooCustomerId: number | null = null
-    try {
-      const customerRes = await fetch(
-        `${wooUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(cliente.email)}&per_page=1`,
-        { headers, cache: 'no-store' }
-      )
-      if (customerRes.ok) {
-        const customers = await customerRes.json()
-        if (customers.length > 0) {
-          wooCustomerId = customers[0].id
-          console.log(`[Mis Pedidos] WooCommerce customer ID encontrado: ${wooCustomerId}`)
+    // Paso 1: Usar el ID cacheado en BD o buscarlo en WooCommerce si no lo tenemos
+    let wooCustomerId: number | null = cliente.wooCustomerId || null
+    if (!wooCustomerId) {
+      try {
+        const customerRes = await fetch(
+          `${wooUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(cliente.email)}&per_page=1`,
+          { headers, cache: 'no-store' }
+        )
+        if (customerRes.ok) {
+          const customers = await customerRes.json()
+          if (customers.length > 0) {
+            wooCustomerId = customers[0].id
+            console.log(`[Mis Pedidos] WooCommerce customer ID encontrado: ${wooCustomerId}, guardando en BD...`)
+            // Guardar en BD para no tener que buscarlo la próxima vez
+            await prisma.cliente.update({
+              where: { id: cliente.id },
+              data: { wooCustomerId },
+            })
+          }
         }
+      } catch (err) {
+        console.warn('[Mis Pedidos] No se pudo buscar customer ID, se usará fallback por email:', err)
       }
-    } catch (err) {
-      console.warn('[Mis Pedidos] No se pudo buscar customer ID, se usará fallback por email:', err)
     }
 
     // Paso 2: Buscar pedidos — por customer ID si existe, si no por todos + filtro email

@@ -106,6 +106,7 @@ model Cliente {
   googleId              String?       @unique  // Google ID único del usuario
   authProvider          String?       @default("email")  // 'email' | 'google'
   profileImage          String?       // URL de la foto de perfil (Google)
+  wooCustomerId         Int?          // ID del cliente en WooCommerce (cacheado para evitar lookups repetidos)
   eventos               EventoScan[]
   autos                 Auto[]        // un cliente puede tener múltiples autos
   inscripciones         Inscripcion[]
