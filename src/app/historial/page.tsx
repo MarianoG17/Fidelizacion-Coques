@@ -160,7 +160,7 @@ export default function HistorialPage() {
     const visitasPorMes: Record<string, VisitaHistorial[]> = {}
     visitas.forEach((visita) => {
         const fecha = new Date(visita.timestamp)
-        const mesKey = fecha.toLocaleDateString('es-AR', { year: 'numeric', month: 'long' })
+        const mesKey = fecha.toLocaleDateString('es-AR', { year: 'numeric', month: 'long', timeZone: 'UTC' })
         if (!visitasPorMes[mesKey]) {
             visitasPorMes[mesKey] = []
         }
@@ -224,7 +224,7 @@ export default function HistorialPage() {
                                         <div className="space-y-3">
                                             {visitasDelMes.map((visita) => {
                                                 const fecha = new Date(visita.timestamp)
-                                                const esHoy = fecha.toDateString() === new Date().toDateString()
+                                                const esHoy = fecha.toLocaleDateString('en-CA', { timeZone: 'UTC' }) === new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
 
                                                 return (
                                                     <div
@@ -248,11 +248,11 @@ export default function HistorialPage() {
                                                                         weekday: 'long',
                                                                         day: 'numeric',
                                                                         month: 'long',
-                                                                        timeZone: 'America/Argentina/Buenos_Aires'
+                                                                        timeZone: 'UTC'
                                                                     })} • {fecha.toLocaleTimeString('es-AR', {
                                                                         hour: '2-digit',
                                                                         minute: '2-digit',
-                                                                        timeZone: 'America/Argentina/Buenos_Aires'
+                                                                        timeZone: 'UTC'
                                                                     })}
                                                                 </p>
                                                             </div>
@@ -354,11 +354,11 @@ export default function HistorialPage() {
                                                                 weekday: 'long',
                                                                 day: 'numeric',
                                                                 month: 'long',
-                                                                timeZone: 'America/Argentina/Buenos_Aires'
+                                                                timeZone: 'UTC'
                                                             })} • {fecha.toLocaleTimeString('es-AR', {
                                                                 hour: '2-digit',
                                                                 minute: '2-digit',
-                                                                timeZone: 'America/Argentina/Buenos_Aires'
+                                                                timeZone: 'UTC'
                                                             })}
                                                         </p>
                                                     )}
