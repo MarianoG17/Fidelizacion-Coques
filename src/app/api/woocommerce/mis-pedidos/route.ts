@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 
     const ordersUrl = wooCustomerId
       ? `${wooUrl}/wp-json/wc/v3/orders?customer=${wooCustomerId}&per_page=50&orderby=date&order=desc`
-      : `${wooUrl}/wp-json/wc/v3/orders?per_page=50&orderby=date&order=desc`
+      : `${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(cliente.email)}&per_page=50&orderby=date&order=desc`
 
     const response = await fetch(ordersUrl, {
       method: 'GET',
