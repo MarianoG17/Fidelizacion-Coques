@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resolveUserId } from '@/lib/auth'
+import { verificarToken } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth-options'
+
+async function resolveUserId(req: NextRequest): Promise<string | null> {
+    // Intentar JWT custom primero
+    const userId = await verificarToken(req)
+    if (userId) return userId
+    // Fallback a NextAuth session
+    const session = await getServerSession(authOptions)
+    return (session?.user as any)?.id ?? null
+}
 
 export async function POST(req: NextRequest) {
     const userId = await resolveUserId(req)
