@@ -343,7 +343,7 @@ export default function LogrosPage() {
 
             {/* Navegación inferior fija */}
             <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
-                <div className="max-w-lg mx-auto flex justify-around items-center py-3 px-4">
+                <div className="max-w-lg mx-auto flex justify-around items-center h-16 px-2">
                     <Link href="/pass" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
@@ -356,6 +356,16 @@ export default function LogrosPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                         </svg>
                         <span className="text-sm font-medium">Logros</span>
+                    </Link>
+
+                    {/* Botón QR central elevado */}
+                    <Link href="/qr" className="flex flex-col items-center gap-0.5 relative -top-4">
+                        <div className="w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-200 border-4 border-white">
+                            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3 3h7v7H3V3zm2 2v3h3V5H5zm8-2h7v7h-7V3zm2 2v3h3V5h-3zM3 13h7v7H3v-7zm2 2v3h3v-3H5zm10 1h-2v2h2v2h-2v2h2v-2h2v2h2v-2h-2v-2h2v-2h-2v2h-2v-2zm-2-2h2v2h-2v-2z"/>
+                            </svg>
+                        </div>
+                        <span className="text-sm font-semibold text-purple-600">Mi QR</span>
                     </Link>
 
                     <Link href="/historial" className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-colors">
