@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     try {
       const customerRes = await fetch(
         `${wooUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(cliente.email)}&per_page=1`,
-        { headers, next: { revalidate: 300 } }
+        { headers, cache: 'no-store' }
       )
       if (customerRes.ok) {
         const customers = await customerRes.json()
@@ -86,14 +86,14 @@ export async function GET(req: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     const ordersUrl = wooCustomerId
-      ? `${wooUrl}/wp-json/wc/v3/orders?customer=${wooCustomerId}&per_page=50&orderby=date&order=desc`
-      : `${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(cliente.email)}&per_page=50&orderby=date&order=desc`
+      ? `${wooUrl}/wp-json/wc/v3/orders?customer=${wooCustomerId}&per_page=100&orderby=date&order=desc`
+      : `${wooUrl}/wp-json/wc/v3/orders?search=${encodeURIComponent(cliente.email)}&per_page=100&orderby=date&order=desc`
 
     const response = await fetch(ordersUrl, {
       method: 'GET',
       headers,
       signal: controller.signal,
-      next: { revalidate: cacheTime },
+      cache: 'no-store',
     })
 
     clearTimeout(timeoutId)
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
       ? orders // Ya están filtrados por WooCommerce
       : orders.filter((order: any) => {
           const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
-          return order.billing.email === cliente.email || clienteAppId === cliente.id
+          return order.billing.email?.toLowerCase() === cliente.email?.toLowerCase() || clienteAppId === cliente.id
         })
 
     console.log(`[Mis Pedidos] Pedidos del cliente: ${pedidosFiltrados.length}`)

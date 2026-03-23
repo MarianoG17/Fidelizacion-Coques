@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
         const todosLosBeneficios = await prisma.beneficio.findMany({
             where: {
                 activo: true,
+                visibleEnPass: true,
                 niveles: {
                     some: { nivelId },
                 },

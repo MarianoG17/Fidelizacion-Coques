@@ -200,6 +200,7 @@ model Beneficio {
   estadoExternoTrigger  String?          // "EN_LAVADO" | "EN_SECADO"
   localDestinoId        String?          // null = todos los locales
   activo                Boolean          @default(true)
+  visibleEnPass         Boolean          @default(true)
   niveles               NivelBeneficio[]
   eventos               EventoScan[]
   createdAt             DateTime         @default(now())

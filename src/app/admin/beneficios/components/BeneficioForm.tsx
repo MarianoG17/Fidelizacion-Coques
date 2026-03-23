@@ -40,6 +40,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
   const [grupoExclusivo, setGrupoExclusivo] = useState('')
   const [soloApp, setSoloApp] = useState(false)
   const [activo, setActivo] = useState(true)
+  const [visibleEnPass, setVisibleEnPass] = useState(true)
   const [nivelesSeleccionados, setNivelesSeleccionados] = useState<string[]>([])
   const [niveles, setNiveles] = useState<Nivel[]>([])
   const [loading, setLoading] = useState(false)
@@ -64,6 +65,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
       setMaxPorDia(beneficio.maxPorDia)
       setUsoUnico((beneficio as any).usoUnico || false)
       setActivo(beneficio.activo)
+      setVisibleEnPass((beneficio as any).visibleEnPass !== false)
       setNivelesSeleccionados(beneficio.niveles.map((n) => n.id))
 
       // Cargar configuración de cumpleaños si existe
@@ -178,6 +180,7 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
         maxPorDia,
         usoUnico,
         activo,
+        visibleEnPass,
         niveles: nivelesSeleccionados,
         condiciones, // ✅ Siempre enviar (no condicional)
       }
@@ -568,17 +571,34 @@ export function BeneficioForm({ beneficio, adminKey, onGuardar, onCancelar }: Be
           </div>
 
           {/* Estado */}
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="activo"
-              checked={activo}
-              onChange={(e) => setActivo(e.target.checked)}
-              className="w-5 h-5 rounded bg-slate-700 border-slate-600"
-            />
-            <label htmlFor="activo" className="text-slate-300 font-medium">
-              Beneficio activo
-            </label>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="activo"
+                checked={activo}
+                onChange={(e) => setActivo(e.target.checked)}
+                className="w-5 h-5 rounded bg-slate-700 border-slate-600"
+              />
+              <label htmlFor="activo" className="text-slate-300 font-medium">
+                Beneficio activo
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="visibleEnPass"
+                checked={visibleEnPass}
+                onChange={(e) => setVisibleEnPass(e.target.checked)}
+                className="w-5 h-5 rounded bg-slate-700 border-slate-600 accent-purple-600"
+              />
+              <label htmlFor="visibleEnPass" className="text-slate-300 font-medium">
+                👁 Visible en /pass (Tus Beneficios de Hoy)
+              </label>
+            </div>
+            <p className="text-xs text-slate-500">
+              Si está desmarcado, el beneficio existe pero no aparece en la sección de beneficios del cliente
+            </p>
           </div>
 
           {/* Actions */}

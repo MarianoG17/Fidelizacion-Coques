@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
                 requiereEstadoExterno: beneficio.requiereEstadoExterno,
                 estadoExternoTrigger: beneficio.estadoExternoTrigger,
                 niveles: beneficio.niveles.map((nb) => nb.nivel),
+                visibleEnPass: beneficio.visibleEnPass,
                 usosTotal: beneficio._count.eventos,
                 createdAt: beneficio.createdAt,
                 updatedAt: beneficio.updatedAt,
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
             localDestinoId,
             niveles, // Array de IDs de niveles
             condiciones: condicionesBody, // ✅ NUEVO: Recibir objeto condiciones del body
+            visibleEnPass,
         } = body
 
         // Validaciones
@@ -135,6 +137,7 @@ export async function POST(req: NextRequest) {
                 descripcionCaja,
                 condiciones,
                 activo: activo !== undefined ? activo : true,
+                visibleEnPass: visibleEnPass !== undefined ? visibleEnPass : true,
                 requiereEstadoExterno: requiereEstadoExterno || false,
                 estadoExternoTrigger: estadoExternoTrigger || null,
                 localDestinoId: localDestinoId || null,

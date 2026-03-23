@@ -99,6 +99,7 @@ export async function PATCH(
             localDestinoId,
             niveles, // Array de IDs de niveles
             condiciones: condicionesBody, // ✅ NUEVO: Recibir objeto condiciones del body
+            visibleEnPass,
         } = body
 
         // Verificar que el beneficio existe
@@ -154,6 +155,7 @@ export async function PATCH(
             ...(descripcionCaja !== undefined && { descripcionCaja }),
             condiciones,
             ...(activo !== undefined && { activo }),
+            ...(visibleEnPass !== undefined && { visibleEnPass }),
             ...(requiereEstadoExterno !== undefined && { requiereEstadoExterno }),
             ...(estadoExternoTrigger !== undefined && { estadoExternoTrigger }),
             ...(localDestinoId !== undefined && { localDestinoId }),
