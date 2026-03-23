@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { PassData } from '@/types'
+import { PassData, NIVEL_COLORS } from '@/types'
 import { fetchWithRetry } from '@/lib/fetch-with-retry'
 
 const REFRESH_INTERVAL = 5000
@@ -110,7 +110,7 @@ export default function QRPage() {
           <p className="text-lg font-semibold text-slate-700 mb-1">{pass.nombre}</p>
           {pass.nivel && (
             <span className="text-sm text-white font-semibold px-3 py-0.5 rounded-full mb-5"
-              style={{ backgroundColor: pass.nivel.color || '#6b7280' }}>
+              style={{ backgroundColor: NIVEL_COLORS[pass.nivel.nombre] || '#6b7280' }}>
               {pass.nivel.nombre}
             </span>
           )}

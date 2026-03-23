@@ -61,21 +61,40 @@ export async function GET(req: NextRequest) {
       'User-Agent': 'FidelizacionApp/1.0',
     }
 
-    // ⚡ OPTIMIZACIÓN: Reducir de 100 a 20 pedidos
-    // La mayoría de usuarios solo necesitan ver sus pedidos más recientes
-    // Esto reduce el tiempo de respuesta de ~5s a ~1-2s
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // Reducido de 15s a 10s
+    console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}`)
 
-    const response = await fetch(
-      `${wooUrl}/wp-json/wc/v3/orders?per_page=20&orderby=date&order=desc`,
-      {
-        method: 'GET',
-        headers,
-        signal: controller.signal,
-        next: { revalidate: cacheTime } // Caché de Next.js
+    // Paso 1: Buscar el ID del cliente en WooCommerce por email
+    let wooCustomerId: number | null = null
+    try {
+      const customerRes = await fetch(
+        `${wooUrl}/wp-json/wc/v3/customers?email=${encodeURIComponent(cliente.email)}&per_page=1`,
+        { headers, next: { revalidate: 300 } }
+      )
+      if (customerRes.ok) {
+        const customers = await customerRes.json()
+        if (customers.length > 0) {
+          wooCustomerId = customers[0].id
+          console.log(`[Mis Pedidos] WooCommerce customer ID encontrado: ${wooCustomerId}`)
+        }
       }
-    )
+    } catch (err) {
+      console.warn('[Mis Pedidos] No se pudo buscar customer ID, se usará fallback por email:', err)
+    }
+
+    // Paso 2: Buscar pedidos — por customer ID si existe, si no por todos + filtro email
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+    const ordersUrl = wooCustomerId
+      ? `${wooUrl}/wp-json/wc/v3/orders?customer=${wooCustomerId}&per_page=50&orderby=date&order=desc`
+      : `${wooUrl}/wp-json/wc/v3/orders?per_page=50&orderby=date&order=desc`
+
+    const response = await fetch(ordersUrl, {
+      method: 'GET',
+      headers,
+      signal: controller.signal,
+      next: { revalidate: cacheTime },
+    })
 
     clearTimeout(timeoutId)
 
@@ -93,22 +112,17 @@ export async function GET(req: NextRequest) {
     }
 
     const orders = await response.json()
+    console.log(`[Mis Pedidos] Total orders fetched: ${orders.length} (customer filter: ${wooCustomerId ? 'sí' : 'no'})`)
 
-    console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}`)
-    console.log(`[Mis Pedidos] Total orders fetched: ${orders.length}`)
+    // Filtrar por email o cliente_app_id (necesario cuando no hay customer ID)
+    const pedidosFiltrados = wooCustomerId
+      ? orders // Ya están filtrados por WooCommerce
+      : orders.filter((order: any) => {
+          const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
+          return order.billing.email === cliente.email || clienteAppId === cliente.id
+        })
 
-    // Filtrar solo pedidos con el cliente_app_id correcto o email coincidente
-    const pedidosFiltrados = orders.filter((order: any) => {
-      const clienteAppId = order.meta_data?.find((m: any) => m.key === 'cliente_app_id')?.value
-      const emailMatch = order.billing.email === cliente.email
-      const idMatch = clienteAppId === cliente.id
-
-      console.log(`[Mis Pedidos] Order #${order.number}: email=${order.billing.email} (match: ${emailMatch}), cliente_app_id=${clienteAppId} (match: ${idMatch})`)
-
-      return emailMatch || idMatch
-    })
-
-    console.log(`[Mis Pedidos] Filtered orders: ${pedidosFiltrados.length}`)
+    console.log(`[Mis Pedidos] Pedidos del cliente: ${pedidosFiltrados.length}`)
 
     // Formatear respuesta
     const pedidos = pedidosFiltrados.map((order: any) => {
