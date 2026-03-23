@@ -308,10 +308,10 @@ function ActivarContent() {
 
         {/* Logo / marca */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">☕</div>
+          <img src="/icon-192x192-v3.png" alt="Coques" className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover" />
           <h1 className="text-2xl font-bold text-slate-800">Crear Cuenta</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Acumulá beneficios en Coques y el Lavadero
+            Acumulá beneficios y descuentos en Coques
           </p>
         </div>
 
@@ -373,7 +373,7 @@ function ActivarContent() {
                 ? beneficiosNivel
                 : fuenteQR
                   ? ['Beneficios exclusivos por nivel', 'Descuentos especiales en tortas y productos']
-                  : ['Café gratis mientras lavamos tu auto', 'Beneficios exclusivos por nivel', 'Notificaciones cuando tu auto está listo']
+                  : ['Descuentos en tortas y productos de cafetería', 'Beneficios exclusivos según tu nivel', 'Acumulá visitas y subí de Bronce a Platino']
               ).map((b) => (
                 <li key={b} className="flex items-start gap-2 text-sm text-blue-700">
                   <span className="text-blue-500 mt-0.5">✓</span>
