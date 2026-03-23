@@ -262,11 +262,33 @@ export default function PassPage() {
             console.log('[PASS] Response status:', res.status)
             return res.json()
           })
-          .then(data => {
+          .then(async data => {
             console.log('[PASS] Response data:', data)
             if (data.token) {
               localStorage.setItem('fidelizacion_token', data.token)
               console.log('[PASS] Token guardado, fetching data...')
+
+              // Aplicar params QR pendientes (ej: nivel=plata desde link de FORZA)
+              const pendingFuente = sessionStorage.getItem('pending_qr_fuente')
+              const pendingNivel = sessionStorage.getItem('pending_qr_nivel')
+              if (pendingFuente || pendingNivel) {
+                sessionStorage.removeItem('pending_qr_fuente')
+                sessionStorage.removeItem('pending_qr_nivel')
+                try {
+                  await fetch('/api/auth/apply-qr-params', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${data.token}`
+                    },
+                    body: JSON.stringify({ fuente: pendingFuente, nivel: pendingNivel })
+                  })
+                  console.log('[PASS] QR params aplicados:', { pendingFuente, pendingNivel })
+                } catch (e) {
+                  console.error('[PASS] Error aplicando QR params:', e)
+                }
+              }
+
               fetchPass()
               fetchBeneficios()
               fetchNiveles()
