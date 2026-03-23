@@ -317,6 +317,31 @@ function PassPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, sessionStatus])
 
+  // Auto-refresh fidelizacion_token cuando vence (401) pero la sesión de Google sigue activa
+  useEffect(() => {
+    if (error !== 'no_auth' || sessionStatus !== 'authenticated') return
+    setError(null)
+    setLoading(true)
+    fetch('/api/auth/session-token', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.token) {
+          localStorage.setItem('fidelizacion_token', data.token)
+          fetchPass()
+          fetchBeneficios()
+          fetchNiveles()
+        } else {
+          setError('no_auth')
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        setError('no_auth')
+        setLoading(false)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error, sessionStatus])
+
   // Revalidación al volver a la app (visibilitychange)
   useEffect(() => {
     const handleVisibilityChange = () => {
