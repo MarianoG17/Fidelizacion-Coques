@@ -330,6 +330,10 @@ function PassPageContent() {
           fetchPass()
           fetchBeneficios()
           fetchNiveles()
+        } else if (data.error?.includes('teléfono')) {
+          // Usuario PRE_REGISTRADO con teléfono temporal — mostrar modal de registro
+          setShowPhoneModal(true)
+          setLoading(false)
         } else {
           setError('no_auth')
           setLoading(false)
