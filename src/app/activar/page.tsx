@@ -100,11 +100,13 @@ function ActivarContent() {
 
   async function handleGoogleSignIn() {
     setIsGoogleLoading(true)
-    // Guardar params QR en sessionStorage para aplicarlos después del OAuth
-    if (fuenteQR) sessionStorage.setItem('pending_qr_fuente', fuenteQR)
-    if (nivelQR) sessionStorage.setItem('pending_qr_nivel', nivelQR)
+    // Construir callbackUrl con los params QR para que sobrevivan el redirect de OAuth
+    const params = new URLSearchParams()
+    if (fuenteQR) params.set('apply_fuente', fuenteQR)
+    if (nivelQR) params.set('apply_nivel', nivelQR)
+    const callbackUrl = params.toString() ? `/pass?${params.toString()}` : '/pass'
     try {
-      await signIn('google', { callbackUrl: '/pass', redirect: true })
+      await signIn('google', { callbackUrl, redirect: true })
     } catch {
       setIsGoogleLoading(false)
     }

@@ -1,7 +1,7 @@
 'use client'
 // src/app/pass/page.tsx
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
@@ -62,8 +62,9 @@ interface NivelesResponse {
   } | null
 }
 
-export default function PassPage() {
+function PassPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: session, status: sessionStatus } = useSession()
   const [pass, setPass] = useState<PassData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -239,6 +240,18 @@ export default function PassPage() {
       const needsPhone = (session.user as any).needsPhone
       console.log('[PASS] needsPhone:', needsPhone)
 
+      // Aplicar params QR desde URL (ej: ?apply_fuente=FORZA&apply_nivel=plata)
+      const applyFuente = searchParams.get('apply_fuente')
+      const applyNivel = searchParams.get('apply_nivel')
+      if (applyFuente || applyNivel) {
+        fetch('/api/auth/apply-qr-params', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fuente: applyFuente, nivel: applyNivel }),
+          credentials: 'include'
+        }).catch(e => console.error('[PASS] Error aplicando QR params:', e))
+      }
+
       // Si necesita completar teléfono, mostrar modal
       if (needsPhone) {
         console.log('[PASS] Showing phone modal')
@@ -267,27 +280,6 @@ export default function PassPage() {
             if (data.token) {
               localStorage.setItem('fidelizacion_token', data.token)
               console.log('[PASS] Token guardado, fetching data...')
-
-              // Aplicar params QR pendientes (ej: nivel=plata desde link de FORZA)
-              const pendingFuente = sessionStorage.getItem('pending_qr_fuente')
-              const pendingNivel = sessionStorage.getItem('pending_qr_nivel')
-              if (pendingFuente || pendingNivel) {
-                sessionStorage.removeItem('pending_qr_fuente')
-                sessionStorage.removeItem('pending_qr_nivel')
-                try {
-                  await fetch('/api/auth/apply-qr-params', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${data.token}`
-                    },
-                    body: JSON.stringify({ fuente: pendingFuente, nivel: pendingNivel })
-                  })
-                  console.log('[PASS] QR params aplicados:', { pendingFuente, pendingNivel })
-                } catch (e) {
-                  console.error('[PASS] Error aplicando QR params:', e)
-                }
-              }
 
               fetchPass()
               fetchBeneficios()
@@ -933,4 +925,8 @@ function ErrorScreen({ message }: { message: string }) {
       </div>
     </div>
   )
+}
+
+export default function PassPage() {
+  return <Suspense fallback={null}><PassPageContent /></Suspense>
 }
