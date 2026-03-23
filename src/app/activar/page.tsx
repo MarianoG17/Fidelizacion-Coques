@@ -373,7 +373,7 @@ function ActivarContent() {
                 ? beneficiosNivel
                 : fuenteQR
                   ? ['Beneficios exclusivos por nivel', 'Descuentos especiales en tortas y productos']
-                  : ['Descuentos en tortas y productos de cafetería', 'Beneficios exclusivos según tu nivel', 'Acumulá visitas y subí de Bronce a Oro']
+                  : ['10% de descuento en tu primera visita', 'Descuentos en tortas y productos de cafetería', 'Beneficios exclusivos según tu nivel', 'Acumulá visitas y subí de Bronce a Oro']
               ).map((b) => (
                 <li key={b} className="flex items-start gap-2 text-sm text-blue-700">
                   <span className="text-blue-500 mt-0.5">✓</span>
