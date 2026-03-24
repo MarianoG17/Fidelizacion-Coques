@@ -75,13 +75,15 @@ export async function verificarYEnviarFeedbacksPendientes(): Promise<{
         })
         if (yaRespondido) continue
 
-        // 2. Verificar si ya tiene notificación pendiente
+        // 2. Verificar si ya existe notificación para esta visita específica
         const yaNotificado = await prisma.notificacion.findFirst({
           where: {
             clienteId: visita.clienteId,
             tipo: 'FEEDBACK_PENDIENTE',
-            leida: false,
-            creadoEn: { gte: visita.timestamp },
+            metadata: {
+              path: ['visitaId'],
+              equals: visita.id,
+            },
           },
         })
         if (yaNotificado) continue
