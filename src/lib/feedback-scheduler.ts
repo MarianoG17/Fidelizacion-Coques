@@ -37,9 +37,11 @@ export async function verificarYEnviarFeedbacksPendientes(): Promise<{
     
     // Buscar visitas que ya deberían tener feedback
     // Solo últimas 3 horas para ser eficiente
+    // Excluir visitas bonus (cuestionario) — no son visitas reales al local
     const visitasPendientes = await prisma.eventoScan.findMany({
       where: {
         tipoEvento: 'VISITA',
+        metodoValidacion: { not: 'BONUS_CUESTIONARIO' },
         timestamp: {
           lte: timestampLimite, // Ya pasó el tiempo de espera
           gte: new Date(Date.now() - 3 * 60 * 60 * 1000), // Últimas 3 horas
