@@ -452,7 +452,8 @@ function PassPageContent() {
   if (loading) return <LoadingScreen />
 
   // IMPORTANTE: Verificar modal ANTES de error para usuarios OAuth
-  if (error === 'no_auth') return <NoAuthScreen />
+  // No redirigir a login si hay sesión de Google activa — el efecto de auto-refresh lo maneja
+  if (error === 'no_auth' && sessionStatus !== 'authenticated') return <NoAuthScreen />
   if (error && error !== 'offline_cached') return <ErrorScreen message={error} />
 
   if (showPhoneModal) {
