@@ -19,11 +19,16 @@ const Metricas = dynamic(() => import('./components/Metricas').then(mod => ({ de
   ssr: false
 })
 
+const StaffStats = dynamic(() => import('./components/StaffStats').then(mod => ({ default: mod.StaffStats })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
 export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff'>('metricas')
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
@@ -120,6 +125,7 @@ export default function AdminPage() {
                             { key: 'feedback', label: '📊 Feedbacks' },
                             { key: 'configuracion', label: '⚙️ Configuración' },
                             { key: 'cumpleanos', label: '🎂 Cumpleaños' },
+                            { key: 'staff', label: '👩‍💼 Vendedoras' },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
@@ -138,6 +144,7 @@ export default function AdminPage() {
 
             {/* Content */}
             <div className="max-w-7xl mx-auto px-4 py-8">
+                {seccionActiva === 'staff' && <StaffStats adminKey={adminKey} />}
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
                 {seccionActiva === 'clientes' && <Clientes adminKey={adminKey} />}

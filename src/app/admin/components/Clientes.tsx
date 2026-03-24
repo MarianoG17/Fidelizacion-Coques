@@ -17,6 +17,7 @@ interface Cliente {
   referidosActivados: number
   fechaCumpleanos: string | null
   fuenteConocimiento: string | null
+  staffRegistro: string | null
   authProvider: string | null
   tienePush: boolean
   createdAt: string
@@ -42,6 +43,7 @@ interface ActividadesData {
     email: string | null
     fechaCumpleanos: string | null
     fuenteConocimiento: string | null
+    staffRegistro: string | null
     authProvider: string | null
     profileImage: string | null
     createdAt: string
@@ -383,6 +385,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   💡 Fuente
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  👩‍💼 Vendedora
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Auth
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -463,6 +468,15 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                       <p className="text-slate-300 text-xs">
                         {cliente.fuenteConocimiento}
                       </p>
+                    ) : (
+                      <span className="text-slate-600 text-xs">-</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {cliente.staffRegistro ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-900 text-amber-200">
+                        {cliente.staffRegistro}
+                      </span>
                     ) : (
                       <span className="text-slate-600 text-xs">-</span>
                     )}
@@ -644,6 +658,18 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                         <p className="text-white mt-1">
                           {actividadesData.cliente.fuenteConocimiento || (
                             <span className="text-slate-500 italic">No proporcionado</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Registrado por:</span>
+                        <p className="text-white mt-1">
+                          {actividadesData.cliente.staffRegistro ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-amber-900 text-amber-200">
+                              {actividadesData.cliente.staffRegistro}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 italic">—</span>
                           )}
                         </p>
                       </div>

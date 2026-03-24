@@ -18,7 +18,8 @@ const registerSchema = z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   phone: z.string().regex(/^\d{10}$/, 'Teléfono inválido (formato: 1112345678)'),
   codigoReferido: z.string().optional(),
-  fuenteConocimiento: z.string().optional(), // Ej: "FORZA", "Instagram", etc.
+  fuenteConocimiento: z.string().optional(), // Ej: "Instagram", "Google Maps", etc. (cuestionario)
+  staffRegistro: z.string().optional(),      // Ej: "Yesi", "Alex", "Kari" (empleada que registró)
   nivelNombre: z.string().optional(),        // Ej: "Plata" — nivel inicial personalizado
 })
 
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
         otpSecret,
         nivelId: nivelFinal?.id,
         fuenteConocimiento: validatedData.fuenteConocimiento || null,
+        staffRegistro: validatedData.staffRegistro || null,
         codigoReferido: codigoReferidoCliente, // Código único para compartir
         referidoPorId, // ID del cliente que lo refirió (si existe)
       },

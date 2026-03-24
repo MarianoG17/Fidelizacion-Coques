@@ -22,6 +22,7 @@ export async function GET(
         email: true,
         fechaCumpleanos: true,
         fuenteConocimiento: true,
+        staffRegistro: true,
         authProvider: true,
         profileImage: true,
         createdAt: true,

@@ -38,6 +38,12 @@ export default function LocalPage() {
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [mesasOcupadas, setMesasOcupadas] = useState<Set<string>>(new Set())
 
+  // Estado para leaderboard de vendedoras
+  const [vistaLeaderboard, setVistaLeaderboard] = useState(false)
+  const [leaderboardData, setLeaderboardData] = useState<{ staff: string; total: number }[]>([])
+  const [leaderboardTotal, setLeaderboardTotal] = useState(0)
+  const [cargandoLeaderboard, setCargandoLeaderboard] = useState(false)
+
   // Historial de últimos clientes en mostrador (ahora desde servidor)
   const [clientesMostrador, setClientesMostrador] = useState<Array<{
     id: string
@@ -494,6 +500,24 @@ export default function LocalPage() {
     }
   }
 
+  async function cargarLeaderboard() {
+    setCargandoLeaderboard(true)
+    try {
+      const res = await fetch('/api/local/staff-stats', {
+        headers: { 'x-local-api-key': LOCAL_API_KEY },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setLeaderboardData(data.data.totales || [])
+        setLeaderboardTotal(data.data.totalGeneral || 0)
+      }
+    } catch (error) {
+      console.error('[Local] Error cargando leaderboard:', error)
+    } finally {
+      setCargandoLeaderboard(false)
+    }
+  }
+
   async function cerrarSesionMesa(sesionId: string) {
     try {
       const res = await fetch(`/api/sesiones/${sesionId}`, {
@@ -598,12 +622,12 @@ export default function LocalPage() {
             </button>
           </div>
 
-          {/* Botones para alternar entre Scanner, Vista Salón, Tomar Pedido y Presupuestos */}
+          {/* Botones para alternar entre Scanner, Vista Salón, Tomar Pedido, Presupuestos y Ranking */}
           <div className="w-full max-w-sm mb-4">
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-2 gap-2 mb-2">
               <button
-                onClick={() => setVistaSalon(false)}
-                className={`py-3 rounded-xl font-bold transition text-sm ${!vistaSalon
+                onClick={() => { setVistaSalon(false); setVistaLeaderboard(false) }}
+                className={`py-3 rounded-xl font-bold transition text-sm ${!vistaSalon && !vistaLeaderboard
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-700 text-gray-300'
                   }`}
@@ -611,14 +635,16 @@ export default function LocalPage() {
                 📱 Scanner
               </button>
               <button
-                onClick={() => setVistaSalon(true)}
-                className={`py-3 rounded-xl font-bold transition text-sm ${vistaSalon
+                onClick={() => { setVistaSalon(true); setVistaLeaderboard(false) }}
+                className={`py-3 rounded-xl font-bold transition text-sm ${vistaSalon && !vistaLeaderboard
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-700 text-gray-300'
                   }`}
               >
                 🏠 Salón
               </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => window.location.href = '/local/tomar-pedido'}
                 className="py-3 rounded-xl font-bold transition text-sm bg-amber-600 hover:bg-amber-700 text-white"
@@ -629,12 +655,81 @@ export default function LocalPage() {
                 onClick={() => window.location.href = '/local/presupuestos'}
                 className="py-3 rounded-xl font-bold transition text-sm bg-blue-600 hover:bg-blue-700 text-white"
               >
-                💾 Presupuestos
+                💾 Presp.
+              </button>
+              <button
+                onClick={() => { setVistaLeaderboard(true); setVistaSalon(false); cargarLeaderboard() }}
+                className={`py-3 rounded-xl font-bold transition text-sm ${vistaLeaderboard
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-700 text-gray-300'
+                  }`}
+              >
+                🏆 Rank
               </button>
             </div>
           </div>
 
-          {vistaSalon ? (
+          {vistaLeaderboard ? (
+            // ─── Vista Leaderboard ───
+            <div className="w-full max-w-sm">
+              <h2 className="text-white text-xl font-bold mb-4 text-center">🏆 Ranking Vendedoras</h2>
+              {cargandoLeaderboard ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : leaderboardData.length === 0 ? (
+                <div className="bg-slate-800 rounded-xl p-6 text-center text-slate-400">
+                  Todavía no hay registros vinculados a vendedoras.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {leaderboardData.map((item, idx) => {
+                    const medalColors: Record<number, string> = {
+                      0: 'bg-yellow-500 text-yellow-900',
+                      1: 'bg-slate-400 text-slate-900',
+                      2: 'bg-amber-700 text-amber-100',
+                    }
+                    const staffBg: Record<string, string> = {
+                      Yesi: 'border-yellow-500',
+                      Alex: 'border-sky-500',
+                      Kari: 'border-rose-500',
+                    }
+                    const pct = leaderboardTotal > 0 ? Math.round((item.total / leaderboardTotal) * 100) : 0
+                    return (
+                      <div key={item.staff} className={`bg-slate-800 rounded-xl p-4 border-l-4 ${staffBg[item.staff] || 'border-slate-500'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${medalColors[idx] || 'bg-slate-700 text-slate-300'}`}>
+                              {idx + 1}
+                            </span>
+                            <span className="text-white font-bold text-lg">{item.staff}</span>
+                          </div>
+                          <span className="text-2xl font-bold text-white">{item.total}</span>
+                        </div>
+                        <div className="w-full bg-slate-700 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full bg-emerald-500 transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <p className="text-slate-400 text-xs mt-1">{pct}% del total</p>
+                      </div>
+                    )
+                  })}
+                  <div className="bg-slate-700 rounded-xl p-4 text-center">
+                    <p className="text-slate-400 text-sm">Total registros</p>
+                    <p className="text-3xl font-bold text-white">{leaderboardTotal}</p>
+                  </div>
+                  <button
+                    onClick={cargarLeaderboard}
+                    className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm font-semibold transition"
+                  >
+                    Actualizar
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : vistaSalon ? (
             // ─── Vista de Salón ───
             <div className="w-full max-w-6xl">
               <VistaSalon

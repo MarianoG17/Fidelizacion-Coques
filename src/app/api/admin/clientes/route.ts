@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
         referidosActivados: true,
         fechaCumpleanos: true,
         fuenteConocimiento: true,
+        staffRegistro: true,
         authProvider: true,
         pushSub: true,
         createdAt: true,

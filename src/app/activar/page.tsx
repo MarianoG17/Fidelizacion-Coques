@@ -140,7 +140,8 @@ function ActivarContent() {
           nombre: nombre.trim(),
           phone: phoneFormatted,
           codigoReferido: codigoReferido || undefined,
-          fuenteConocimiento: fuenteQR || (staffQR ? `STAFF_${staffQR}` : undefined),
+          fuenteConocimiento: fuenteQR || undefined,
+          staffRegistro: staffQR || undefined,
           nivelNombre: nivelQR || undefined,
         }),
       })

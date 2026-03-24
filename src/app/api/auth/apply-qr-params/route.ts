@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const updateData: any = {}
     if (fuente) updateData.fuenteConocimiento = fuente
-    if (staff && !fuente) updateData.fuenteConocimiento = `STAFF_${staff}`
+    if (staff) updateData.staffRegistro = staff
 
     if (nivel) {
         const nivelRecord = await prisma.nivel.findFirst({
