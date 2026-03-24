@@ -242,14 +242,15 @@ function PassPageContent() {
       const needsPhone = (session.user as any).needsPhone
       console.log('[PASS] needsPhone:', needsPhone)
 
-      // Aplicar params QR desde URL (ej: ?apply_fuente=FORZA&apply_nivel=plata)
+      // Aplicar params QR desde URL (ej: ?apply_fuente=FORZA&apply_nivel=plata&apply_staff=Yesi)
       const applyFuente = searchParams.get('apply_fuente')
       const applyNivel = searchParams.get('apply_nivel')
-      if (applyFuente || applyNivel) {
+      const applyStaff = searchParams.get('apply_staff')
+      if (applyFuente || applyNivel || applyStaff) {
         fetch('/api/auth/apply-qr-params', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fuente: applyFuente, nivel: applyNivel }),
+          body: JSON.stringify({ fuente: applyFuente, nivel: applyNivel, staff: applyStaff }),
           credentials: 'include'
         }).catch(e => console.error('[PASS] Error aplicando QR params:', e))
       }

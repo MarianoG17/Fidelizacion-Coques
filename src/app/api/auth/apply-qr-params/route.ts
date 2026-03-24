@@ -17,11 +17,12 @@ export async function POST(req: NextRequest) {
     const userId = await resolveUserId(req)
     if (!userId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { fuente, nivel } = await req.json()
-    if (!fuente && !nivel) return NextResponse.json({ ok: true })
+    const { fuente, nivel, staff } = await req.json()
+    if (!fuente && !nivel && !staff) return NextResponse.json({ ok: true })
 
     const updateData: any = {}
     if (fuente) updateData.fuenteConocimiento = fuente
+    if (staff && !fuente) updateData.fuenteConocimiento = `STAFF_${staff}`
 
     if (nivel) {
         const nivelRecord = await prisma.nivel.findFirst({

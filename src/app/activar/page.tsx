@@ -107,6 +107,7 @@ function ActivarContent() {
     const params = new URLSearchParams()
     if (fuenteQR) params.set('apply_fuente', fuenteQR)
     if (nivelQR) params.set('apply_nivel', nivelQR)
+    if (staffQR) params.set('apply_staff', staffQR)
     const callbackUrl = params.toString() ? `/pass?${params.toString()}` : '/pass'
     try {
       await signIn('google', { callbackUrl, redirect: true })
