@@ -63,13 +63,13 @@ export async function GET(
   // Contar visitas
   const visitasResult = await prisma.$queryRaw<Array<{ esBonus: boolean; count: bigint }>>`
     SELECT
-      (LOWER("notas") LIKE '%bonus%') AS "esBonus",
+      ("metodoValidacion" LIKE 'BONUS_%') AS "esBonus",
       COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint AS count
     FROM "EventoScan"
     WHERE "clienteId" = ${id}
       AND "contabilizada" = true
       AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
-    GROUP BY (LOWER("notas") LIKE '%bonus%')
+    GROUP BY ("metodoValidacion" LIKE 'BONUS_%')
   `
   let visitasReales = 0, visitasBonus = 0
   for (const r of visitasResult) {

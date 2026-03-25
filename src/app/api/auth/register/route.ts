@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
             clienteId: referidoPorId,
             localId: localPrincipal.id,
             tipoEvento: 'VISITA',
-            metodoValidacion: 'OTP_MANUAL',
+            metodoValidacion: 'BONUS_REFERIDO',
             contabilizada: true, // SÍ cuenta para subir de nivel
             notas: `Visita bonus por referir a ${validatedData.nombre}`,
           },

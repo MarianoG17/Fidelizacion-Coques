@@ -41,7 +41,7 @@ export async function verificarYEnviarFeedbacksPendientes(): Promise<{
     const visitasPendientes = await prisma.eventoScan.findMany({
       where: {
         tipoEvento: 'VISITA',
-        metodoValidacion: { not: 'BONUS_CUESTIONARIO' },
+        metodoValidacion: { notIn: ['BONUS_CUESTIONARIO', 'BONUS_REFERIDO'] },
         timestamp: {
           lte: timestampLimite, // Ya pasó el tiempo de espera
           gte: new Date(Date.now() - 3 * 60 * 60 * 1000), // Últimas 3 horas
