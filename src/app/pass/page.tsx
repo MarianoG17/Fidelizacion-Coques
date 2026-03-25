@@ -2,7 +2,7 @@
 // src/app/pass/page.tsx
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { PassData, NIVEL_COLORS, ESTADO_AUTO_LABELS, ESTADO_AUTO_COLORS } from '@/types'
 import { formatearPatenteDisplay } from '@/lib/patente'
@@ -274,19 +274,21 @@ function PassPageContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         })
-          .then(res => {
+          .then(async res => {
             console.log('[PASS] Response status:', res.status)
-            return res.json()
-          })
-          .then(async data => {
+            const data = await res.json()
             console.log('[PASS] Response data:', data)
             if (data.token) {
               localStorage.setItem('fidelizacion_token', data.token)
               console.log('[PASS] Token guardado, fetching data...')
-
               fetchPass()
               fetchBeneficios()
               fetchNiveles()
+            } else if (res.status === 404) {
+              // Usuario eliminado de la DB — cerrar sesión y redirigir
+              console.error('[PASS] Cliente no encontrado, cerrando sesión')
+              await signOut({ redirect: false })
+              router.push('/login')
             } else {
               console.error('[PASS] No token in response')
               setError('Error: No se recibió token')
