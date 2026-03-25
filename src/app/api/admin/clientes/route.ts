@@ -45,13 +45,13 @@ export async function GET(req: NextRequest) {
     }>>`
       SELECT
         "clienteId",
-        ("metodoValidacion" LIKE 'BONUS_%') AS "esBonus",
+        ("metodoValidacion"::text LIKE 'BONUS_%') AS "esBonus",
         COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint AS count
       FROM "EventoScan"
       WHERE "clienteId" = ANY(${clienteIds}::text[])
         AND "contabilizada" = true
         AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
-      GROUP BY "clienteId", ("metodoValidacion" LIKE 'BONUS_%')
+      GROUP BY "clienteId", ("metodoValidacion"::text LIKE 'BONUS_%')
     `
 
     // Indexar por clienteId para O(1) lookup
