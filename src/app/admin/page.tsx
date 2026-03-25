@@ -28,24 +28,54 @@ export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
+    const [validando, setValidando] = useState(false)
     const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff'>('metricas')
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
         if (key) {
             setAdminKey(key)
-            setAutenticado(true)
+            validarKey(key)
         }
     }, [])
 
-    function login() {
+    async function validarKey(key: string) {
+        const res = await fetch('/api/admin/clientes?limit=1', {
+            headers: { 'x-admin-key': key },
+        })
+        if (res.ok) {
+            setAutenticado(true)
+        } else {
+            localStorage.removeItem('admin_key')
+        }
+    }
+
+    async function login() {
         if (!adminKey) {
             setError('Ingresá la admin key')
             return
         }
-        localStorage.setItem('admin_key', adminKey)
-        setAutenticado(true)
+        setValidando(true)
         setError('')
+        try {
+            const res = await fetch('/api/admin/clientes?limit=1', {
+                headers: { 'x-admin-key': adminKey },
+            })
+            if (res.status === 401) {
+                setError('Key incorrecta')
+                return
+            }
+            if (!res.ok) {
+                setError('Error al validar. Intentá de nuevo.')
+                return
+            }
+            localStorage.setItem('admin_key', adminKey)
+            setAutenticado(true)
+        } catch {
+            setError('Error de conexión. Intentá de nuevo.')
+        } finally {
+            setValidando(false)
+        }
     }
 
     function logout() {
@@ -76,9 +106,10 @@ export default function AdminPage() {
                         {error && <p className="text-red-400 text-sm">{error}</p>}
                         <button
                             onClick={login}
-                            className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+                            disabled={validando}
+                            className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            Acceder
+                            {validando ? 'Verificando...' : 'Acceder'}
                         </button>
                     </div>
                 </div>
