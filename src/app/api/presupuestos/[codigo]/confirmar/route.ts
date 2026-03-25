@@ -233,25 +233,37 @@ export async function POST(
         })
 
         if (local) {
-          // Crear evento PEDIDO_TORTA
-          await prisma.eventoScan.create({
-            data: {
+          // Deduplicar: verificar si el webhook de WooCommerce ya lo registró
+          const notasEvento = `Pedido WooCommerce #${wooOrder.id}`
+          const eventoExistente = await prisma.eventoScan.findFirst({
+            where: {
               clienteId: presupuestoActualizado.clienteId,
-              localId: local.id,
               tipoEvento: 'PEDIDO_TORTA',
-              metodoValidacion: 'QR',
-              contabilizada: true,
-              notas: `Pedido WooCommerce #${wooOrder.id} (Presupuesto ${codigo})`,
-              timestamp: new Date(),
+              notas: notasEvento,
             }
           })
 
-          console.log(`[Confirmar Presupuesto] ✅ Evento PEDIDO_TORTA creado para cliente ${presupuestoActualizado.clienteId}`)
+          if (!eventoExistente) {
+            await prisma.eventoScan.create({
+              data: {
+                clienteId: presupuestoActualizado.clienteId,
+                localId: local.id,
+                tipoEvento: 'PEDIDO_TORTA',
+                metodoValidacion: 'QR',
+                contabilizada: true,
+                notas: notasEvento,
+                timestamp: new Date(),
+              }
+            })
+            console.log(`[Confirmar Presupuesto] ✅ Evento PEDIDO_TORTA creado para cliente ${presupuestoActualizado.clienteId}`)
 
-          // Evaluar si el cliente sube de nivel
-          const resultado = await evaluarNivel(presupuestoActualizado.clienteId)
-          if (resultado) {
-            console.log(`[Confirmar Presupuesto] 🎉 Cliente subió de nivel: ${resultado.nombre}`)
+            // Evaluar si el cliente sube de nivel
+            const resultado = await evaluarNivel(presupuestoActualizado.clienteId)
+            if (resultado) {
+              console.log(`[Confirmar Presupuesto] 🎉 Cliente subió de nivel: ${resultado.nombre}`)
+            }
+          } else {
+            console.log(`[Confirmar Presupuesto] ⏭️ Evento PEDIDO_TORTA ya existe para pedido #${wooOrder.id}, omitiendo`)
           }
         }
       }

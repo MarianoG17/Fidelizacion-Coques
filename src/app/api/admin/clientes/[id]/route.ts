@@ -242,8 +242,10 @@ export async function PATCH(
     // Cuando se cambia el nivel: siempre guardar en BD (campanita), solo push si tiene suscripción
     if (nivelId) {
       const nuevoNivel = clienteActualizado.nivel
-      const titulo = `🎉 ¡Subiste a nivel ${nuevoNivel?.nombre}!`
-      const cuerpo = `¡Felicitaciones! Ahora sos parte del nivel ${nuevoNivel?.nombre} y tenés nuevos beneficios exclusivos.`
+      const nivelIconos: Record<string, string> = { 'Oro': '🥇', 'Plata': '🥈', 'Bronce': '🥉' }
+      const nivelIcono = nivelIconos[nuevoNivel?.nombre || ''] || '🎖️'
+      const titulo = `${nivelIcono} ¡Subiste a nivel ${nuevoNivel?.nombre}!`
+      const cuerpo = `¡Felicitaciones! Alcanzaste el nivel ${nuevoNivel?.nombre} y desbloqueaste nuevos beneficios exclusivos.`
       let notifId: string | undefined
       try {
         const notif = await prisma.notificacion.create({
