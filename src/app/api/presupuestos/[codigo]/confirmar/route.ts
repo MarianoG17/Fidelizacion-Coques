@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { evaluarNivel } from '@/lib/beneficios'
+import { getDatetimeArgentina } from '@/lib/timezone'
 
 // POST /api/presupuestos/:codigo/confirmar - Confirmar presupuesto y crear pedido WooCommerce
 export async function POST(
@@ -252,7 +253,7 @@ export async function POST(
                 metodoValidacion: 'QR',
                 contabilizada: true,
                 notas: notasEvento,
-                timestamp: new Date(),
+                timestamp: getDatetimeArgentina(),
               }
             })
             console.log(`[Confirmar Presupuesto] ✅ Evento PEDIDO_TORTA creado para cliente ${presupuestoActualizado.clienteId}`)
