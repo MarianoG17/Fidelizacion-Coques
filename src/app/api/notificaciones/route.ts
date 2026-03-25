@@ -22,11 +22,12 @@ async function generarNotificacionesFeedbackPendientes(clienteId: string) {
       return // Feedback deshabilitado
     }
 
-    // Buscar última visita del cliente
+    // Buscar última visita real del cliente (excluir visitas bonus)
     const ultimaVisita = await prisma.eventoScan.findFirst({
       where: {
         clienteId,
         tipoEvento: 'VISITA',
+        metodoValidacion: { not: 'BONUS_CUESTIONARIO' },
       },
       orderBy: {
         timestamp: 'desc',
