@@ -527,3 +527,12 @@ model Passkey {
   @@index([clienteId])
   @@index([credentialId])
 }
+
+// Cache del catálogo de WooCommerce en Neon para evitar llamadas lentas a WooCommerce
+model CatalogoCache {
+  id        String   @id // clave fija: "tortas"
+  data      Json     // respuesta completa del catálogo
+  updatedAt DateTime @updatedAt
+
+  @@map("catalogo_cache")
+}
