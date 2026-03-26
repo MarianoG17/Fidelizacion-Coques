@@ -120,7 +120,6 @@ export async function POST(req: NextRequest) {
                         <ul style="line-height: 1.8;">
                           <li>✨ Acumulá visitas y subí de nivel (Bronce → Plata → Oro)</li>
                           <li>🎁 Desbloqueá beneficios exclusivos</li>
-                          <li>🏆 Completá logros y ganás recompensas</li>
                           <li>👥 Referí amigos y ganás visitas bonus</li>
                           <li>📱 Mostrá tu QR en el local para sumar puntos</li>
                         </ul>
