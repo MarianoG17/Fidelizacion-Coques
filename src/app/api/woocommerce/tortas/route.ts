@@ -1,17 +1,21 @@
 // src/app/api/woocommerce/tortas/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-// Sin revalidate estático — usamos Cache-Control stale-while-revalidate para
-// servir datos cacheados al instante mientras se refresca en background
 export const dynamic = 'force-dynamic'
 
 const FETCH_TIMEOUT_MS = 8000 // 8 segundos máximo por request a WooCommerce
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000 // 2 horas
 
 function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer))
+}
+
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=86400',
 }
 
 /**
@@ -198,7 +202,27 @@ const CAMPOS_TEXTO_POR_PRODUCTO: { [key: number]: { nombre: string; placeholder:
 }
 
 export async function GET(req: NextRequest) {
+  // Verificar si se pide forzar refresco (desde admin)
+  const forceRefresh = req.nextUrl.searchParams.get('refresh') === '1'
+
+  // Guardar referencia al cache para usarlo como fallback si WooCommerce falla
+  let staleCache: any = null
+
   try {
+    // ⚡ CACHE NEON: leer datos cacheados si son frescos
+    if (!forceRefresh) {
+      const cached = await prisma.catalogoCache.findUnique({ where: { id: 'tortas' } })
+      if (cached) {
+        staleCache = cached.data // Guardar para fallback
+        const ageMs = Date.now() - cached.updatedAt.getTime()
+        if (ageMs < CACHE_TTL_MS) {
+          console.log(`[Tortas] Sirviendo desde cache Neon (${Math.round(ageMs / 60000)}min de antigüedad)`)
+          return NextResponse.json(cached.data, { headers: CACHE_HEADERS })
+        }
+        console.log(`[Tortas] Cache vencido (${Math.round(ageMs / 60000)}min), refrescando desde WooCommerce...`)
+      }
+    }
+
     const wooUrl = process.env.WOOCOMMERCE_URL
     const wooKey = process.env.WOOCOMMERCE_KEY
     const wooSecret = process.env.WOOCOMMERCE_SECRET
@@ -280,6 +304,10 @@ export async function GET(req: NextRequest) {
     const adicionalesInfoPorId: { [id: number]: { id: number; precio: number; nombre: string } } = {}
 
     if (!categoriesResponse.ok) {
+      if (staleCache) {
+        console.log('[Tortas] WooCommerce error en categorías, sirviendo cache viejo')
+        return NextResponse.json(staleCache, { headers: { ...CACHE_HEADERS, 'X-Cache': 'STALE' } })
+      }
       return NextResponse.json(
         { error: 'No se pudo obtener las categorías' },
         { status: categoriesResponse.status }
@@ -308,6 +336,10 @@ export async function GET(req: NextRequest) {
     )
 
     if (!productsResponse.ok) {
+      if (staleCache) {
+        console.log('[Tortas] WooCommerce error en productos, sirviendo cache viejo')
+        return NextResponse.json(staleCache, { headers: { ...CACHE_HEADERS, 'X-Cache': 'STALE' } })
+      }
       return NextResponse.json(
         { error: 'No se pudieron obtener los productos' },
         { status: productsResponse.status }
@@ -688,26 +720,40 @@ export async function GET(req: NextRequest) {
 
     console.log(`[WooCommerce Tortas] Obtenidos ${productsWithVariations.length} productos`)
 
-    return NextResponse.json(
-      {
-        success: true,
-        categoria: {
-          id: tortasCategory.id,
-          nombre: tortasCategory.name,
-          slug: tortasCategory.slug,
-        },
-        count: productsWithVariations.length,
-        products: productsWithVariations,
+    const responseData = {
+      success: true,
+      categoria: {
+        id: tortasCategory.id,
+        nombre: tortasCategory.name,
+        slug: tortasCategory.slug,
       },
-      {
-        headers: {
-          // Servir cache inmediatamente; refrescar en background cuando expira (sin bloquear usuarios)
-          'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=86400',
-        },
-      }
-    )
+      count: productsWithVariations.length,
+      products: productsWithVariations,
+    }
+
+    // Guardar en cache Neon (en background, no bloquea la respuesta)
+    prisma.catalogoCache.upsert({
+      where: { id: 'tortas' },
+      create: { id: 'tortas', data: responseData as any },
+      update: { data: responseData as any },
+    }).then(() => {
+      console.log('[Tortas] Cache Neon actualizado')
+    }).catch(err => {
+      console.error('[Tortas] Error guardando cache Neon:', err)
+    })
+
+    return NextResponse.json(responseData, { headers: CACHE_HEADERS })
   } catch (error) {
     console.error('[WooCommerce Tortas] Error:', error)
+
+    // Fallback: si hay cache viejo, servirlo aunque esté vencido
+    if (staleCache) {
+      console.log('[Tortas] WooCommerce falló, sirviendo cache viejo como fallback')
+      return NextResponse.json(staleCache, {
+        headers: { ...CACHE_HEADERS, 'X-Cache': 'STALE' }
+      })
+    }
+
     return NextResponse.json(
       {
         error: 'Error al obtener tortas',
