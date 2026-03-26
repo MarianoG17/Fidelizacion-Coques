@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
-import jwt from 'jsonwebtoken'
+import { signClienteJWT } from '@/lib/auth'
 
 /**
  * Endpoint para generar token JWT compatible con el sistema existente
@@ -42,18 +42,11 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Generar token JWT compatible con el sistema existente
-        const token = jwt.sign(
-            {
-                clienteId: cliente.id,
-                email: cliente.email,
-                nombre: cliente.nombre,
-                phone: cliente.phone,
-                nivel: cliente.nivel?.nombre || 'Bronce',
-            },
-            process.env.JWT_SECRET || 'secret-key-coques-2024',
-            { expiresIn: '30d' }
-        )
+        // Generar token JWT compatible con el sistema existente (mismo método que /api/pass)
+        const token = await signClienteJWT({
+            clienteId: cliente.id,
+            phone: cliente.phone,
+        })
 
         return NextResponse.json({
             success: true,

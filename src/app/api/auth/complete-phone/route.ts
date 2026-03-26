@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { normalizarTelefono } from '@/lib/phone'
 import { generarSecretoOTP } from '@/lib/otp'
 import { sendEmail } from '@/lib/email'
-import jwt from 'jsonwebtoken'
+import { signClienteJWT } from '@/lib/auth'
 
 /**
  * Endpoint para completar el teléfono de usuarios que se registraron con Google
@@ -149,18 +149,11 @@ export async function POST(req: NextRequest) {
             }).catch(err => console.error('[COMPLETE-PHONE] Error enviando email de bienvenida:', err))
         }
 
-        // Generar nuevo token JWT con el estado actualizado
-        const token = jwt.sign(
-            {
-                clienteId: cliente.id,
-                email: cliente.email,
-                nombre: cliente.nombre,
-                phone: cliente.phone,
-                nivel: cliente.nivel?.nombre || 'Bronce',
-            },
-            process.env.JWT_SECRET || 'secret-key-coques-2024',
-            { expiresIn: '30d' }
-        )
+        // Generar nuevo token JWT con el estado actualizado (mismo método que /api/pass)
+        const token = await signClienteJWT({
+            clienteId: cliente.id,
+            phone: cliente.phone,
+        })
 
         return NextResponse.json({
             success: true,

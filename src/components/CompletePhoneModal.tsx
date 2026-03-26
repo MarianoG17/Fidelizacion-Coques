@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 
 interface CompletePhoneModalProps {
     isOpen: boolean
@@ -11,6 +11,7 @@ interface CompletePhoneModalProps {
 
 export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneModalProps) {
     const router = useRouter()
+    const { update } = useSession()
     const [phone, setPhone] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -75,12 +76,12 @@ export default function CompletePhoneModal({ isOpen, userName }: CompletePhoneMo
                 localStorage.setItem('fidelizacion_token', data.token)
             }
 
-            // IMPORTANTE: Hacer un hard redirect para forzar a NextAuth a regenerar la sesión
-            // NextAuth usa JWT y necesita consultar la DB nuevamente para obtener needsPhone: false
-            // window.location.href hace un full page reload, lo que fuerza a NextAuth a:
-            // 1. Validar el token de sesión
-            // 2. Ejecutar el callback jwt() que consulta la DB
-            // 3. Regenerar el token con los datos actualizados (needsPhone: false)
+            // Forzar que NextAuth actualice el JWT en cookie (needsPhone: false)
+            // Esto garantiza que cuando recargue la página, la sesión ya esté actualizada
+            console.log('[CompletePhoneModal] Actualizando sesión de NextAuth...')
+            await update()
+
+            // Hard redirect para limpiar todo el estado de React
             console.log('[CompletePhoneModal] Redirigiendo para actualizar sesión...')
             window.location.href = '/pass'
         } catch (e) {

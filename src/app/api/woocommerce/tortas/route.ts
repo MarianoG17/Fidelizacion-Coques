@@ -1,9 +1,18 @@
 // src/app/api/woocommerce/tortas/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
-// Caché de ruta: Next.js almacena la respuesta completa en Data Cache compartido
-// entre todas las instancias de Vercel (sobrevive cold starts)
-export const revalidate = 7200 // 2 horas
+// Sin revalidate estático — usamos Cache-Control stale-while-revalidate para
+// servir datos cacheados al instante mientras se refresca en background
+export const dynamic = 'force-dynamic'
+
+const FETCH_TIMEOUT_MS = 8000 // 8 segundos máximo por request a WooCommerce
+
+function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer))
+}
 
 /**
  * Extrae el rendimiento de la descripción del producto
@@ -233,7 +242,7 @@ export async function GET(req: NextRequest) {
         }
         const batchResults = await Promise.all(batches.map(async (skuBatch) => {
           try {
-            const batchResponse = await fetch(
+            const batchResponse = await fetchWithTimeout(
               `${wooUrl}/wp-json/wc/v3/products?sku=${encodeURIComponent(skuBatch.join(','))}&per_page=100`,
               { headers}
             )
@@ -250,12 +259,12 @@ export async function GET(req: NextRequest) {
       return adicionalesInfo
     })()
 
-    const fetchCategoriaPromise = fetch(
+    const fetchCategoriaPromise = fetchWithTimeout(
       `${wooUrl}/wp-json/wc/v3/products/categories?search=tortas clasicas&per_page=50`,
       { headers}
     )
 
-    const fetchSku20Promise = fetch(
+    const fetchSku20Promise = fetchWithTimeout(
       `${wooUrl}/wp-json/wc/v3/products?sku=20&per_page=1&status=publish`,
       { headers}
     )
@@ -293,7 +302,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Paso 2: Obtener productos de esa categoría (depende del resultado de categoría)
-    const productsResponse = await fetch(
+    const productsResponse = await fetchWithTimeout(
       `${wooUrl}/wp-json/wc/v3/products?category=${tortasCategory.id}&per_page=25&status=publish&orderby=menu_order&order=asc`,
       { headers}
     )
@@ -679,16 +688,24 @@ export async function GET(req: NextRequest) {
 
     console.log(`[WooCommerce Tortas] Obtenidos ${productsWithVariations.length} productos`)
 
-    return NextResponse.json({
-      success: true,
-      categoria: {
-        id: tortasCategory.id,
-        nombre: tortasCategory.name,
-        slug: tortasCategory.slug,
+    return NextResponse.json(
+      {
+        success: true,
+        categoria: {
+          id: tortasCategory.id,
+          nombre: tortasCategory.name,
+          slug: tortasCategory.slug,
+        },
+        count: productsWithVariations.length,
+        products: productsWithVariations,
       },
-      count: productsWithVariations.length,
-      products: productsWithVariations,
-    })
+      {
+        headers: {
+          // Servir cache inmediatamente; refrescar en background cuando expira (sin bloquear usuarios)
+          'Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=86400',
+        },
+      }
+    )
   } catch (error) {
     console.error('[WooCommerce Tortas] Error:', error)
     return NextResponse.json(
