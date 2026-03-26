@@ -275,6 +275,13 @@ export async function POST(req: NextRequest) {
               </div>
               ` : ''}
 
+              <div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; margin: 25px 0;">
+                <h3 style="color: #1d4ed8; margin-top: 0;">📲 Instalá la app en tu celular</h3>
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #1e40af;">Así la tenés siempre a mano, como cualquier app.</p>
+                <p style="margin: 0 0 6px 0; font-size: 14px; color: #374151;"><strong>Android:</strong> Abrí en Chrome → menú ⋮ → "Agregar a pantalla de inicio"</p>
+                <p style="margin: 0; font-size: 14px; color: #374151;"><strong>iPhone:</strong> Abrí en Safari → botón compartir → "Agregar a pantalla de inicio"</p>
+              </div>
+
               <div style="text-align: center; margin: 35px 0;">
                 <a href="${appUrl}/pass"
                    style="display: inline-block;
