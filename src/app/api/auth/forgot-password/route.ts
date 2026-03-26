@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Construir link de reseteo
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://coques.vercel.app'}/reset-password/${token}`
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.coques.com.ar'}/reset-password/${token}`
 
     // Enviar email con Brevo
     try {

@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
 
     // Enviar email de bienvenida con Brevo
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://coques.vercel.app'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.coques.com.ar'
 
       await sendEmail({
         to: validatedData.email,

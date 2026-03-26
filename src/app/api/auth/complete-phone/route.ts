@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         // Enviar email de bienvenida (solo si es un registro nuevo, no una actualización)
         const esRegistroNuevo = currentClient.phone?.includes('TEMP')
         if (esRegistroNuevo && cliente.email) {
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://coques.vercel.app'
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.coques.com.ar'
             sendEmail({
                 to: cliente.email,
                 subject: '¡Bienvenido a Coques Bakery! 🎉',
