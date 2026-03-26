@@ -276,15 +276,6 @@ export async function POST(req: NextRequest) {
               </div>
               ` : ''}
 
-              <div style="background-color: #fef3c7; border-radius: 8px; padding: 15px; margin: 25px 0;">
-                <p style="margin: 0; color: #92400e;">
-                  <strong>💡 Tu código de referido:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 16px; font-weight: bold;">${codigoReferidoCliente}</code>
-                </p>
-                <p style="margin: 10px 0 0 0; font-size: 14px; color: #78350f;">
-                  Compartilo con tus amigos y ganás visitas bonus cuando se registren.
-                </p>
-              </div>
-
               <div style="text-align: center; margin: 35px 0;">
                 <a href="${appUrl}/pass"
                    style="display: inline-block;
