@@ -383,9 +383,13 @@ export default function ConciliacionPage() {
               benefNorm: beneficioNorm
             })
 
+            const tienetipoAyres = esCafeteriaAyres || esLavaderoAyres
+            const tienetipoApp = esCafeteriaApp || esLavaderoApp
+
             const mismoTipo =
               (esCafeteriaAyres && esCafeteriaApp) ||
-              (esLavaderoAyres && esLavaderoApp)
+              (esLavaderoAyres && esLavaderoApp) ||
+              (!tienetipoAyres && !tienetipoApp) // Ej: "Bienvenida" no tiene tipo específico
 
             if (mismoTipo) {
               // Verificar ventana de tiempo (2 horas = 120 minutos)
@@ -440,7 +444,7 @@ export default function ConciliacionPage() {
 
       // Buscar posibles matches por fecha y hora cercana (ventana de 2 horas)
       const posiblesMatches = appRecords.filter((appRec) => {
-        const mismaFecha = appRec.fecha === ayresRec.fecha
+        const mismaFecha = normalizarFecha(appRec.fecha) === normalizarFecha(ayresRec.fecha)
         const diferenciaMinutos = Math.abs(
           parseTime(appRec.hora) - parseTime(ayresRec.hora)
         )

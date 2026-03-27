@@ -109,16 +109,17 @@ export async function GET(req: NextRequest) {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
-                    timeZone: 'UTC',
+                    timeZone: 'America/Argentina/Buenos_Aires',
                 }),
                 hora: timestamp.toLocaleTimeString('es-AR', {
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit',
-                    timeZone: 'UTC',
+                    timeZone: 'America/Argentina/Buenos_Aires',
+                    hour12: false,
                 }),
-                fechaHora: timestamp.toLocaleString('es-AR', { timeZone: 'UTC' }),
-                dia: timestamp.toLocaleDateString('es-AR', { weekday: 'short', timeZone: 'UTC' }),
+                fechaHora: timestamp.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+                dia: timestamp.toLocaleDateString('es-AR', { weekday: 'short', timeZone: 'America/Argentina/Buenos_Aires' }),
                 timestamp: timestamp.toISOString(),
 
                 // Cliente
