@@ -32,6 +32,8 @@ export default function ConfiguracionPage() {
     const [niveles, setNiveles] = useState<Nivel[]>([])
     const [guardando, setGuardando] = useState(false)
     const [mensaje, setMensaje] = useState('')
+    const [refrescandoCatalogo, setRefrescandoCatalogo] = useState(false)
+    const [mensajeCatalogo, setMensajeCatalogo] = useState('')
 
     useEffect(() => {
         const adminKey = localStorage.getItem('admin_key')
@@ -72,6 +74,29 @@ export default function ConfiguracionPage() {
         } catch (error) {
             console.error('Error:', error)
             setMensaje('Error al cargar configuración')
+        }
+    }
+
+    async function refrescarCatalogo() {
+        setRefrescandoCatalogo(true)
+        setMensajeCatalogo('')
+        try {
+            const adminKey = localStorage.getItem('admin_key')
+            const res = await fetch('/api/admin/refresh-catalogo', {
+                method: 'POST',
+                headers: { 'x-admin-key': adminKey || '' }
+            })
+            const data = await res.json()
+            if (res.ok) {
+                setMensajeCatalogo(`✅ ${data.message}`)
+            } else {
+                setMensajeCatalogo(`❌ Error: ${data.error}`)
+            }
+        } catch {
+            setMensajeCatalogo('❌ Error al conectar con el servidor')
+        } finally {
+            setRefrescandoCatalogo(false)
+            setTimeout(() => setMensajeCatalogo(''), 5000)
         }
     }
 
@@ -131,6 +156,27 @@ export default function ConfiguracionPage() {
                         {mensaje}
                     </div>
                 )}
+
+                {/* Catálogo WooCommerce */}
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">🛍️ Catálogo de Tortas</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        El catálogo se guarda en cache por 30 días. Usá este botón cuando cambiés precios o productos en WooCommerce.
+                    </p>
+                    {mensajeCatalogo && (
+                        <div className={`mb-3 p-3 rounded-lg text-sm ${mensajeCatalogo.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {mensajeCatalogo}
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={refrescarCatalogo}
+                        disabled={refrescandoCatalogo}
+                        className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {refrescandoCatalogo ? '⏳ Actualizando catálogo...' : '🔄 Actualizar Catálogo desde WooCommerce'}
+                    </button>
+                </div>
 
                 <form onSubmit={guardarConfiguracion} className="bg-white rounded-xl shadow-sm p-6 space-y-6">
                     {/* Sistema de Niveles */}

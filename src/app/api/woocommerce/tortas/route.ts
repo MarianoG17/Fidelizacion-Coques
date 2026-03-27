@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const FETCH_TIMEOUT_MS = 8000 // 8 segundos máximo por request a WooCommerce
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 días
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 días
 
 function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController()
@@ -15,7 +15,7 @@ function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> 
 }
 
 const CACHE_HEADERS = {
-  'Cache-Control': 'public, s-maxage=604800, stale-while-revalidate=604800',
+  'Cache-Control': 'public, s-maxage=2592000, stale-while-revalidate=2592000',
 }
 
 /**
