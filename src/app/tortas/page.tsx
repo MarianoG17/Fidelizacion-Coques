@@ -229,8 +229,8 @@ function TortasPageContent() {
 
       if (data.success && data.products) {
         setProductos(data.products)
-        // Guardar en cache por 2 horas
-        FrontendCache.set('tortas_catalogo', data.products, 120)
+        // Guardar en cache por 7 días (precios cambian ~1 vez al mes, refresh manual desde admin)
+        FrontendCache.set('tortas_catalogo', data.products, 7 * 24 * 60)
         console.log('💾 [Cache] Catálogo guardado en cache:', data.products.length, 'productos')
       }
     } catch (err) {
