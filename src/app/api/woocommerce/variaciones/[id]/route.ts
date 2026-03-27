@@ -1,5 +1,6 @@
 // src/app/api/woocommerce/variaciones/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { buildWooHeaders } from '@/lib/woocommerce-headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,12 +56,7 @@ export async function GET(
       )
     }
 
-    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
-    const headers = {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'FidelizacionApp/1.0',
-    }
+    const headers = buildWooHeaders(wooKey, wooSecret)
 
     // Obtener información del producto principal
     const productResponse = await fetch(

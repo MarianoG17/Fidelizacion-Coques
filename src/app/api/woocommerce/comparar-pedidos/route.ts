@@ -1,5 +1,6 @@
 // src/app/api/woocommerce/comparar-pedidos/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { buildWooHeaders } from '@/lib/woocommerce-headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,11 +33,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
-    const headers = {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
-    }
+    const headers = buildWooHeaders(wooKey, wooSecret)
 
     // Obtener ambos pedidos
     const [respBueno, respApp] = await Promise.all([

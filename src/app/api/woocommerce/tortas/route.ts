@@ -1,6 +1,7 @@
 // src/app/api/woocommerce/tortas/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { buildWooHeaders } from '@/lib/woocommerce-headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -234,12 +235,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
-    const headers = {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'FidelizacionApp/1.0',
-    }
+    const headers = buildWooHeaders(wooKey, wooSecret)
 
     // ⚡ PARALELIZAR: Steps 0, 1 y 2.5 son independientes entre sí
     // Step 0: batch SKUs adicionales | Step 1: categoría | Step 2.5: SKU 20

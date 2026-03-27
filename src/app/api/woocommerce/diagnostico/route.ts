@@ -1,5 +1,6 @@
 // src/app/api/woocommerce/diagnostico/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { buildWooHeaders } from '@/lib/woocommerce-headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,19 +49,16 @@ export async function GET(req: NextRequest) {
     // Si todas están configuradas, intenta una llamada de prueba
     if (diagnostico.todasConfiguradas && wooUrl && wooKey && wooSecret) {
       try {
-        const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
-        
+        const headers = buildWooHeaders(wooKey, wooSecret)
+
         // Timeout de 10 segundos
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 10000)
 
         const testUrl = `${wooUrl}/wp-json/wc/v3/system_status`
-        
+
         const response = await fetch(testUrl, {
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
           signal: controller.signal,
         })
 

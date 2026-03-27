@@ -4,6 +4,7 @@ import { requireClienteAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { evaluarNivel } from '@/lib/beneficios'
 import { getDatetimeArgentina } from '@/lib/timezone'
+import { buildWooHeaders } from '@/lib/woocommerce-headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,12 +56,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const auth = Buffer.from(`${wooKey}:${wooSecret}`).toString('base64')
-    const headers = {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'FidelizacionApp/1.0',
-    }
+    const headers = buildWooHeaders(wooKey, wooSecret)
 
     console.log(`[Mis Pedidos] Cliente email: ${cliente.email}, ID: ${cliente.id}, wooCustomerId cacheado: ${cliente.wooCustomerId || 'ninguno'}`)
 
