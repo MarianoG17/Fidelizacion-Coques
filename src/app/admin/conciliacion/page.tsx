@@ -366,174 +366,95 @@ export default function ConciliacionPage() {
   }
 
   function conciliar(ayresRecords: AyresRecord[], appRecords: AppRecord[]): ConciliacionResult[] {
-    console.log('[CONCILIACION] Total Ayres:', ayresRecords.length, 'Total App:', appRecords.length)
-    console.log('[CONCILIACION] Registros App:', appRecords)
+    const appKey = (r: AppRecord) => `${r.fecha}_${r.hora}_${r.beneficioNombre}`
 
-    // Rastrear qué registros de la app ya han sido matcheados (COINCIDE o POSIBLE)
-    const appRecordsUsados = new Set<string>()
-    const appRecordsPosibleUsados = new Set<string>()
+    function buscarMatchExacto(ayresRec: AyresRecord, usados: Set<string>): AppRecord | null {
+      const descNorm = normalizar(ayresRec.descuento)
+      const porcAyres = descNorm.match(/(\d+)%/)?.[1]
 
-    return ayresRecords.map((ayresRec) => {
-      // Normalizar nombre del descuento de Ayres (lowercase + sin tildes)
-      const descuentoAyresNorm = normalizar(ayresRec.descuento)
+      const candidates = appRecords.filter((appRec) => {
+        if (usados.has(appKey(appRec))) return false
+        if (appRec.codigoAyresIT && appRec.codigoAyresIT === ayresRec.codigo) return true
 
-      console.log('[PROCESANDO]', {
-        fecha: ayresRec.fecha,
-        hora: ayresRec.hora,
-        descuento: ayresRec.descuento,
-        codigo: ayresRec.codigo
+        const benefNorm = normalizar(appRec.beneficioNombre)
+        const porcApp = benefNorm.match(/(\d+)%/)?.[1]
+        if (!porcAyres || !porcApp || porcAyres !== porcApp) return false
+        if (normalizarFecha(appRec.fecha) !== normalizarFecha(ayresRec.fecha)) return false
+
+        const esCafeteriaAyres = descNorm.includes('cafeteria') || descNorm.includes('cafe')
+        const esCafeteriaApp = benefNorm.includes('cafeteria') || benefNorm.includes('cafe')
+        const esLavaderoAyres = descNorm.includes('lavadero')
+        const esLavaderoApp = benefNorm.includes('lavadero')
+        const tienetipoAyres = esCafeteriaAyres || esLavaderoAyres
+        const tienetipoApp = esCafeteriaApp || esLavaderoApp
+        const mismoTipo =
+          (esCafeteriaAyres && esCafeteriaApp) ||
+          (esLavaderoAyres && esLavaderoApp) ||
+          (!tienetipoAyres && !tienetipoApp)
+
+        if (!mismoTipo) return false
+        return Math.abs(parseTime(appRec.hora) - parseTime(ayresRec.hora)) <= 120
       })
 
-      // Buscar coincidencias por NOMBRE del beneficio y fecha
-      // IMPORTANTE: Excluir registros de la app que ya fueron matcheados
-      const matches = appRecords.filter((appRec) => {
-        // Si este registro ya fue usado, no considerarlo
-        const appRecKey = `${appRec.fecha}_${appRec.hora}_${appRec.beneficioNombre}`
-        if (appRecordsUsados.has(appRecKey)) {
-          return false
-        }
-        // Normalizar fechas para comparación
-        const fechaAyresNorm = normalizarFecha(ayresRec.fecha)
-        const fechaAppNorm = normalizarFecha(appRec.fecha)
-        const mismaFecha = fechaAyresNorm === fechaAppNorm
+      if (candidates.length === 0) return null
+      return candidates.reduce((best, cur) =>
+        Math.abs(parseTime(cur.hora) - parseTime(ayresRec.hora)) <
+        Math.abs(parseTime(best.hora) - parseTime(ayresRec.hora)) ? cur : best
+      )
+    }
 
-        // Match por código si existe
-        if (appRec.codigoAyresIT && appRec.codigoAyresIT === ayresRec.codigo) {
-          return true
-        }
+    function buscarPosible(ayresRec: AyresRecord, usados: Set<string>): AppRecord | null {
+      const descNorm = normalizar(ayresRec.descuento)
+      const porcAyres = descNorm.match(/(\d+)%/)?.[1]
 
-        // Match por NOMBRE del beneficio (lowercase + sin tildes)
-        const beneficioNorm = normalizar(appRec.beneficioNombre)
-
-        // Extraer porcentaje del descuento de Ayres (ej: "5%" de "Descuento App 5% Cafetería")
-        const porcentajeMatchAyres = descuentoAyresNorm.match(/(\d+)%/)
-        const porcentajeMatchApp = beneficioNorm.match(/(\d+)%/)
-
-        console.log('[COMPARANDO]', {
-          ayresDesc: ayresRec.descuento,
-          appBenef: appRec.beneficioNombre,
-          descNorm: descuentoAyresNorm,
-          benefNorm: beneficioNorm,
-          porcAyres: porcentajeMatchAyres?.[1],
-          porcApp: porcentajeMatchApp?.[1],
-          fechaAyres: ayresRec.fecha,
-          fechaApp: appRec.fecha,
-          mismaFecha
-        })
-
-        if (porcentajeMatchAyres && porcentajeMatchApp) {
-          const porcentajeAyres = porcentajeMatchAyres[1]
-          const porcentajeApp = porcentajeMatchApp[1]
-
-          console.log('[PORCENTAJES]', { ayres: porcentajeAyres, app: porcentajeApp, son_iguales: porcentajeAyres === porcentajeApp })
-
-          // Mismo porcentaje
-          if (porcentajeAyres === porcentajeApp && mismaFecha) {
-            // Verificar tipo (cafetería, lavadero, etc.)
-            // IMPORTANTE: Usar sin tildes porque ya está normalizado
-            const esCafeteriaAyres = descuentoAyresNorm.includes('cafeteria') || descuentoAyresNorm.includes('cafe')
-            const esCafeteriaApp = beneficioNorm.includes('cafeteria') || beneficioNorm.includes('cafe')
-
-            const esLavaderoAyres = descuentoAyresNorm.includes('lavadero')
-            const esLavaderoApp = beneficioNorm.includes('lavadero')
-
-            console.log('[TIPO CHECK]', {
-              esCafeteriaAyres,
-              esCafeteriaApp,
-              esLavaderoAyres,
-              esLavaderoApp,
-              descNorm: descuentoAyresNorm,
-              benefNorm: beneficioNorm
-            })
-
-            const tienetipoAyres = esCafeteriaAyres || esLavaderoAyres
-            const tienetipoApp = esCafeteriaApp || esLavaderoApp
-
-            const mismoTipo =
-              (esCafeteriaAyres && esCafeteriaApp) ||
-              (esLavaderoAyres && esLavaderoApp) ||
-              (!tienetipoAyres && !tienetipoApp) // Ej: "Bienvenida" no tiene tipo específico
-
-            if (mismoTipo) {
-              // Verificar ventana de tiempo (2 horas = 120 minutos)
-              const diferenciaMinutos = Math.abs(
-                parseTime(appRec.hora) - parseTime(ayresRec.hora)
-              )
-
-              console.log('[MATCH]', {
-                ayres: ayresRec.descuento,
-                app: appRec.beneficioNombre,
-                porcentaje: porcentajeAyres,
-                diferencia: diferenciaMinutos + ' min'
-              })
-
-              return diferenciaMinutos <= 120
-            }
-          }
-        }
-
-        return false
+      const candidates = appRecords.filter((appRec) => {
+        if (usados.has(appKey(appRec))) return false
+        // Verificar porcentaje primero: si ambos tienen % y difieren, descartar
+        const porcApp = normalizar(appRec.beneficioNombre).match(/(\d+)%/)?.[1]
+        if (porcAyres && porcApp && porcAyres !== porcApp) return false
+        if (normalizarFecha(appRec.fecha) !== normalizarFecha(ayresRec.fecha)) return false
+        if (Math.abs(parseTime(appRec.hora) - parseTime(ayresRec.hora)) > 120) return false
+        return true
       })
 
-      if (matches.length > 0) {
-        // Si hay múltiples matches, elegir el más cercano en tiempo
-        const match = matches.reduce((closest, current) => {
-          const diffCurrent = Math.abs(
-            parseTime(current.hora) - parseTime(ayresRec.hora)
-          )
-          const diffClosest = Math.abs(
-            parseTime(closest.hora) - parseTime(ayresRec.hora)
-          )
-          return diffCurrent < diffClosest ? current : closest
-        })
+      if (candidates.length === 0) return null
+      return candidates.reduce((best, cur) =>
+        Math.abs(parseTime(cur.hora) - parseTime(ayresRec.hora)) <
+        Math.abs(parseTime(best.hora) - parseTime(ayresRec.hora)) ? cur : best
+      )
+    }
 
-        // Marcar este registro de la app como usado
-        const matchKey = `${match.fecha}_${match.hora}_${match.beneficioNombre}`
-        appRecordsUsados.add(matchKey)
+    // PASADA 1: encontrar todos los COINCIDE (match exacto)
+    const usadosCoincide = new Set<string>()
+    const coincideResults: (AppRecord | null)[] = ayresRecords.map((ayresRec) => {
+      const match = buscarMatchExacto(ayresRec, usadosCoincide)
+      if (match) usadosCoincide.add(appKey(match))
+      return match
+    })
 
-        console.log('[MATCH REGISTRADO]', {
-          ayres: ayresRec.descuento,
-          app: match.beneficioNombre,
-          usadosTotal: appRecordsUsados.size
-        })
-
+    // PASADA 2: asignar POSIBLE solo de los registros que no quedaron en COINCIDE
+    const usadosPosible = new Set<string>(usadosCoincide)
+    return ayresRecords.map((ayresRec, i) => {
+      const coincide = coincideResults[i]
+      if (coincide) {
         return {
           ayresRecord: ayresRec,
-          appRecord: match,
+          appRecord: coincide,
           estado: 'COINCIDE',
-          diferenciaTiempo: Math.abs(parseTime(match.hora) - parseTime(ayresRec.hora)),
+          diferenciaTiempo: Math.abs(parseTime(coincide.hora) - parseTime(ayresRec.hora)),
         }
       }
-
-      // Buscar posibles matches por fecha y hora cercana (ventana de 2 horas)
-      // Excluir registros ya usados en COINCIDE o en POSIBLE previo
-      const posiblesMatches = appRecords.filter((appRec) => {
-        const appRecKey = `${appRec.fecha}_${appRec.hora}_${appRec.beneficioNombre}`
-        if (appRecordsUsados.has(appRecKey) || appRecordsPosibleUsados.has(appRecKey)) return false
-        const mismaFecha = normalizarFecha(appRec.fecha) === normalizarFecha(ayresRec.fecha)
-        const diferenciaMinutos = Math.abs(
-          parseTime(appRec.hora) - parseTime(ayresRec.hora)
-        )
-        return mismaFecha && diferenciaMinutos <= 120
-      })
-
-      if (posiblesMatches.length > 0) {
-        const match = posiblesMatches[0]
-        const matchKey = `${match.fecha}_${match.hora}_${match.beneficioNombre}`
-        appRecordsPosibleUsados.add(matchKey)
+      const posible = buscarPosible(ayresRec, usadosPosible)
+      if (posible) {
+        usadosPosible.add(appKey(posible))
         return {
           ayresRecord: ayresRec,
-          appRecord: match,
+          appRecord: posible,
           estado: 'POSIBLE_MATCH',
-          diferenciaTiempo: Math.abs(parseTime(match.hora) - parseTime(ayresRec.hora)),
+          diferenciaTiempo: Math.abs(parseTime(posible.hora) - parseTime(ayresRec.hora)),
         }
       }
-
-      return {
-        ayresRecord: ayresRec,
-        appRecord: null,
-        estado: 'NO_ENCONTRADO',
-      }
+      return { ayresRecord: ayresRec, appRecord: null, estado: 'NO_ENCONTRADO' }
     })
   }
 
