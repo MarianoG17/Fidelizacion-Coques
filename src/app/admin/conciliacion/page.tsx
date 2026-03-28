@@ -51,6 +51,7 @@ export default function ConciliacionPage() {
   const [confirmado, setConfirmado] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
+  const [validaciones, setValidaciones] = useState<Record<number, 'valido' | 'invalido'>>({})
 
   // Intentar cargar la admin key del localStorage al montar
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function ConciliacionPage() {
           fechaDesde: fechaMin,
           fechaHasta: fechaMax,
           estadisticas,
-          resultados: resultado,
+          resultados: resultado.map((r, i) => ({ ...r, validacionManual: validaciones[i] || null })),
           notas: notasConfirmacion,
         }),
       })
@@ -198,6 +199,8 @@ export default function ConciliacionPage() {
       // Guardar registros del Excel para vista previa
       setAyresData(ayresRecords)
       setVistaActual('conciliacion')
+      setValidaciones({})
+      setConfirmado(false)
 
       // Realizar conciliación
       const resultados = conciliar(ayresRecords, appRecords)
@@ -896,6 +899,7 @@ export default function ConciliacionPage() {
                     <th className="text-left p-3 text-slate-300 font-semibold">Beneficio App</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Hora App</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Dif. Tiempo</th>
+                    <th className="text-center p-3 text-slate-300 font-semibold">Validar</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -959,6 +963,20 @@ export default function ConciliacionPage() {
                           const m = mins % 60
                           return m > 0 ? `${h}h ${m}min` : `${h}h`
                         })() : '-'}
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex gap-1 justify-center">
+                          <button
+                            onClick={() => setValidaciones(v => ({ ...v, [i]: v[i] === 'valido' ? undefined as any : 'valido' }))}
+                            title="Marcar como válido"
+                            className={`w-7 h-7 rounded-full text-sm font-bold transition-colors ${validaciones[i] === 'valido' ? 'bg-green-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-green-800 hover:text-green-300'}`}
+                          >✓</button>
+                          <button
+                            onClick={() => setValidaciones(v => ({ ...v, [i]: v[i] === 'invalido' ? undefined as any : 'invalido' }))}
+                            title="Marcar como no corresponde"
+                            className={`w-7 h-7 rounded-full text-sm font-bold transition-colors ${validaciones[i] === 'invalido' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-red-800 hover:text-red-300'}`}
+                          >✗</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
