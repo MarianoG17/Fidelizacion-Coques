@@ -44,6 +44,8 @@ export default function ConciliacionPage() {
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState<ConciliacionResult[] | null>(null)
   const [estadisticas, setEstadisticas] = useState<any>(null)
+  const [ayresData, setAyresData] = useState<AyresRecord[] | null>(null)
+  const [vistaActual, setVistaActual] = useState<'conciliacion' | 'excel'>('conciliacion')
 
   // Intentar cargar la admin key del localStorage al montar
   useEffect(() => {
@@ -139,6 +141,10 @@ export default function ConciliacionPage() {
       const appData = await res.json()
       console.log('Datos recibidos:', appData)
       const appRecords: AppRecord[] = appData.data || []
+
+      // Guardar registros del Excel para vista previa
+      setAyresData(ayresRecords)
+      setVistaActual('conciliacion')
 
       // Realizar conciliación
       const resultados = conciliar(ayresRecords, appRecords)
@@ -661,8 +667,75 @@ export default function ConciliacionPage() {
           </div>
         )}
 
-        {/* Resultados */}
+        {/* Tabs de vista */}
         {resultado && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setVistaActual('conciliacion')}
+              className={`px-5 py-2 rounded-xl font-semibold transition-colors ${vistaActual === 'conciliacion' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            >
+              Conciliación
+            </button>
+            <button
+              onClick={() => setVistaActual('excel')}
+              className={`px-5 py-2 rounded-xl font-semibold transition-colors ${vistaActual === 'excel' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            >
+              Datos Excel ({ayresData?.length ?? 0} registros)
+            </button>
+          </div>
+        )}
+
+        {/* Tabla datos del Excel */}
+        {ayresData && vistaActual === 'excel' && (
+          <div className="bg-slate-800 rounded-2xl p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Datos importados del Excel</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-700">
+                    <th className="text-left p-3 text-slate-300 font-semibold">Fecha/Hora</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Día</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Venta</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Sector</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Vendedor</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Cajero</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Código</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Descuento</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Tipo</th>
+                    <th className="text-right p-3 text-slate-300 font-semibold">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ayresData.map((r, i) => (
+                    <tr key={i} className="border-t border-slate-700 hover:bg-slate-700/30">
+                      <td className="p-3 text-slate-300">{r.fecha} {r.hora}</td>
+                      <td className="p-3 text-slate-400">{r.dia}</td>
+                      <td className="p-3 text-slate-300 font-mono">{r.numeroVenta}</td>
+                      <td className="p-3 text-slate-300">{r.sector}</td>
+                      <td className="p-3 text-slate-300">{r.vendedor}</td>
+                      <td className="p-3 text-slate-400">{r.cajero}</td>
+                      <td className="p-3 text-slate-300 font-mono">{r.codigo}</td>
+                      <td className="p-3 text-slate-300">{r.descuento}</td>
+                      <td className="p-3 text-slate-400">{r.tipo}</td>
+                      <td className="p-3 text-slate-300 font-semibold text-right">${r.monto.toFixed(0)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-600 bg-slate-700/50">
+                    <td colSpan={9} className="p-3 text-slate-300 font-semibold text-right">Total</td>
+                    <td className="p-3 text-white font-bold text-right">
+                      ${ayresData.reduce((s, r) => s + r.monto, 0).toFixed(0)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Resultados */}
+        {resultado && vistaActual === 'conciliacion' && (
           <div className="bg-slate-800 rounded-2xl p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-white">Resultados de Conciliación</h2>
