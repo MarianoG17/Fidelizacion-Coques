@@ -45,7 +45,12 @@ export default function ConciliacionPage() {
   const [resultado, setResultado] = useState<ConciliacionResult[] | null>(null)
   const [estadisticas, setEstadisticas] = useState<any>(null)
   const [ayresData, setAyresData] = useState<AyresRecord[] | null>(null)
-  const [vistaActual, setVistaActual] = useState<'conciliacion' | 'excel'>('conciliacion')
+  const [vistaActual, setVistaActual] = useState<'conciliacion' | 'excel' | 'historial'>('conciliacion')
+  const [notasConfirmacion, setNotasConfirmacion] = useState('')
+  const [confirmando, setConfirmando] = useState(false)
+  const [confirmado, setConfirmado] = useState(false)
+  const [historial, setHistorial] = useState<any[]>([])
+  const [cargandoHistorial, setCargandoHistorial] = useState(false)
 
   // Intentar cargar la admin key del localStorage al montar
   useEffect(() => {
@@ -72,11 +77,59 @@ export default function ConciliacionPage() {
     setResultado(null)
   }
 
+  async function confirmarConciliacion() {
+    if (!resultado || !estadisticas || !ayresData) return
+    setConfirmando(true)
+    try {
+      const fechaMin = ayresData[0].fecha
+      const fechaMax = ayresData[ayresData.length - 1].fecha
+      const res = await fetch('/api/admin/conciliacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify({
+          fechaDesde: fechaMin,
+          fechaHasta: fechaMax,
+          estadisticas,
+          resultados: resultado,
+          notas: notasConfirmacion,
+        }),
+      })
+      if (res.ok) {
+        setConfirmado(true)
+        setNotasConfirmacion('')
+      } else {
+        alert('Error al confirmar la conciliación')
+      }
+    } catch {
+      alert('Error al confirmar la conciliación')
+    } finally {
+      setConfirmando(false)
+    }
+  }
+
+  async function cargarHistorial() {
+    setCargandoHistorial(true)
+    try {
+      const res = await fetch('/api/admin/conciliacion', {
+        headers: { 'x-admin-key': adminKey },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setHistorial(data.data || [])
+      }
+    } catch {
+      // silencioso
+    } finally {
+      setCargandoHistorial(false)
+    }
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) {
       setArchivo(file)
       setResultado(null)
+      setConfirmado(false)
     }
   }
 
@@ -668,8 +721,8 @@ export default function ConciliacionPage() {
         )}
 
         {/* Tabs de vista */}
-        {resultado && (
-          <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {resultado && (<>
             <button
               onClick={() => setVistaActual('conciliacion')}
               className={`px-5 py-2 rounded-xl font-semibold transition-colors ${vistaActual === 'conciliacion' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
@@ -682,6 +735,87 @@ export default function ConciliacionPage() {
             >
               Datos Excel ({ayresData?.length ?? 0} registros)
             </button>
+          </>)}
+          <button
+            onClick={() => { setVistaActual('historial'); cargarHistorial() }}
+            className={`px-5 py-2 rounded-xl font-semibold transition-colors ${vistaActual === 'historial' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+          >
+            Historial auditado
+          </button>
+        </div>
+
+        {/* Panel de confirmación */}
+        {resultado && vistaActual === 'conciliacion' && (
+          <div className={`rounded-2xl p-5 mb-4 ${confirmado ? 'bg-green-900/40 border border-green-700' : 'bg-slate-800'}`}>
+            {confirmado ? (
+              <p className="text-green-300 font-semibold">✓ Conciliación confirmada y guardada en el historial</p>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <input
+                  type="text"
+                  value={notasConfirmacion}
+                  onChange={e => setNotasConfirmacion(e.target.value)}
+                  placeholder="Notas opcionales (ej: todo ok, 3 clientes sin app)"
+                  className="flex-1 bg-slate-700 text-white rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <button
+                  onClick={confirmarConciliacion}
+                  disabled={confirmando}
+                  className="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 text-white font-semibold rounded-xl transition-colors whitespace-nowrap"
+                >
+                  {confirmando ? 'Guardando...' : '✓ Confirmar conciliación'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Historial de conciliaciones */}
+        {vistaActual === 'historial' && (
+          <div className="bg-slate-800 rounded-2xl p-6">
+            <h2 className="text-xl font-bold text-white mb-4">Historial de conciliaciones auditadas</h2>
+            {cargandoHistorial ? (
+              <p className="text-slate-400">Cargando...</p>
+            ) : historial.length === 0 ? (
+              <p className="text-slate-400">No hay conciliaciones confirmadas aún.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-700">
+                      <th className="text-left p-3 text-slate-300 font-semibold">Fecha auditada</th>
+                      <th className="text-left p-3 text-slate-300 font-semibold">Confirmada el</th>
+                      <th className="text-center p-3 text-slate-300 font-semibold">Total Ayres</th>
+                      <th className="text-center p-3 text-green-400 font-semibold">✓ OK</th>
+                      <th className="text-center p-3 text-yellow-400 font-semibold">? Posible</th>
+                      <th className="text-center p-3 text-red-400 font-semibold">✗ No encontrado</th>
+                      <th className="text-right p-3 text-slate-300 font-semibold">Monto</th>
+                      <th className="text-left p-3 text-slate-300 font-semibold">Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historial.map((h) => {
+                      const confirmadoEn = new Date(h.confirmadoEn)
+                      const pad = (n: number) => String(n).padStart(2, '0')
+                      const fechaConfirm = `${pad(confirmadoEn.getUTCDate())}/${pad(confirmadoEn.getUTCMonth()+1)}/${confirmadoEn.getUTCFullYear()} ${pad(confirmadoEn.getUTCHours())}:${pad(confirmadoEn.getUTCMinutes())}`
+                      const fechaRango = h.fechaDesde === h.fechaHasta ? h.fechaDesde : `${h.fechaDesde} → ${h.fechaHasta}`
+                      return (
+                        <tr key={h.id} className="border-t border-slate-700 hover:bg-slate-700/30">
+                          <td className="p-3 text-slate-300 font-mono">{fechaRango}</td>
+                          <td className="p-3 text-slate-400">{fechaConfirm}</td>
+                          <td className="p-3 text-slate-300 text-center">{h.totalAyres}</td>
+                          <td className="p-3 text-green-300 text-center font-semibold">{h.coincidencias}</td>
+                          <td className="p-3 text-yellow-300 text-center">{h.posibles}</td>
+                          <td className="p-3 text-red-300 text-center">{h.noEncontrados}</td>
+                          <td className="p-3 text-slate-300 text-right">${Math.abs(h.montoTotal).toFixed(0)}</td>
+                          <td className="p-3 text-slate-400 text-xs">{h.notas || '-'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

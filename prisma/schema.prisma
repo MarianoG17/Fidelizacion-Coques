@@ -528,6 +528,24 @@ model Passkey {
   @@index([credentialId])
 }
 
+// Registro de conciliaciones confirmadas con AyresIT
+model ConciliacionAuditoria {
+  id              String   @id @default(uuid())
+  fechaDesde      String   // YYYY-MM-DD
+  fechaHasta      String   // YYYY-MM-DD
+  totalAyres      Int
+  coincidencias   Int
+  posibles        Int
+  noEncontrados   Int
+  montoTotal      Float
+  resultados      Json     // array completo de resultados
+  notas           String?
+  confirmadoEn    DateTime @default(now())
+
+  @@index([fechaDesde])
+  @@index([confirmadoEn])
+}
+
 // Cache del catálogo de WooCommerce en Neon para evitar llamadas lentas a WooCommerce
 model CatalogoCache {
   id        String   @id // clave fija: "tortas"
