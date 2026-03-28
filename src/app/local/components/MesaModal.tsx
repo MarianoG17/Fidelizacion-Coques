@@ -88,7 +88,7 @@ export default function MesaModal({ mesa, onClose, onCerrarSesion, onAplicarBene
                                 💳 Cargar en Ayresit: <span className="font-bold">{b.descripcionCaja}</span>
                               </p>
                               <p className="text-xs text-orange-700 mt-1">
-                                ⏰ Aplicado: {new Date(b.aplicadoEn).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                ⏰ Aplicado: {(() => { const d = new Date(b.aplicadoEn); const h = String(d.getUTCHours()).padStart(2,'0'); const m = String(d.getUTCMinutes()).padStart(2,'0'); return `${h}:${m}` })()}
                               </p>
                             </div>
                           </div>
