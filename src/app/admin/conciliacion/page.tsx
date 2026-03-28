@@ -30,9 +30,9 @@ interface AppRecord {
 }
 
 interface ConciliacionResult {
-  ayresRecord: AyresRecord
+  ayresRecord: AyresRecord | null
   appRecord: AppRecord | null
-  estado: 'COINCIDE' | 'NO_ENCONTRADO' | 'POSIBLE_MATCH'
+  estado: 'COINCIDE' | 'NO_ENCONTRADO' | 'POSIBLE_MATCH' | 'SOLO_APP'
   diferenciaTiempo?: number
 }
 
@@ -52,6 +52,7 @@ export default function ConciliacionPage() {
   const [historial, setHistorial] = useState<any[]>([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
   const [validaciones, setValidaciones] = useState<Record<number, 'valido' | 'invalido'>>({})
+  const [comentarios, setComentarios] = useState<Record<number, string>>({})
 
   // Intentar cargar la admin key del localStorage al montar
   useEffect(() => {
@@ -91,7 +92,7 @@ export default function ConciliacionPage() {
           fechaDesde: fechaMin,
           fechaHasta: fechaMax,
           estadisticas,
-          resultados: resultado.map((r, i) => ({ ...r, validacionManual: validaciones[i] || null })),
+          resultados: resultado.map((r, i) => ({ ...r, validacionManual: validaciones[i] || null, comentario: comentarios[i] || null })),
           notas: notasConfirmacion,
         }),
       })
@@ -200,6 +201,7 @@ export default function ConciliacionPage() {
       setAyresData(ayresRecords)
       setVistaActual('conciliacion')
       setValidaciones({})
+      setComentarios({})
       setConfirmado(false)
 
       // Realizar conciliación
@@ -212,6 +214,7 @@ export default function ConciliacionPage() {
         coincidencias: resultados.filter((r) => r.estado === 'COINCIDE').length,
         noEncontrados: resultados.filter((r) => r.estado === 'NO_ENCONTRADO').length,
         posiblesMatches: resultados.filter((r) => r.estado === 'POSIBLE_MATCH').length,
+        soloApp: resultados.filter((r) => r.estado === 'SOLO_APP').length,
         totalApp: appRecords.length,
         montoTotalAyres: ayresRecords.reduce((sum, r) => sum + r.monto, 0),
       }
@@ -434,7 +437,7 @@ export default function ConciliacionPage() {
 
     // PASADA 2: asignar POSIBLE solo de los registros que no quedaron en COINCIDE
     const usadosPosible = new Set<string>(usadosCoincide)
-    return ayresRecords.map((ayresRec, i) => {
+    const ayresResults: ConciliacionResult[] = ayresRecords.map((ayresRec, i) => {
       const coincide = coincideResults[i]
       if (coincide) {
         return {
@@ -456,6 +459,17 @@ export default function ConciliacionPage() {
       }
       return { ayresRecord: ayresRec, appRecord: null, estado: 'NO_ENCONTRADO' }
     })
+
+    // PASADA 3: agregar registros de la app que no fueron matcheados
+    const soloAppResults: ConciliacionResult[] = appRecords
+      .filter((appRec) => !usadosPosible.has(appKey(appRec)))
+      .map((appRec) => ({
+        ayresRecord: null,
+        appRecord: appRec,
+        estado: 'SOLO_APP' as const,
+      }))
+
+    return [...ayresResults, ...soloAppResults]
   }
 
   function parseTime(timeStr: string): number {
@@ -520,13 +534,13 @@ export default function ConciliacionPage() {
         const diff = r.diferenciaTiempo ? Math.round(r.diferenciaTiempo).toString() : ''
         return [
           r.estado,
-          r.ayresRecord.fecha,
-          r.ayresRecord.hora,
-          r.ayresRecord.codigo,
-          r.ayresRecord.descuento,
-          r.ayresRecord.monto,
-          r.ayresRecord.sector,
-          r.ayresRecord.vendedor,
+          r.ayresRecord?.fecha || '',
+          r.ayresRecord?.hora || '',
+          r.ayresRecord?.codigo || '',
+          r.ayresRecord?.descuento || '',
+          r.ayresRecord?.monto ?? '',
+          r.ayresRecord?.sector || '',
+          r.ayresRecord?.vendedor || '',
           r.appRecord?.clienteNombre || '',
           r.appRecord?.clienteTelefono || '',
           r.appRecord?.beneficioNombre || '',
@@ -626,7 +640,7 @@ export default function ConciliacionPage() {
 
         {/* Estadísticas */}
         {estadisticas && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
             <div className="bg-slate-800 rounded-xl p-4">
               <p className="text-slate-400 text-sm">Total AyresIT</p>
               <p className="text-2xl font-bold text-white">{estadisticas.totalAyres}</p>
@@ -642,6 +656,10 @@ export default function ConciliacionPage() {
             <div className="bg-red-900/30 rounded-xl p-4">
               <p className="text-red-400 text-sm">No Encontrados</p>
               <p className="text-2xl font-bold text-red-300">{estadisticas.noEncontrados}</p>
+            </div>
+            <div className="bg-blue-900/30 rounded-xl p-4">
+              <p className="text-blue-400 text-sm">Solo App</p>
+              <p className="text-2xl font-bold text-blue-300">{estadisticas.soloApp}</p>
             </div>
             <div className="bg-slate-800 rounded-xl p-4">
               <p className="text-slate-400 text-sm">Monto Total</p>
@@ -837,7 +855,9 @@ export default function ConciliacionPage() {
                         ? 'bg-green-900/20'
                         : r.estado === 'POSIBLE_MATCH'
                           ? 'bg-yellow-900/20'
-                          : 'bg-red-900/20'
+                          : r.estado === 'SOLO_APP'
+                            ? 'bg-blue-900/20'
+                            : 'bg-red-900/20'
                         }`}
                     >
                       <td className="p-3">
@@ -846,24 +866,38 @@ export default function ConciliacionPage() {
                             ? 'bg-green-900 text-green-200'
                             : r.estado === 'POSIBLE_MATCH'
                               ? 'bg-yellow-900 text-yellow-200'
-                              : 'bg-red-900 text-red-200'
+                              : r.estado === 'SOLO_APP'
+                                ? 'bg-blue-900 text-blue-200'
+                                : 'bg-red-900 text-red-200'
                             }`}
                         >
                           {r.estado === 'COINCIDE'
                             ? '✓ OK'
                             : r.estado === 'POSIBLE_MATCH'
                               ? '? Posible'
-                              : '✗ No encontrado'}
+                              : r.estado === 'SOLO_APP'
+                                ? '↑ Solo App'
+                                : '✗ No encontrado'}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-300 text-sm">{r.ayresRecord.fecha}</td>
-                      <td className="p-3 text-slate-300 text-sm font-mono">{r.ayresRecord.hora}</td>
-                      <td className="p-3 text-slate-300 font-mono text-sm">{r.ayresRecord.codigo}</td>
-                      <td className="p-3 text-slate-300 text-sm">{r.ayresRecord.descuento}</td>
-                      <td className="p-3 text-slate-300 font-semibold text-sm">
-                        ${r.ayresRecord.monto.toFixed(0)}
+                      <td className="p-3 text-slate-300 text-sm">
+                        {r.ayresRecord?.fecha || <span className="text-slate-600">-</span>}
                       </td>
-                      <td className="p-3 text-slate-300 text-sm">{r.ayresRecord.sector}</td>
+                      <td className="p-3 text-slate-300 text-sm font-mono">
+                        {r.ayresRecord?.hora || <span className="text-slate-600">-</span>}
+                      </td>
+                      <td className="p-3 text-slate-300 font-mono text-sm">
+                        {r.ayresRecord?.codigo || <span className="text-slate-600">-</span>}
+                      </td>
+                      <td className="p-3 text-slate-300 text-sm">
+                        {r.ayresRecord?.descuento || <span className="text-slate-600">-</span>}
+                      </td>
+                      <td className="p-3 text-slate-300 font-semibold text-sm">
+                        {r.ayresRecord ? `$${r.ayresRecord.monto.toFixed(0)}` : <span className="text-slate-600">-</span>}
+                      </td>
+                      <td className="p-3 text-slate-300 text-sm">
+                        {r.ayresRecord?.sector || <span className="text-slate-600">-</span>}
+                      </td>
                       <td className="p-3 text-slate-300 text-sm">
                         {r.appRecord ? (
                           <div>
@@ -891,18 +925,29 @@ export default function ConciliacionPage() {
                           return m > 0 ? `${h}h ${m}min` : `${h}h`
                         })() : '-'}
                       </td>
-                      <td className="p-3 text-center">
-                        <div className="flex gap-1 justify-center">
-                          <button
-                            onClick={() => setValidaciones(v => ({ ...v, [i]: v[i] === 'valido' ? undefined as any : 'valido' }))}
-                            title="Marcar como válido"
-                            className={`w-7 h-7 rounded-full text-sm font-bold transition-colors ${validaciones[i] === 'valido' ? 'bg-green-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-green-800 hover:text-green-300'}`}
-                          >✓</button>
-                          <button
-                            onClick={() => setValidaciones(v => ({ ...v, [i]: v[i] === 'invalido' ? undefined as any : 'invalido' }))}
-                            title="Marcar como no corresponde"
-                            className={`w-7 h-7 rounded-full text-sm font-bold transition-colors ${validaciones[i] === 'invalido' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-red-800 hover:text-red-300'}`}
-                          >✗</button>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                          {(r.estado === 'NO_ENCONTRADO' || r.estado === 'POSIBLE_MATCH' || r.estado === 'SOLO_APP') && (
+                            <input
+                              type="text"
+                              value={comentarios[i] || ''}
+                              onChange={(e) => setComentarios(c => ({ ...c, [i]: e.target.value }))}
+                              placeholder="Comentario..."
+                              className="w-full bg-slate-700 text-slate-200 text-xs rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500 placeholder-slate-500"
+                            />
+                          )}
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setValidaciones(v => ({ ...v, [i]: v[i] === 'valido' ? undefined as any : 'valido' }))}
+                              title="Marcar como válido"
+                              className={`w-7 h-7 rounded-full text-sm font-bold transition-colors ${validaciones[i] === 'valido' ? 'bg-green-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-green-800 hover:text-green-300'}`}
+                            >✓</button>
+                            <button
+                              onClick={() => setValidaciones(v => ({ ...v, [i]: v[i] === 'invalido' ? undefined as any : 'invalido' }))}
+                              title="Marcar como no corresponde"
+                              className={`w-7 h-7 rounded-full text-sm font-bold transition-colors ${validaciones[i] === 'invalido' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-red-800 hover:text-red-300'}`}
+                            >✗</button>
+                          </div>
                         </div>
                       </td>
                     </tr>
