@@ -15,12 +15,14 @@ export async function GET(req: NextRequest) {
         const formato = searchParams.get('formato') || 'json' // 'json' o 'csv'
 
         // Rango de fechas
+        // IMPORTANTE: getDatetimeArgentina() guarda hora Argentina como UTC (sin offset)
+        // Por eso usamos 'T00:00:00Z' y 'T23:59:59Z' en vez de -03:00
         const desde = fechaDesde
-            ? new Date(fechaDesde + 'T00:00:00-03:00')
-            : new Date(new Date().setDate(new Date().getDate() - 30)) // últimos 30 días por defecto
+            ? new Date(fechaDesde + 'T00:00:00Z')
+            : new Date(new Date().setDate(new Date().getDate() - 30))
 
         const hasta = fechaHasta
-            ? new Date(fechaHasta + 'T23:59:59-03:00')
+            ? new Date(fechaHasta + 'T23:59:59Z')
             : new Date()
 
         // Beneficios a excluir (no son parte del programa de fidelización)
@@ -91,15 +93,13 @@ export async function GET(req: NextRequest) {
         const reporte = eventos.map((evento) => {
             const timestamp = new Date(evento.timestamp)
 
-            // Calcular hora Argentina manualmente (UTC-3, sin DST)
-            // Usamos aritmética directa para evitar problemas de locale/ICU en Vercel
-            const argMs = timestamp.getTime() - 3 * 60 * 60 * 1000
-            const argDate = new Date(argMs)
+            // NOTA: getDatetimeArgentina() guarda hora Argentina directamente como UTC (sin offset real).
+            // Por eso leemos los valores UTC tal cual — ya representan hora Argentina.
             const pad = (n: number) => String(n).padStart(2, '0')
-            const fecha = `${pad(argDate.getUTCDate())}/${pad(argDate.getUTCMonth() + 1)}/${argDate.getUTCFullYear()}`
-            const hora = `${pad(argDate.getUTCHours())}:${pad(argDate.getUTCMinutes())}:${pad(argDate.getUTCSeconds())}`
+            const fecha = `${pad(timestamp.getUTCDate())}/${pad(timestamp.getUTCMonth() + 1)}/${timestamp.getUTCFullYear()}`
+            const hora = `${pad(timestamp.getUTCHours())}:${pad(timestamp.getUTCMinutes())}:${pad(timestamp.getUTCSeconds())}`
             const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
-            const dia = dias[argDate.getUTCDay()]
+            const dia = dias[timestamp.getUTCDay()]
 
             // Parsear condiciones del beneficio si existe
             let condiciones: any = {}
