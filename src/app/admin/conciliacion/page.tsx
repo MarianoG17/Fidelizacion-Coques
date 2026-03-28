@@ -53,6 +53,7 @@ export default function ConciliacionPage() {
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
   const [validaciones, setValidaciones] = useState<Record<number, 'valido' | 'invalido'>>({})
   const [comentarios, setComentarios] = useState<Record<number, string>>({})
+  const [historialExpandido, setHistorialExpandido] = useState<string | null>(null)
 
   // Intentar cargar la admin key del localStorage al montar
   useEffect(() => {
@@ -739,6 +740,7 @@ export default function ConciliacionPage() {
                       <th className="text-center p-3 text-red-400 font-semibold">✗ No encontrado</th>
                       <th className="text-right p-3 text-slate-300 font-semibold">Monto</th>
                       <th className="text-left p-3 text-slate-300 font-semibold">Notas</th>
+                      <th className="p-3"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -747,17 +749,87 @@ export default function ConciliacionPage() {
                       const pad = (n: number) => String(n).padStart(2, '0')
                       const fechaConfirm = `${pad(confirmadoEn.getUTCDate())}/${pad(confirmadoEn.getUTCMonth()+1)}/${confirmadoEn.getUTCFullYear()} ${pad(confirmadoEn.getUTCHours())}:${pad(confirmadoEn.getUTCMinutes())}`
                       const fechaRango = h.fechaDesde === h.fechaHasta ? h.fechaDesde : `${h.fechaDesde} → ${h.fechaHasta}`
+                      const estaExpandido = historialExpandido === h.id
+                      const resultados: any[] = Array.isArray(h.resultados) ? h.resultados : []
+                      const conNotas = resultados.filter((r: any) => r.comentario || r.validacionManual)
                       return (
-                        <tr key={h.id} className="border-t border-slate-700 hover:bg-slate-700/30">
-                          <td className="p-3 text-slate-300 font-mono">{fechaRango}</td>
-                          <td className="p-3 text-slate-400">{fechaConfirm}</td>
-                          <td className="p-3 text-slate-300 text-center">{h.totalAyres}</td>
-                          <td className="p-3 text-green-300 text-center font-semibold">{h.coincidencias}</td>
-                          <td className="p-3 text-yellow-300 text-center">{h.posibles}</td>
-                          <td className="p-3 text-red-300 text-center">{h.noEncontrados}</td>
-                          <td className="p-3 text-slate-300 text-right">${Math.abs(h.montoTotal).toFixed(0)}</td>
-                          <td className="p-3 text-slate-400 text-xs">{h.notas || '-'}</td>
-                        </tr>
+                        <>
+                          <tr key={h.id} className="border-t border-slate-700 hover:bg-slate-700/30">
+                            <td className="p-3 text-slate-300 font-mono">{fechaRango}</td>
+                            <td className="p-3 text-slate-400">{fechaConfirm}</td>
+                            <td className="p-3 text-slate-300 text-center">{h.totalAyres}</td>
+                            <td className="p-3 text-green-300 text-center font-semibold">{h.coincidencias}</td>
+                            <td className="p-3 text-yellow-300 text-center">{h.posibles}</td>
+                            <td className="p-3 text-red-300 text-center">{h.noEncontrados}</td>
+                            <td className="p-3 text-slate-300 text-right">${Math.abs(h.montoTotal).toFixed(0)}</td>
+                            <td className="p-3 text-slate-400 text-xs">{h.notas || '-'}</td>
+                            <td className="p-3">
+                              {resultados.length > 0 && (
+                                <button
+                                  onClick={() => setHistorialExpandido(estaExpandido ? null : h.id)}
+                                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors whitespace-nowrap"
+                                >
+                                  {estaExpandido ? '▲ Cerrar' : `▼ Ver notas${conNotas.length > 0 ? ` (${conNotas.length})` : ''}`}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                          {estaExpandido && (
+                            <tr key={`${h.id}-detalle`} className="border-t border-slate-600">
+                              <td colSpan={9} className="p-4 bg-slate-900/50">
+                                <div className="space-y-2">
+                                  <p className="text-slate-400 text-xs font-semibold mb-3">
+                                    Movimientos con notas o validación manual ({conNotas.length > 0 ? conNotas.length : 'ninguno'})
+                                  </p>
+                                  {conNotas.length === 0 ? (
+                                    <p className="text-slate-500 text-xs">No hay movimientos con notas en esta conciliación.</p>
+                                  ) : (
+                                    <table className="w-full text-xs">
+                                      <thead>
+                                        <tr className="bg-slate-800">
+                                          <th className="text-left p-2 text-slate-400">Estado</th>
+                                          <th className="text-left p-2 text-slate-400">Fecha Ayres</th>
+                                          <th className="text-left p-2 text-slate-400">Descuento Ayres</th>
+                                          <th className="text-left p-2 text-slate-400">Cliente App</th>
+                                          <th className="text-left p-2 text-slate-400">Beneficio App</th>
+                                          <th className="text-left p-2 text-slate-400">Validación</th>
+                                          <th className="text-left p-2 text-slate-400">Comentario</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {conNotas.map((r: any, idx: number) => (
+                                          <tr key={idx} className="border-t border-slate-700">
+                                            <td className="p-2">
+                                              <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                                r.estado === 'COINCIDE' ? 'bg-green-900 text-green-200' :
+                                                r.estado === 'POSIBLE_MATCH' ? 'bg-yellow-900 text-yellow-200' :
+                                                r.estado === 'SOLO_APP' ? 'bg-blue-900 text-blue-200' :
+                                                'bg-red-900 text-red-200'
+                                              }`}>
+                                                {r.estado === 'COINCIDE' ? '✓ OK' :
+                                                 r.estado === 'POSIBLE_MATCH' ? '? Posible' :
+                                                 r.estado === 'SOLO_APP' ? '↑ Solo App' : '✗ No encontrado'}
+                                              </span>
+                                            </td>
+                                            <td className="p-2 text-slate-300 font-mono">{r.ayresRecord?.fecha || '-'} {r.ayresRecord?.hora?.substring(0,5) || ''}</td>
+                                            <td className="p-2 text-slate-300">{r.ayresRecord?.descuento || '-'}</td>
+                                            <td className="p-2 text-slate-300">{r.appRecord?.clienteNombre || '-'}</td>
+                                            <td className="p-2 text-slate-300">{r.appRecord?.beneficioNombre || '-'}</td>
+                                            <td className="p-2">
+                                              {r.validacionManual === 'valido' ? <span className="text-green-400 font-bold">✓</span> :
+                                               r.validacionManual === 'invalido' ? <span className="text-red-400 font-bold">✗</span> : '-'}
+                                            </td>
+                                            <td className="p-2 text-slate-200 italic">{r.comentario || '-'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       )
                     })}
                   </tbody>

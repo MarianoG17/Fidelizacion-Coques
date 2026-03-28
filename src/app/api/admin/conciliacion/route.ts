@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
                 montoTotal: true,
                 notas: true,
                 confirmadoEn: true,
+                resultados: true,
             }
         })
 
