@@ -752,13 +752,15 @@ export default function ConciliacionPage() {
                 <thead>
                   <tr className="bg-slate-700">
                     <th className="text-left p-3 text-slate-300 font-semibold">Estado</th>
-                    <th className="text-left p-3 text-slate-300 font-semibold">Fecha/Hora Ayres</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Fecha Ayres</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Hora Ayres</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Código</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Descuento</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Monto</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Sector</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Cliente App</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Beneficio App</th>
+                    <th className="text-left p-3 text-slate-300 font-semibold">Hora App</th>
                     <th className="text-left p-3 text-slate-300 font-semibold">Dif. Tiempo</th>
                   </tr>
                 </thead>
@@ -789,9 +791,8 @@ export default function ConciliacionPage() {
                               : '✗ No encontrado'}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-300 text-sm">
-                        {r.ayresRecord.fecha} {r.ayresRecord.hora}
-                      </td>
+                      <td className="p-3 text-slate-300 text-sm">{r.ayresRecord.fecha}</td>
+                      <td className="p-3 text-slate-300 text-sm font-mono">{r.ayresRecord.hora}</td>
                       <td className="p-3 text-slate-300 font-mono text-sm">{r.ayresRecord.codigo}</td>
                       <td className="p-3 text-slate-300 text-sm">{r.ayresRecord.descuento}</td>
                       <td className="p-3 text-slate-300 font-semibold text-sm">
@@ -811,10 +812,19 @@ export default function ConciliacionPage() {
                       <td className="p-3 text-slate-300 text-sm">
                         {r.appRecord?.beneficioNombre || <span className="text-slate-600">-</span>}
                       </td>
+                      <td className="p-3 text-slate-400 text-sm font-mono">
+                        {r.appRecord?.hora
+                          ? r.appRecord.hora.substring(0, 5)
+                          : <span className="text-slate-600">-</span>}
+                      </td>
                       <td className="p-3 text-slate-400 text-sm">
-                        {r.diferenciaTiempo !== undefined
-                          ? `${Math.round(r.diferenciaTiempo)} min`
-                          : '-'}
+                        {r.diferenciaTiempo !== undefined ? (() => {
+                          const mins = Math.round(r.diferenciaTiempo)
+                          if (mins < 60) return `${mins} min`
+                          const h = Math.floor(mins / 60)
+                          const m = mins % 60
+                          return m > 0 ? `${h}h ${m}min` : `${h}h`
+                        })() : '-'}
                       </td>
                     </tr>
                   ))}
