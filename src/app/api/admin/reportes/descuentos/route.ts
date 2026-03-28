@@ -91,6 +91,16 @@ export async function GET(req: NextRequest) {
         const reporte = eventos.map((evento) => {
             const timestamp = new Date(evento.timestamp)
 
+            // Calcular hora Argentina manualmente (UTC-3, sin DST)
+            // Usamos aritmética directa para evitar problemas de locale/ICU en Vercel
+            const argMs = timestamp.getTime() - 3 * 60 * 60 * 1000
+            const argDate = new Date(argMs)
+            const pad = (n: number) => String(n).padStart(2, '0')
+            const fecha = `${pad(argDate.getUTCDate())}/${pad(argDate.getUTCMonth() + 1)}/${argDate.getUTCFullYear()}`
+            const hora = `${pad(argDate.getUTCHours())}:${pad(argDate.getUTCMinutes())}:${pad(argDate.getUTCSeconds())}`
+            const dias = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+            const dia = dias[argDate.getUTCDay()]
+
             // Parsear condiciones del beneficio si existe
             let condiciones: any = {}
             try {
@@ -105,21 +115,10 @@ export async function GET(req: NextRequest) {
 
             return {
                 id: evento.id,
-                fecha: timestamp.toLocaleDateString('es-AR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    timeZone: 'America/Argentina/Buenos_Aires',
-                }),
-                hora: timestamp.toLocaleTimeString('es-AR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    timeZone: 'America/Argentina/Buenos_Aires',
-                    hour12: false,
-                }),
-                fechaHora: timestamp.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
-                dia: timestamp.toLocaleDateString('es-AR', { weekday: 'short', timeZone: 'America/Argentina/Buenos_Aires' }),
+                fecha,
+                hora,
+                fechaHora: `${fecha} ${hora}`,
+                dia,
                 timestamp: timestamp.toISOString(),
 
                 // Cliente
