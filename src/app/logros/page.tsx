@@ -153,7 +153,7 @@ export default function LogrosPage() {
 
                     <h1 className="text-3xl font-bold text-slate-800 mb-2">🏆 Mis Beneficios</h1>
                     <div className="text-sm text-gray-600">
-                        <span className="font-semibold">{obtenidos.length}</span> de {obtenidos.length + disponibles.length} beneficios desbloqueados
+                        <span className="font-semibold">{obtenidos.length}</span> de {obtenidos.length + disponibles.length} insignias obtenidas
                     </div>
                 </div>
 
@@ -282,7 +282,7 @@ export default function LogrosPage() {
                     <div className="mb-8">
                         <h2 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
                             <span>✅</span>
-                            Beneficios Desbloqueados
+                            Insignias Obtenidas
                         </h2>
                         <div className="grid grid-cols-2 gap-3">
                             {obtenidos.map((logro) => (
