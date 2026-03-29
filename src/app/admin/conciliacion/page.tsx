@@ -746,8 +746,12 @@ export default function ConciliacionPage() {
                   <tbody>
                     {historial.map((h) => {
                       const confirmadoEn = new Date(h.confirmadoEn)
-                      const pad = (n: number) => String(n).padStart(2, '0')
-                      const fechaConfirm = `${pad(confirmadoEn.getUTCDate())}/${pad(confirmadoEn.getUTCMonth()+1)}/${confirmadoEn.getUTCFullYear()} ${pad(confirmadoEn.getUTCHours())}:${pad(confirmadoEn.getUTCMinutes())}`
+                      // confirmadoEn es @default(now()) = UTC real → aplicar zona Argentina para mostrar
+                      const fechaConfirm = confirmadoEn.toLocaleString('es-AR', {
+                        timeZone: 'America/Argentina/Buenos_Aires',
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })
                       const fechaRango = h.fechaDesde === h.fechaHasta ? h.fechaDesde : `${h.fechaDesde} → ${h.fechaHasta}`
                       const estaExpandido = historialExpandido === h.id
                       const resultados: any[] = Array.isArray(h.resultados) ? h.resultados : []
