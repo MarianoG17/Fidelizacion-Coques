@@ -41,6 +41,27 @@ export async function POST(req: NextRequest) {
     }) as any
     if (!cliente) return badRequest('Cliente no encontrado o inactivo')
 
+    // Validar límites del beneficio en el servidor (evita duplicados por doble-click o retry)
+    if (tipoEvento === 'BENEFICIO_APLICADO' && beneficioId) {
+      const beneficio = await prisma.beneficio.findUnique({ where: { id: beneficioId } })
+      if (beneficio) {
+        const cond = beneficio.condiciones as any || {}
+
+        if (cond.usoUnico) {
+          const usado = await prisma.eventoScan.count({ where: { clienteId, beneficioId } })
+          if (usado > 0) return NextResponse.json({ error: 'Este beneficio ya fue utilizado anteriormente' }, { status: 409 })
+        }
+
+        if (cond.maxPorDia) {
+          const hoy = getInicioHoyArgentina()
+          const usadoHoy = await prisma.eventoScan.count({
+            where: { clienteId, beneficioId, timestamp: { gte: hoy } },
+          })
+          if (usadoHoy >= cond.maxPorDia) return NextResponse.json({ error: `Beneficio ya utilizado ${cond.maxPorDia} vez/veces hoy` }, { status: 409 })
+        }
+      }
+    }
+
     // Límite 1 visita por día en TZ Argentina
     const ahoraArg = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' })
