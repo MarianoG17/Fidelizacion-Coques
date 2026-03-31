@@ -57,6 +57,17 @@ function extraerRendimiento(descripcion: string): string | null {
  * Obtener tortas clásicas con sus variantes (tamaños)
  */
 /**
+ * Productos de edición especial Pascuas (se muestran antes de las tortas clásicas)
+ * Formato: { id: WooCommerce ID, sku: SKU Ayres }
+ */
+const PRODUCTOS_PASCUAS: { id: number; sku: string }[] = [
+  { id: 2349, sku: '95' },   // Rosca de Pascua
+  { id: 2347, sku: '559' },  // Huevo en gajos (6 unidades)
+  { id: 2345, sku: '558' },  // Huevo con sello dorado
+  { id: 2343, sku: '557' },  // Gallina de chocolate
+]
+
+/**
  * Mapeo de versiones mini por producto (para opciones de tamaño)
  * Clave: ID del producto grande en WooCommerce
  * Valor: SKU de Ayres del producto mini
@@ -289,11 +300,18 @@ export async function GET(req: NextRequest) {
       { headers}
     )
 
-    // Ejecutar los 3 en paralelo
-    const [adicionalesInfo, categoriesResponse, sku20Response] = await Promise.all([
+    const pascuasIds = PRODUCTOS_PASCUAS.map(p => p.id).join(',')
+    const fetchPascuasPromise = fetchWithTimeout(
+      `${wooUrl}/wp-json/wc/v3/products?include=${pascuasIds}&per_page=10&status=publish`,
+      { headers}
+    )
+
+    // Ejecutar los 4 en paralelo
+    const [adicionalesInfo, categoriesResponse, sku20Response, pascuasResponse] = await Promise.all([
       fetchAdicionalesPromise,
       fetchCategoriaPromise,
       fetchSku20Promise,
+      fetchPascuasPromise,
     ])
 
     // Mapeo de ID -> {id, precio, nombre} para productos sin SKU
@@ -343,6 +361,22 @@ export async function GET(req: NextRequest) {
     }
 
     let products = await productsResponse.json()
+
+    // Paso 2.4: prepender productos de Pascuas (orden definido en PRODUCTOS_PASCUAS)
+    try {
+      if (pascuasResponse.ok) {
+        const pascuasRaw: any[] = await pascuasResponse.json()
+        // Reordenar según el orden definido en PRODUCTOS_PASCUAS
+        const pascuasOrdenados = PRODUCTOS_PASCUAS
+          .map(p => pascuasRaw.find((r: any) => r.id === p.id))
+          .filter(Boolean)
+          .map((p: any) => ({ ...p, _edicion: 'Pascuas' }))
+        products = [...pascuasOrdenados, ...products]
+        console.log(`[Tortas API] ${pascuasOrdenados.length} productos de Pascuas prepuestos`)
+      }
+    } catch (e) {
+      console.error('[Tortas API] Error cargando productos Pascuas:', e)
+    }
 
     // Paso 2.5 ya fue ejecutado en paralelo: procesar resultado de SKU 20
     try {
@@ -711,6 +745,8 @@ export async function GET(req: NextRequest) {
         addOns: addOnsFormateados,
         // Campos de texto personalizados
         camposTexto: camposTexto,
+        // Edición especial (ej: 'Pascuas')
+        edicion: product._edicion || null,
       }
     })
 

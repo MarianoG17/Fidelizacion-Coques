@@ -658,6 +658,11 @@ function TortasPageContent() {
                       loading="lazy"
                       unoptimized
                     />
+                    {producto.edicion === 'Pascuas' && (
+                      <span className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full shadow">
+                        🐣 Edición Pascuas
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div className="h-64 bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
