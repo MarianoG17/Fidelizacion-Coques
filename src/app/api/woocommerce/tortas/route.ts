@@ -229,7 +229,12 @@ export async function GET(req: NextRequest) {
         const ageMs = Date.now() - cached.updatedAt.getTime()
         if (ageMs < CACHE_TTL_MS) {
           console.log(`[Tortas] Sirviendo desde cache Neon (${Math.round(ageMs / 60000)}min de antigüedad)`)
-          return NextResponse.json(cached.data, { headers: CACHE_HEADERS })
+          // Propagar updatedAt para que el frontend pueda detectar cambios
+          const cachedData = cached.data as any
+          if (!cachedData.updatedAt) {
+            cachedData.updatedAt = cached.updatedAt.toISOString()
+          }
+          return NextResponse.json(cachedData, { headers: CACHE_HEADERS })
         }
         console.log(`[Tortas] Cache vencido (${Math.round(ageMs / 60000)}min), refrescando desde WooCommerce...`)
       }
@@ -754,6 +759,7 @@ export async function GET(req: NextRequest) {
 
     const responseData = {
       success: true,
+      updatedAt: new Date().toISOString(),
       categoria: {
         id: tortasCategory.id,
         nombre: tortasCategory.name,

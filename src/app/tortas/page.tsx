@@ -201,18 +201,18 @@ function TortasPageContent() {
   }, [productoSeleccionado])
 
   async function cargarTortas() {
-    // Estrategia: Stale-While-Revalidate
+    // Estrategia: Stale-While-Revalidate con invalidación por versión
     // 1. Intentar cargar desde cache primero (instantáneo)
-    const cached = FrontendCache.get<Producto[]>('tortas_catalogo')
-    
+    const cached = FrontendCache.get<{ products: Producto[]; updatedAt: string }>('tortas_catalogo')
+
     if (cached) {
       // Mostrar datos cacheados inmediatamente
-      setProductos(cached)
+      setProductos(cached.products)
       setLoading(false)
-      console.log('🚀 [Cache] Catálogo cargado desde cache:', cached.length, 'productos')
-      
-      // Revalidar en background (sin bloquear UI)
-      revalidarTortasEnBackground()
+      console.log('🚀 [Cache] Catálogo cargado desde cache:', cached.products.length, 'productos')
+
+      // Revalidar en background comparando versión del servidor
+      revalidarTortasEnBackground(cached.updatedAt)
       return
     }
 
@@ -230,8 +230,8 @@ function TortasPageContent() {
 
       if (data.success && data.products) {
         setProductos(data.products)
-        // Guardar en cache por 30 días (precios cambian ~1 vez al mes, refresh manual desde admin)
-        FrontendCache.set('tortas_catalogo', data.products, 30 * 24 * 60)
+        // Guardar en cache por 4 horas
+        FrontendCache.set('tortas_catalogo', { products: data.products, updatedAt: data.updatedAt || '' }, 4 * 60)
         console.log('💾 [Cache] Catálogo guardado en cache:', data.products.length, 'productos')
       }
     } catch (err) {
@@ -241,21 +241,21 @@ function TortasPageContent() {
     }
   }
 
-  // Revalidación en background (no bloquea UI)
-  async function revalidarTortasEnBackground() {
+  // Revalidación en background — invalida si el servidor tiene una versión más nueva
+  async function revalidarTortasEnBackground(cachedUpdatedAt: string) {
     try {
       const response = await fetch('/api/woocommerce/tortas')
       const data = await response.json()
 
       if (response.ok && data.success && data.products) {
-        // Actualizar solo si hay cambios
-        const productosNuevos = data.products
-        const sonDiferentes = JSON.stringify(productos) !== JSON.stringify(productosNuevos)
-        
-        if (sonDiferentes) {
-          setProductos(productosNuevos)
-          FrontendCache.set('tortas_catalogo', productosNuevos, 120)
-          console.log('🔄 [Cache] Catálogo actualizado en background')
+        const serverUpdatedAt = data.updatedAt || ''
+        const hayVersion = cachedUpdatedAt && serverUpdatedAt
+        const esNuevo = !hayVersion || serverUpdatedAt !== cachedUpdatedAt
+
+        if (esNuevo) {
+          setProductos(data.products)
+          FrontendCache.set('tortas_catalogo', { products: data.products, updatedAt: serverUpdatedAt }, 4 * 60)
+          console.log('🔄 [Cache] Catálogo actualizado en background (nueva versión del servidor)')
         } else {
           console.log('✅ [Cache] Catálogo ya está actualizado')
         }
