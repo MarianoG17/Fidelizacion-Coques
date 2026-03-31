@@ -60,6 +60,7 @@ interface Producto {
   rendimiento?: string | null
   addOns?: AddOn[]
   camposTexto?: CampoTexto[]
+  edicion?: string | null
 }
 
 function TortasPageContent() {
