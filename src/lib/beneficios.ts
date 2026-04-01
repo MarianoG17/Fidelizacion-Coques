@@ -290,10 +290,16 @@ export async function evaluarNivel(clienteId: string) {
   // ⛔ Excepción: si el cliente se registró dentro del período de evaluación, no bajarlo.
   // Esto protege a clientes con nivel asignado por QR (ej: FORZA con nivel=plata)
   // que aún no tuvieron tiempo de acumular visitas.
+  // Grace period: protege a clientes asignados con nivel por QR (ej: FORZA con nivel=plata)
+  // que aún no tuvieron tiempo de acumular visitas. Solo aplica si el cliente:
+  //   1. Se registró hace menos de 60 días, Y
+  //   2. Tiene 0 visitas calificadas (si ganó el nivel por actividad, no necesita protección)
   const clienteCreatedAt = (cliente as any).createdAt
-  const dentroDelPeriodo = clienteCreatedAt && new Date(clienteCreatedAt) >= getHaceNDias(3)
+  const dentroDelPeriodo = visitasRecientes === 0
+    && clienteCreatedAt
+    && new Date(clienteCreatedAt) >= getHaceNDias(60)
   if (dentroDelPeriodo) {
-    console.log(`[evaluarNivel] Cliente ${clienteId} registrado hace menos de 3 días, se omite bajada de nivel`)
+    console.log(`[evaluarNivel] Cliente ${clienteId} sin visitas y registrado hace menos de 60 días, se omite bajada de nivel (grace period FORZA)`)
   }
 
   if (nivelActual && nivelActualOrden > 1 && !dentroDelPeriodo) { // Solo si no está en el nivel mínimo (Bronce)
