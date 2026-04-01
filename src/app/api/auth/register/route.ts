@@ -101,6 +101,9 @@ export async function POST(req: NextRequest) {
     // Generar código de referido único para el nuevo cliente
     const codigoReferidoCliente = `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
 
+    // Si se asignó un nivel por encima del default (Bronce), marcar como QR_NIVEL
+    const esQrConNivel = !!(validatedData.nivelNombre && nivelFinal && nivelBronce && nivelFinal.id !== nivelBronce?.id)
+
     // Crear el cliente con estado ACTIVO y nivel inicial Bronce
     const cliente = await prisma.cliente.create({
       data: {
@@ -109,7 +112,7 @@ export async function POST(req: NextRequest) {
         nombre: validatedData.nombre,
         phone: phoneNormalizado, // Guardar normalizado
         estado: 'ACTIVO',
-        fuenteOrigen: 'AUTOREGISTRO',
+        fuenteOrigen: esQrConNivel ? 'QR_NIVEL' : 'AUTOREGISTRO',
         consentimientoAt: new Date(),
         otpSecret,
         nivelId: nivelFinal?.id,

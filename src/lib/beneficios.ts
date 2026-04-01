@@ -287,19 +287,15 @@ export async function evaluarNivel(clienteId: string) {
   const referidosActuales = cliente.referidosActivados || 0
 
   // 🔻 PASO 1: Verificar si debe BAJAR de nivel (si no cumple requisitos del nivel actual)
-  // ⛔ Excepción: si el cliente se registró dentro del período de evaluación, no bajarlo.
-  // Esto protege a clientes con nivel asignado por QR (ej: FORZA con nivel=plata)
-  // que aún no tuvieron tiempo de acumular visitas.
-  // Grace period: protege a clientes asignados con nivel por QR (ej: FORZA con nivel=plata)
-  // que aún no tuvieron tiempo de acumular visitas. Solo aplica si el cliente:
-  //   1. Se registró hace menos de 60 días, Y
-  //   2. Tiene 0 visitas calificadas (si ganó el nivel por actividad, no necesita protección)
+  // ⛔ Excepción: grace period de 60 días SOLO para clientes QR_NIVEL (ej: FORZA con nivel=Plata)
+  // que aún no tuvieron tiempo de acumular visitas. No aplica a registros regulares.
   const clienteCreatedAt = (cliente as any).createdAt
-  const dentroDelPeriodo = visitasRecientes === 0
+  const esQrNivel = cliente.fuenteOrigen === 'QR_NIVEL'
+  const dentroDelPeriodo = esQrNivel
     && clienteCreatedAt
     && new Date(clienteCreatedAt) >= getHaceNDias(60)
   if (dentroDelPeriodo) {
-    console.log(`[evaluarNivel] Cliente ${clienteId} sin visitas y registrado hace menos de 60 días, se omite bajada de nivel (grace period FORZA)`)
+    console.log(`[evaluarNivel] Cliente ${clienteId} es QR_NIVEL registrado hace menos de 60 días, se omite bajada de nivel (grace period FORZA)`)
   }
 
   if (nivelActual && nivelActualOrden > 1 && !dentroDelPeriodo) { // Solo si no está en el nivel mínimo (Bronce)

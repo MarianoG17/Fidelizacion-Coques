@@ -23,6 +23,7 @@ enum FuenteOrigen {
   LAVADERO
   AUTOREGISTRO
   MANUAL
+  QR_NIVEL  // Cliente registrado vía QR con nivel pre-asignado (ej: FORZA con nivel=Plata)
 }
 
 enum TipoEvento {
