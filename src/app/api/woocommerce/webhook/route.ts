@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma'
 import { normalizarTelefono, toE164 } from '@/lib/phone'
 import crypto from 'crypto'
 import { evaluarNivel } from '@/lib/beneficios'
-import { getDatetimeArgentina } from '@/lib/timezone'
 
 /**
  * Webhook de WooCommerce para registrar pedidos completados de TORTAS.
@@ -45,8 +44,10 @@ interface WooCommerceWebhookPayload {
       value: string
     }>
   }>
-  date_completed?: string
-  date_created: string
+  date_completed?: string      // Fecha en timezone del sitio WooCommerce (Argentina)
+  date_completed_gmt?: string  // Fecha en UTC
+  date_created: string         // Fecha en timezone del sitio WooCommerce (Argentina)
+  date_created_gmt?: string    // Fecha en UTC
 }
 
 /**
@@ -76,13 +77,14 @@ function verificarFirma(body: string, firma: string | null): boolean {
 async function registrarPedidoTorta(
   clienteId: string,
   orderId: number,
-  localId: string
+  localId: string,
+  fechaPedido: Date
 ): Promise<void> {
   try {
     // Crear evento PEDIDO_TORTA
     await prisma.eventoScan.create({
       data: {
-        timestamp: getDatetimeArgentina(), // ✅ Fix Bug #9: Timezone Argentina
+        timestamp: fechaPedido, // Fecha original del pedido en WooCommerce
         clienteId,
         localId,
         tipoEvento: 'PEDIDO_TORTA',
@@ -191,8 +193,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'Pedido ya registrado' })
     }
 
+    // Usar fecha original del pedido en timezone Argentina (patrón del codebase: Argentina almacenada como UTC)
+    // WooCommerce devuelve date_completed sin offset cuando el sitio está en Argentina → agregar 'Z' para
+    // que se parsee como UTC, manteniendo el mismo patrón que getDatetimeArgentina()
+    const fechaRaw = payload.date_completed || payload.date_created
+    const fechaPedido = new Date(fechaRaw.includes('Z') || fechaRaw.includes('+') ? fechaRaw : fechaRaw + 'Z')
+
     // Registrar el pedido de torta
-    await registrarPedidoTorta(cliente.id, payload.id, local.id)
+    await registrarPedidoTorta(cliente.id, payload.id, local.id, fechaPedido)
 
     return NextResponse.json({
       success: true,
