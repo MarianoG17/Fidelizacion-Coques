@@ -36,6 +36,8 @@ export default function ConfiguracionPage() {
     const [mensajeCatalogo, setMensajeCatalogo] = useState('')
     const [repararFechas, setRepararFechas] = useState(false)
     const [mensajeRepararFechas, setMensajeRepararFechas] = useState('')
+    const [reevaluandoNiveles, setReevaluandoNiveles] = useState(false)
+    const [mensajeNiveles, setMensajeNiveles] = useState('')
 
     useEffect(() => {
         const adminKey = localStorage.getItem('admin_key')
@@ -121,6 +123,28 @@ export default function ConfiguracionPage() {
             setMensajeRepararFechas('❌ Error al conectar con el servidor')
         } finally {
             setRepararFechas(false)
+        }
+    }
+
+    async function ejecutarReevaluarNiveles() {
+        setReevaluandoNiveles(true)
+        setMensajeNiveles('')
+        try {
+            const adminKey = localStorage.getItem('admin_key')
+            const res = await fetch('/api/admin/reevaluar-niveles', {
+                method: 'POST',
+                headers: { 'x-admin-key': adminKey || '' }
+            })
+            const data = await res.json()
+            if (res.ok) {
+                setMensajeNiveles(`✅ ${data.estadisticas.cambiosDeNivel} clientes cambiaron de nivel (${data.estadisticas.totalClientes} evaluados)`)
+            } else {
+                setMensajeNiveles(`❌ Error: ${data.error}`)
+            }
+        } catch {
+            setMensajeNiveles('❌ Error al conectar con el servidor')
+        } finally {
+            setReevaluandoNiveles(false)
         }
     }
 
@@ -220,6 +244,27 @@ export default function ConfiguracionPage() {
                         className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                         {repararFechas ? '⏳ Reparando fechas...' : '🔧 Reparar Fechas de Pedidos WooCommerce'}
+                    </button>
+                </div>
+
+                {/* Re-evaluar niveles */}
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">📊 Re-evaluar Niveles</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Recalcula el nivel de todos los clientes activos. Usá esto después de corregir fechas de pedidos o cambiar los criterios de niveles.
+                    </p>
+                    {mensajeNiveles && (
+                        <div className={`mb-3 p-3 rounded-lg text-sm ${mensajeNiveles.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {mensajeNiveles}
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={ejecutarReevaluarNiveles}
+                        disabled={reevaluandoNiveles}
+                        className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {reevaluandoNiveles ? '⏳ Evaluando niveles...' : '📊 Re-evaluar Niveles de Todos los Clientes'}
                     </button>
                 </div>
 
