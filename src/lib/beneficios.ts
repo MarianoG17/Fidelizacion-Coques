@@ -291,9 +291,9 @@ export async function evaluarNivel(clienteId: string) {
   // Esto protege a clientes con nivel asignado por QR (ej: FORZA con nivel=plata)
   // que aún no tuvieron tiempo de acumular visitas.
   const clienteCreatedAt = (cliente as any).createdAt
-  const dentroDelPeriodo = clienteCreatedAt && new Date(clienteCreatedAt) >= getHaceNDias(60)
+  const dentroDelPeriodo = clienteCreatedAt && new Date(clienteCreatedAt) >= getHaceNDias(3)
   if (dentroDelPeriodo) {
-    console.log(`[evaluarNivel] Cliente ${clienteId} registrado dentro del período de evaluación, se omite bajada de nivel`)
+    console.log(`[evaluarNivel] Cliente ${clienteId} registrado hace menos de 3 días, se omite bajada de nivel`)
   }
 
   if (nivelActual && nivelActualOrden > 1 && !dentroDelPeriodo) { // Solo si no está en el nivel mínimo (Bronce)
