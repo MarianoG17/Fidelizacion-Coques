@@ -34,6 +34,8 @@ export default function ConfiguracionPage() {
     const [mensaje, setMensaje] = useState('')
     const [refrescandoCatalogo, setRefrescandoCatalogo] = useState(false)
     const [mensajeCatalogo, setMensajeCatalogo] = useState('')
+    const [repararFechas, setRepararFechas] = useState(false)
+    const [mensajeRepararFechas, setMensajeRepararFechas] = useState('')
 
     useEffect(() => {
         const adminKey = localStorage.getItem('admin_key')
@@ -97,6 +99,28 @@ export default function ConfiguracionPage() {
         } finally {
             setRefrescandoCatalogo(false)
             setTimeout(() => setMensajeCatalogo(''), 5000)
+        }
+    }
+
+    async function ejecutarRepararFechas() {
+        setRepararFechas(true)
+        setMensajeRepararFechas('')
+        try {
+            const adminKey = localStorage.getItem('admin_key')
+            const res = await fetch('/api/admin/reparar-fechas-woo', {
+                method: 'POST',
+                headers: { 'x-admin-key': adminKey || '' }
+            })
+            const data = await res.json()
+            if (res.ok) {
+                setMensajeRepararFechas(`✅ ${data.actualizados} pedidos actualizados (${data.noEncontrados} no encontrados en WooCommerce)`)
+            } else {
+                setMensajeRepararFechas(`❌ Error: ${data.error}`)
+            }
+        } catch {
+            setMensajeRepararFechas('❌ Error al conectar con el servidor')
+        } finally {
+            setRepararFechas(false)
         }
     }
 
@@ -175,6 +199,27 @@ export default function ConfiguracionPage() {
                         className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                     >
                         {refrescandoCatalogo ? '⏳ Actualizando catálogo...' : '🔄 Actualizar Catálogo desde WooCommerce'}
+                    </button>
+                </div>
+
+                {/* Reparar fechas pedidos WooCommerce */}
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">🔧 Reparar Fechas de Pedidos</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Corrige los timestamps de pedidos de tortas que fueron importados masivamente y quedaron con la fecha de importación en vez de la fecha real del pedido.
+                    </p>
+                    {mensajeRepararFechas && (
+                        <div className={`mb-3 p-3 rounded-lg text-sm ${mensajeRepararFechas.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {mensajeRepararFechas}
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={ejecutarRepararFechas}
+                        disabled={repararFechas}
+                        className="w-full bg-orange-600 text-white py-3 rounded-lg font-medium hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {repararFechas ? '⏳ Reparando fechas...' : '🔧 Reparar Fechas de Pedidos WooCommerce'}
                     </button>
                 </div>
 
