@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
       wooId,
       fechaAntes: evento.timestamp.toISOString(),
       fechaDespues: nuevaFecha.toISOString(),
+      monto,
     })
     actualizados++
   }
