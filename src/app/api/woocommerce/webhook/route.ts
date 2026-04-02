@@ -48,6 +48,7 @@ interface WooCommerceWebhookPayload {
   date_completed_gmt?: string  // Fecha en UTC
   date_created: string         // Fecha en timezone del sitio WooCommerce (Argentina)
   date_created_gmt?: string    // Fecha en UTC
+  total?: string               // Importe total del pedido en ARS
 }
 
 /**
@@ -78,19 +79,21 @@ async function registrarPedidoTorta(
   clienteId: string,
   orderId: number,
   localId: string,
-  fechaPedido: Date
+  fechaPedido: Date,
+  monto?: number
 ): Promise<void> {
   try {
     // Crear evento PEDIDO_TORTA
     await prisma.eventoScan.create({
       data: {
-        timestamp: fechaPedido, // Fecha original del pedido en WooCommerce
+        timestamp: fechaPedido,
         clienteId,
         localId,
         tipoEvento: 'PEDIDO_TORTA',
-        metodoValidacion: 'QR', // Usamos QR como método por defecto para pedidos web
+        metodoValidacion: 'QR',
         contabilizada: true,
         notas: `Pedido WooCommerce #${orderId}`,
+        ...(monto ? { monto } : {}),
       },
     })
 
@@ -198,9 +201,10 @@ export async function POST(req: NextRequest) {
     // que se parsee como UTC, manteniendo el mismo patrón que getDatetimeArgentina()
     const fechaRaw = payload.date_completed || payload.date_created
     const fechaPedido = new Date(fechaRaw.includes('Z') || fechaRaw.includes('+') ? fechaRaw : fechaRaw + 'Z')
+    const monto = payload.total ? parseFloat(payload.total) : undefined
 
     // Registrar el pedido de torta
-    await registrarPedidoTorta(cliente.id, payload.id, local.id, fechaPedido)
+    await registrarPedidoTorta(cliente.id, payload.id, local.id, fechaPedido, monto)
 
     return NextResponse.json({
       success: true,

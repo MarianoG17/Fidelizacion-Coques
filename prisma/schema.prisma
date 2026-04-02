@@ -234,6 +234,7 @@ model EventoScan {
   metodoValidacion   MetodoValidacion
   estadoExternoSnap  Json?            // snapshot del EstadoAuto al momento del scan
   notas              String?
+  monto              Decimal?         // importe del pedido en ARS (solo PEDIDO_TORTA)
   // false si supera el límite de 1 visita/día — se registra pero no cuenta para niveles
   contabilizada      Boolean          @default(true)
 

@@ -379,6 +379,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   🛍️ Pedidos App
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  💰 Importe Total
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Referidos
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -457,6 +460,13 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   <td className="p-4">
                     <p className={(cliente as any).pedidosApp > 0 ? 'text-orange-400 font-semibold' : 'text-slate-500'}>
                       {(cliente as any).pedidosApp || 0}
+                    </p>
+                  </td>
+                  <td className="p-4">
+                    <p className={(cliente as any).pedidosMonto > 0 ? 'text-green-400 font-semibold' : 'text-slate-500'}>
+                      {(cliente as any).pedidosMonto > 0
+                        ? `$${((cliente as any).pedidosMonto as number).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                        : '-'}
                     </p>
                   </td>
                   <td className="p-4">

@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   // Fetch en batches de 20 pedidos a WooCommerce
   const BATCH = 20
-  const pedidosWoo: Record<string, string> = {} // wooId -> date_completed o date_created
+  const pedidosWoo: Record<string, { fecha: string; monto: number | null }> = {}
 
   for (let i = 0; i < wooIds.length; i += BATCH) {
     const batch = wooIds.slice(i, i + BATCH)
@@ -58,10 +58,10 @@ export async function POST(req: NextRequest) {
       for (const order of orders) {
         const fechaRaw = order.date_completed || order.date_created
         if (fechaRaw) {
-          // Mismo patrón que el webhook: Argentina-as-UTC
-          pedidosWoo[String(order.id)] = fechaRaw.includes('Z') || fechaRaw.includes('+')
-            ? fechaRaw
-            : fechaRaw + 'Z'
+          pedidosWoo[String(order.id)] = {
+            fecha: fechaRaw.includes('Z') || fechaRaw.includes('+') ? fechaRaw : fechaRaw + 'Z',
+            monto: order.total ? parseFloat(order.total) : null,
+          }
         }
       }
     } catch (e) {
@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Actualizar cada evento con la fecha real
+  // Actualizar cada evento con fecha y monto reales
   let actualizados = 0
   let noEncontrados = 0
-  const detalle: { id: string; wooId: string; fechaAntes: string; fechaDespues: string }[] = []
+  const detalle: { id: string; wooId: string; fechaAntes: string; fechaDespues: string; monto: number | null }[] = []
 
   for (const evento of eventos) {
     const wooId = evento.notas?.replace('Pedido WooCommerce #', '').trim()
@@ -81,10 +81,11 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    const nuevaFecha = new Date(pedidosWoo[wooId])
+    const { fecha, monto } = pedidosWoo[wooId]
+    const nuevaFecha = new Date(fecha)
     await prisma.eventoScan.update({
       where: { id: evento.id },
-      data: { timestamp: nuevaFecha },
+      data: { timestamp: nuevaFecha, ...(monto !== null ? { monto } : {}) },
     })
 
     detalle.push({

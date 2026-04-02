@@ -54,8 +54,8 @@ export async function GET(req: NextRequest) {
           AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
         GROUP BY "clienteId", ("metodoValidacion"::text LIKE 'BONUS_%')
       `,
-      prisma.$queryRaw<Array<{ clienteId: string; count: bigint }>>`
-        SELECT "clienteId", COUNT(*)::bigint AS count
+      prisma.$queryRaw<Array<{ clienteId: string; count: bigint; totalMonto: string | null }>>`
+        SELECT "clienteId", COUNT(*)::bigint AS count, SUM("monto")::text AS "totalMonto"
         FROM "EventoScan"
         WHERE "clienteId" = ANY(${clienteIds}::text[])
           AND "tipoEvento" = 'PEDIDO_TORTA'
@@ -77,9 +77,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const pedidosMap = new Map<string, number>()
+    const pedidosMap = new Map<string, { count: number; totalMonto: number }>()
     for (const row of pedidosResult) {
-      pedidosMap.set(row.clienteId, Number(row.count))
+      pedidosMap.set(row.clienteId, {
+        count: Number(row.count),
+        totalMonto: row.totalMonto ? parseFloat(row.totalMonto) : 0,
+      })
     }
 
     const clientesConEstadisticas = clientes.map(cliente => ({
@@ -88,7 +91,8 @@ export async function GET(req: NextRequest) {
       pushSub: undefined,
       visitasReales: visitasMap.get(cliente.id)?.reales ?? 0,
       visitasBonus: visitasMap.get(cliente.id)?.bonus ?? 0,
-      pedidosApp: pedidosMap.get(cliente.id) ?? 0,
+      pedidosApp: pedidosMap.get(cliente.id)?.count ?? 0,
+      pedidosMonto: pedidosMap.get(cliente.id)?.totalMonto ?? 0,
     }))
 
     return NextResponse.json({ data: clientesConEstadisticas })
