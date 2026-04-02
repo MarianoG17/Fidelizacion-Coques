@@ -57,11 +57,16 @@ interface ActividadesData {
   }
 }
 
-export function Clientes({ adminKey }: { adminKey: string }) {
+type SortKey = 'nombre' | 'nivel' | 'estado' | 'visitasReales' | 'visitasBonus' | 'pedidosApp' | 'pedidosMonto' | 'referidosActivados' | 'createdAt'
+type SortDir = 'asc' | 'desc'
+
+export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPedidos?: (clienteId: string, clienteNombre: string | null) => void }) {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [cargando, setCargando] = useState(true)
   const [filtro, setFiltro] = useState('')
   const [nivelFiltro, setNivelFiltro] = useState('TODOS')
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [eliminando, setEliminando] = useState<string | null>(null)
   const [actividadesAbiertas, setActividadesAbiertas] = useState<string | null>(null)
   const [actividadesData, setActividadesData] = useState<ActividadesData | null>(null)
@@ -280,14 +285,46 @@ export function Clientes({ adminKey }: { adminKey: string }) {
     }
   }
 
-  const clientesFiltrados = clientes.filter((c) => {
-    const matchFiltro =
-      c.nombre?.toLowerCase().includes(filtro.toLowerCase()) ||
-      c.phone.includes(filtro)
-    const matchNivel =
-      nivelFiltro === 'TODOS' || c.nivel?.nombre === nivelFiltro
-    return matchFiltro && matchNivel
-  })
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'nombre' || key === 'estado' ? 'asc' : 'desc')
+    }
+  }
+
+  function SortIcon({ k }: { k: SortKey }) {
+    if (sortKey !== k) return <span className="text-slate-600 ml-1">↕</span>
+    return <span className="text-blue-400 ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  const clientesFiltrados = clientes
+    .filter((c) => {
+      const matchFiltro =
+        c.nombre?.toLowerCase().includes(filtro.toLowerCase()) ||
+        c.phone.includes(filtro)
+      const matchNivel =
+        nivelFiltro === 'TODOS' || c.nivel?.nombre === nivelFiltro
+      return matchFiltro && matchNivel
+    })
+    .sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      const ac = a as any
+      const bc = b as any
+      switch (sortKey) {
+        case 'nombre': return dir * ((a.nombre ?? '').localeCompare(b.nombre ?? ''))
+        case 'nivel': return dir * (((a.nivel?.orden ?? 0)) - ((b.nivel?.orden ?? 0)))
+        case 'estado': return dir * (a.estado.localeCompare(b.estado))
+        case 'visitasReales': return dir * ((ac.visitasReales ?? 0) - (bc.visitasReales ?? 0))
+        case 'visitasBonus': return dir * ((ac.visitasBonus ?? 0) - (bc.visitasBonus ?? 0))
+        case 'pedidosApp': return dir * ((ac.pedidosApp ?? 0) - (bc.pedidosApp ?? 0))
+        case 'pedidosMonto': return dir * ((ac.pedidosMonto ?? 0) - (bc.pedidosMonto ?? 0))
+        case 'referidosActivados': return dir * ((a.referidosActivados ?? 0) - (b.referidosActivados ?? 0))
+        case 'createdAt': return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        default: return 0
+      }
+    })
 
   if (cargando) {
     return (
@@ -354,57 +391,41 @@ export function Clientes({ adminKey }: { adminKey: string }) {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-700">
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Cliente
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('nombre')}>
+                  Cliente<SortIcon k="nombre" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Email
+                <th className="text-left p-4 text-slate-300 font-semibold">Email</th>
+                <th className="text-left p-4 text-slate-300 font-semibold">Teléfono</th>
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('nivel')}>
+                  Nivel<SortIcon k="nivel" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Teléfono
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('estado')}>
+                  Estado<SortIcon k="estado" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Nivel
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('visitasReales')}>
+                  Visitas<SortIcon k="visitasReales" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Estado
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('visitasBonus')}>
+                  Bonus<SortIcon k="visitasBonus" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Visitas
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('pedidosApp')}>
+                  🛍️ Pedidos App<SortIcon k="pedidosApp" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Bonus
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('pedidosMonto')}>
+                  💰 Importe Total<SortIcon k="pedidosMonto" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  🛍️ Pedidos App
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('referidosActivados')}>
+                  Referidos<SortIcon k="referidosActivados" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  💰 Importe Total
+                <th className="text-left p-4 text-slate-300 font-semibold">🎂 Cumpleaños</th>
+                <th className="text-left p-4 text-slate-300 font-semibold">💡 Fuente</th>
+                <th className="text-left p-4 text-slate-300 font-semibold">👩‍💼 Vendedora</th>
+                <th className="text-left p-4 text-slate-300 font-semibold">Auth</th>
+                <th className="text-left p-4 text-slate-300 font-semibold">Push</th>
+                <th className="text-left p-4 text-slate-300 font-semibold cursor-pointer select-none hover:text-white" onClick={() => handleSort('createdAt')}>
+                  Desde<SortIcon k="createdAt" />
                 </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Referidos
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  🎂 Cumpleaños
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  💡 Fuente
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  👩‍💼 Vendedora
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Auth
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Push
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Desde
-                </th>
-                <th className="text-left p-4 text-slate-300 font-semibold">
-                  Acciones
-                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -458,16 +479,28 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                     <p className="text-purple-400 font-semibold">{(cliente as any).visitasBonus || 0}</p>
                   </td>
                   <td className="p-4">
-                    <p className={(cliente as any).pedidosApp > 0 ? 'text-orange-400 font-semibold' : 'text-slate-500'}>
-                      {(cliente as any).pedidosApp || 0}
-                    </p>
+                    {(cliente as any).pedidosApp > 0 && onVerPedidos ? (
+                      <button
+                        onClick={() => onVerPedidos(cliente.id, cliente.nombre)}
+                        className="text-orange-400 font-semibold hover:underline hover:text-orange-300 transition-colors"
+                      >
+                        {(cliente as any).pedidosApp}
+                      </button>
+                    ) : (
+                      <p className="text-slate-500">{(cliente as any).pedidosApp || 0}</p>
+                    )}
                   </td>
                   <td className="p-4">
-                    <p className={(cliente as any).pedidosMonto > 0 ? 'text-green-400 font-semibold' : 'text-slate-500'}>
-                      {(cliente as any).pedidosMonto > 0
-                        ? `$${((cliente as any).pedidosMonto as number).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                        : '-'}
-                    </p>
+                    {(cliente as any).pedidosMonto > 0 && onVerPedidos ? (
+                      <button
+                        onClick={() => onVerPedidos(cliente.id, cliente.nombre)}
+                        className="text-green-400 font-semibold hover:underline hover:text-green-300 transition-colors"
+                      >
+                        ${((cliente as any).pedidosMonto as number).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </button>
+                    ) : (
+                      <p className="text-slate-500">-</p>
+                    )}
                   </td>
                   <td className="p-4">
                     <p className="text-white">{cliente.referidosActivados || 0}</p>

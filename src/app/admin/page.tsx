@@ -24,12 +24,18 @@ const StaffStats = dynamic(() => import('./components/StaffStats').then(mod => (
   ssr: false
 })
 
+const Pedidos = dynamic(() => import('./components/Pedidos').then(mod => ({ default: mod.Pedidos })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
 export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
     const [validando, setValidando] = useState(false)
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff'>('metricas')
+    const [pedidosFiltro, setPedidosFiltro] = useState<{ clienteId: string; clienteNombre: string | null } | null>(null)
 
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
@@ -151,6 +157,7 @@ export default function AdminPage() {
                             { key: 'metricas', label: 'Métricas' },
                             { key: 'eventos', label: 'Eventos Especiales' },
                             { key: 'clientes', label: 'Clientes' },
+                            { key: 'pedidos', label: '🛍️ Pedidos' },
                             { key: 'niveles', label: '⭐ Niveles' },
                             { key: 'beneficios', label: '🎁 Beneficios' },
                             { key: 'feedback', label: '📊 Feedbacks' },
@@ -178,7 +185,23 @@ export default function AdminPage() {
                 {seccionActiva === 'staff' && <StaffStats adminKey={adminKey} />}
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
-                {seccionActiva === 'clientes' && <Clientes adminKey={adminKey} />}
+                {seccionActiva === 'clientes' && (
+                    <Clientes
+                        adminKey={adminKey}
+                        onVerPedidos={(clienteId, clienteNombre) => {
+                            setPedidosFiltro({ clienteId, clienteNombre })
+                            setSeccionActiva('pedidos')
+                        }}
+                    />
+                )}
+                {seccionActiva === 'pedidos' && (
+                    <Pedidos
+                        adminKey={adminKey}
+                        clienteId={pedidosFiltro?.clienteId}
+                        clienteNombre={pedidosFiltro?.clienteNombre}
+                        onLimpiarFiltro={() => setPedidosFiltro(null)}
+                    />
+                )}
                 {seccionActiva === 'niveles' && (
                     <div className="text-center py-12">
                         <div className="text-4xl mb-4">⭐</div>
