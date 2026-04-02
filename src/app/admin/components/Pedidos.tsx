@@ -58,6 +58,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }: PedidosProps) {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [diagWooId, setDiagWooId] = useState('')
+  const [diagCargando, setDiagCargando] = useState(false)
+  const [diagResultado, setDiagResultado] = useState<any>(null)
   const [cargando, setCargando] = useState(true)
   const [totalMonto, setTotalMonto] = useState(0)
   const [busqueda, setBusqueda] = useState('')
@@ -139,6 +142,23 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
     return n ? `#${n}` : '—'
   }
 
+  async function runDiagnostico() {
+    if (!diagWooId.trim()) return
+    setDiagCargando(true)
+    setDiagResultado(null)
+    try {
+      const res = await fetch(`/api/admin/diagnostico-webhook?wooId=${diagWooId.trim()}`, {
+        headers: { 'x-admin-key': adminKey },
+      })
+      const json = await res.json()
+      setDiagResultado(json)
+    } catch (e) {
+      setDiagResultado({ error: 'Error de conexión' })
+    } finally {
+      setDiagCargando(false)
+    }
+  }
+
   const pedidosFiltrados = pedidos.filter(p => {
     if (!busqueda) return true
     const q = busqueda.toLowerCase()
@@ -215,6 +235,83 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
             placeholder="Buscar por cliente, teléfono o número de pedido..."
             className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+      )}
+
+      {/* Diagnóstico de pedido */}
+      {!clienteId && (
+        <div className="bg-slate-800 rounded-2xl p-5 space-y-4">
+          <h3 className="text-white font-semibold">🔍 Diagnosticar pedido no registrado</h3>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={diagWooId}
+              onChange={e => setDiagWooId(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && runDiagnostico()}
+              placeholder="Número de pedido WooCommerce (ej: 1234)"
+              className="flex-1 bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-yellow-500 font-mono"
+            />
+            <button
+              onClick={runDiagnostico}
+              disabled={diagCargando || !diagWooId.trim()}
+              className="px-5 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 text-white rounded-xl font-semibold transition"
+            >
+              {diagCargando ? '⏳' : 'Diagnosticar'}
+            </button>
+          </div>
+
+          {diagResultado && (
+            <div className="space-y-3">
+              {/* Pasos */}
+              {diagResultado.pasos?.map((p: any, i: number) => (
+                <div key={i} className={`flex items-start gap-3 px-4 py-2.5 rounded-xl text-sm ${p.ok ? 'bg-green-900/40' : 'bg-red-900/40'}`}>
+                  <span className="shrink-0 mt-0.5">{p.ok ? '✅' : '❌'}</span>
+                  <div>
+                    <p className="font-semibold text-white">{p.paso}</p>
+                    <p className={p.ok ? 'text-green-300' : 'text-red-300'}>{p.detalle}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Resultado final */}
+              {diagResultado.resultado === 'LISTO_PARA_REGISTRAR' && (
+                <div className="bg-blue-900/40 rounded-xl p-4 text-sm space-y-1">
+                  <p className="text-blue-300 font-semibold">⚠️ El pedido podría registrarse pero no lo hizo — el webhook probablemente no se disparó o falló antes de llegar al servidor.</p>
+                  <p className="text-slate-300">Cliente: <span className="text-white font-semibold">{diagResultado.clienteEncontrado?.nombre}</span></p>
+                  <p className="text-slate-300">Teléfono app: <span className="font-mono text-white">{diagResultado.clienteEncontrado?.phone}</span></p>
+                </div>
+              )}
+
+              {diagResultado.resultado === 'YA_REGISTRADO' && (
+                <div className="bg-green-900/40 rounded-xl p-4 text-sm">
+                  <p className="text-green-300 font-semibold">✅ El pedido ya está registrado en el sistema.</p>
+                  <p className="text-slate-300 mt-1">Si no aparece en la lista, recargá la página.</p>
+                </div>
+              )}
+
+              {diagResultado.resultado === 'CLIENTE_NO_ENCONTRADO' && (
+                <div className="bg-orange-900/40 rounded-xl p-4 text-sm space-y-2">
+                  <p className="text-orange-300 font-semibold">⚠️ Cliente no encontrado en el sistema de fidelización.</p>
+                  <p className="text-slate-300">Teléfono en WooCommerce: <span className="font-mono text-white">"{diagResultado.pedidoInfo?.phoneRaw}"</span></p>
+                  <p className="text-slate-300">Normalizado a: <span className="font-mono text-white">"{diagResultado.pedidoInfo?.phoneNormalizado}"</span></p>
+                  <p className="text-slate-300">Email en WooCommerce: <span className="text-white">{diagResultado.pedidoInfo?.email || '—'}</span></p>
+                  <p className="text-slate-400 text-xs mt-1">El cliente debe tener el mismo teléfono o email en la app de fidelización.</p>
+                  {diagResultado.similares?.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-slate-400 text-xs mb-1">Clientes con teléfono/email similar:</p>
+                      {diagResultado.similares.map((s: any) => (
+                        <p key={s.id} className="text-slate-300 text-xs font-mono">{s.nombre} — {s.phone} — {s.email}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {diagResultado.error && (
+                <p className="text-red-400 text-sm">{diagResultado.error}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
