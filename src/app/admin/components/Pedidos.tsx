@@ -12,6 +12,33 @@ interface Pedido {
   clienteNivel: string | null
 }
 
+interface DetallePedido {
+  id: number
+  status: string
+  dateCreated: string
+  dateCompleted: string | null
+  total: string
+  currency: string
+  billing: {
+    firstName: string
+    lastName: string
+    phone: string
+    email: string
+    address: string
+  }
+  lineItems: Array<{
+    name: string
+    quantity: number
+    subtotal: string
+    total: string
+    sku: string | null
+    metaData: Array<{ key: string; value: string }>
+  }>
+  shippingLines: Array<{ name: string; total: string }>
+  customerNote: string | null
+  paymentMethod: string | null
+}
+
 interface PedidosProps {
   adminKey: string
   clienteId?: string | null
@@ -19,11 +46,23 @@ interface PedidosProps {
   onLimpiarFiltro?: () => void
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'Completado',
+  processing: 'En proceso',
+  pending: 'Pendiente',
+  cancelled: 'Cancelado',
+  refunded: 'Reembolsado',
+  failed: 'Fallido',
+  'on-hold': 'En espera',
+}
+
 export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }: PedidosProps) {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [cargando, setCargando] = useState(true)
   const [totalMonto, setTotalMonto] = useState(0)
   const [busqueda, setBusqueda] = useState('')
+  const [expandido, setExpandido] = useState<string | null>(null)
+  const [detalle, setDetalle] = useState<Record<string, DetallePedido | 'loading' | 'error'>>({})
 
   useEffect(() => {
     fetchPedidos()
@@ -49,6 +88,35 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
     }
   }
 
+  async function toggleExpand(pedido: Pedido) {
+    const wooId = extraerNumeroRaw(pedido.notas)
+    if (!wooId) return
+
+    if (expandido === pedido.id) {
+      setExpandido(null)
+      return
+    }
+
+    setExpandido(pedido.id)
+
+    if (detalle[pedido.id]) return // ya cargado
+
+    setDetalle(prev => ({ ...prev, [pedido.id]: 'loading' }))
+    try {
+      const res = await fetch(`/api/admin/pedidos/detalle?wooId=${wooId}`, {
+        headers: { 'x-admin-key': adminKey },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setDetalle(prev => ({ ...prev, [pedido.id]: json }))
+      } else {
+        setDetalle(prev => ({ ...prev, [pedido.id]: 'error' }))
+      }
+    } catch {
+      setDetalle(prev => ({ ...prev, [pedido.id]: 'error' }))
+    }
+  }
+
   function formatearFecha(timestamp: string): string {
     return new Date(timestamp).toLocaleString('es-AR', {
       day: '2-digit',
@@ -60,10 +128,15 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
     })
   }
 
+  function extraerNumeroRaw(notas: string | null): string | null {
+    if (!notas) return null
+    const match = notas.match(/(\d+)$/)
+    return match ? match[1] : null
+  }
+
   function extraerNumeroPedido(notas: string | null): string {
-    if (!notas) return '—'
-    const match = notas.match(/#(\d+)/)
-    return match ? `#${match[1]}` : notas
+    const n = extraerNumeroRaw(notas)
+    return n ? `#${n}` : '—'
   }
 
   const pedidosFiltrados = pedidos.filter(p => {
@@ -77,6 +150,7 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
   })
 
   const totalFiltrado = pedidosFiltrados.reduce((sum, p) => sum + (p.monto ?? 0), 0)
+  const columnas = clienteId ? 3 : 6
 
   if (cargando) {
     return (
@@ -131,7 +205,7 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
         )}
       </div>
 
-      {/* Búsqueda (solo cuando no hay filtro de cliente) */}
+      {/* Búsqueda */}
       {!clienteId && (
         <div className="bg-slate-800 rounded-2xl p-4">
           <input
@@ -150,6 +224,7 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
           <table className="w-full">
             <thead>
               <tr className="bg-slate-700">
+                <th className="w-8 p-4" />
                 <th className="text-left p-4 text-slate-300 font-semibold">Fecha</th>
                 {!clienteId && (
                   <>
@@ -163,46 +238,175 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
               </tr>
             </thead>
             <tbody>
-              {pedidosFiltrados.map((pedido) => (
-                <tr key={pedido.id} className="border-t border-slate-700 hover:bg-slate-750 transition">
-                  <td className="p-4">
-                    <p className="text-slate-300 text-sm whitespace-nowrap">{formatearFecha(pedido.timestamp)}</p>
-                  </td>
-                  {!clienteId && (
-                    <>
-                      <td className="p-4">
-                        <p className="text-white font-semibold">{pedido.clienteNombre || 'Sin nombre'}</p>
+              {pedidosFiltrados.map((pedido) => {
+                const isOpen = expandido === pedido.id
+                const det = detalle[pedido.id]
+                const wooId = extraerNumeroRaw(pedido.notas)
+
+                return (
+                  <>
+                    <tr
+                      key={pedido.id}
+                      className={`border-t border-slate-700 transition cursor-pointer ${isOpen ? 'bg-slate-750' : 'hover:bg-slate-750'}`}
+                      onClick={() => toggleExpand(pedido)}
+                    >
+                      <td className="p-4 text-center">
+                        <span className="text-slate-400 text-xs">{isOpen ? '▲' : '▼'}</span>
                       </td>
                       <td className="p-4">
-                        <p className="text-slate-300 font-mono text-sm">{pedido.clientePhone}</p>
+                        <p className="text-slate-300 text-sm whitespace-nowrap">{formatearFecha(pedido.timestamp)}</p>
+                      </td>
+                      {!clienteId && (
+                        <>
+                          <td className="p-4">
+                            <p className="text-white font-semibold">{pedido.clienteNombre || 'Sin nombre'}</p>
+                          </td>
+                          <td className="p-4">
+                            <p className="text-slate-300 font-mono text-sm">{pedido.clientePhone}</p>
+                          </td>
+                          <td className="p-4">
+                            {pedido.clienteNivel ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-900 text-blue-200">
+                                {pedido.clienteNivel}
+                              </span>
+                            ) : (
+                              <span className="text-slate-600 text-xs">—</span>
+                            )}
+                          </td>
+                        </>
+                      )}
+                      <td className="p-4">
+                        <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-sm font-mono">
+                          {extraerNumeroPedido(pedido.notas)}
+                        </span>
                       </td>
                       <td className="p-4">
-                        {pedido.clienteNivel ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-900 text-blue-200">
-                            {pedido.clienteNivel}
-                          </span>
+                        {pedido.monto != null ? (
+                          <p className="text-green-400 font-semibold">
+                            ${pedido.monto.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </p>
                         ) : (
-                          <span className="text-slate-600 text-xs">—</span>
+                          <span className="text-slate-600 text-sm">—</span>
                         )}
                       </td>
-                    </>
-                  )}
-                  <td className="p-4">
-                    <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-sm font-mono">
-                      {extraerNumeroPedido(pedido.notas)}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    {pedido.monto != null ? (
-                      <p className="text-green-400 font-semibold">
-                        ${pedido.monto.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </p>
-                    ) : (
-                      <span className="text-slate-600 text-sm">—</span>
+                    </tr>
+
+                    {/* Fila de detalle expandible */}
+                    {isOpen && (
+                      <tr key={`${pedido.id}-detalle`} className="border-t border-slate-600 bg-slate-900">
+                        <td colSpan={columnas} className="p-0">
+                          <div className="p-5 space-y-4">
+                            {det === 'loading' && (
+                              <div className="flex items-center gap-3 text-slate-400">
+                                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                Cargando detalle desde WooCommerce...
+                              </div>
+                            )}
+
+                            {det === 'error' && (
+                              <p className="text-red-400 text-sm">No se pudo obtener el detalle desde WooCommerce.</p>
+                            )}
+
+                            {det && det !== 'loading' && det !== 'error' && (
+                              <div className="grid md:grid-cols-2 gap-5">
+                                {/* Columna izquierda: productos */}
+                                <div className="space-y-3">
+                                  <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Productos</h4>
+                                  <div className="space-y-2">
+                                    {det.lineItems.map((item, i) => (
+                                      <div key={i} className="bg-slate-800 rounded-xl p-3">
+                                        <div className="flex justify-between items-start gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-white font-semibold text-sm leading-tight">{item.name}</p>
+                                            {item.sku && (
+                                              <p className="text-slate-500 text-xs mt-0.5">SKU: {item.sku}</p>
+                                            )}
+                                            {item.metaData.length > 0 && (
+                                              <div className="mt-1.5 space-y-0.5">
+                                                {item.metaData.map((m, j) => (
+                                                  <p key={j} className="text-slate-400 text-xs">
+                                                    <span className="text-slate-500">{m.key}:</span> {m.value}
+                                                  </p>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="text-right shrink-0">
+                                            <p className="text-slate-400 text-xs">x{item.quantity}</p>
+                                            <p className="text-green-400 font-semibold text-sm">
+                                              ${parseFloat(item.total).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {det.shippingLines.length > 0 && det.shippingLines.map((s, i) => (
+                                      <div key={i} className="flex justify-between items-center bg-slate-800 rounded-xl p-3">
+                                        <p className="text-slate-400 text-sm">🚚 {s.name}</p>
+                                        <p className="text-slate-300 text-sm">
+                                          {parseFloat(s.total) === 0 ? 'Gratis' : `$${parseFloat(s.total).toLocaleString('es-AR')}`}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {/* Total */}
+                                  <div className="flex justify-between items-center pt-2 border-t border-slate-700">
+                                    <p className="text-slate-300 font-semibold">Total</p>
+                                    <p className="text-green-400 font-bold text-lg">
+                                      ${parseFloat(det.total).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Columna derecha: info del pedido */}
+                                <div className="space-y-3">
+                                  <h4 className="text-white font-semibold text-sm uppercase tracking-wide">Información del pedido</h4>
+                                  <div className="bg-slate-800 rounded-xl p-4 space-y-2.5 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-400">Estado</span>
+                                      <span className="text-white font-semibold">
+                                        {STATUS_LABELS[det.status] ?? det.status}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-slate-400">Pago</span>
+                                      <span className="text-white">{det.paymentMethod || '—'}</span>
+                                    </div>
+                                    {det.dateCompleted && (
+                                      <div className="flex justify-between">
+                                        <span className="text-slate-400">Completado</span>
+                                        <span className="text-white">{formatearFecha(det.dateCompleted + 'Z')}</span>
+                                      </div>
+                                    )}
+                                    <div className="border-t border-slate-700 pt-2.5 space-y-2">
+                                      <p className="text-slate-400 text-xs uppercase tracking-wide">Facturación</p>
+                                      <p className="text-white">{det.billing.firstName} {det.billing.lastName}</p>
+                                      {det.billing.email && <p className="text-slate-300 break-all">{det.billing.email}</p>}
+                                      {det.billing.phone && <p className="text-slate-300 font-mono">{det.billing.phone}</p>}
+                                      {det.billing.address && <p className="text-slate-400 text-xs">{det.billing.address}</p>}
+                                    </div>
+                                    {det.customerNote && (
+                                      <div className="border-t border-slate-700 pt-2.5">
+                                        <p className="text-slate-400 text-xs uppercase tracking-wide mb-1">Nota del cliente</p>
+                                        <p className="text-slate-300 text-xs italic">"{det.customerNote}"</p>
+                                      </div>
+                                    )}
+                                    {wooId && (
+                                      <div className="border-t border-slate-700 pt-2.5">
+                                        <p className="text-slate-500 text-xs">Pedido WooCommerce #{wooId}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                </tr>
-              ))}
+                  </>
+                )
+              })}
             </tbody>
           </table>
         </div>
