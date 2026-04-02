@@ -36,23 +36,32 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Batch: obtener visitas de TODOS los clientes en 1 sola query (en vez de 2 por cliente)
+    // Batch: obtener visitas y pedidos app de TODOS los clientes en 2 queries paralelas
     const clienteIds = clientes.map(c => c.id)
-    const visitasResult = await prisma.$queryRaw<Array<{
-      clienteId: string
-      esBonus: boolean
-      count: bigint
-    }>>`
-      SELECT
-        "clienteId",
-        ("metodoValidacion"::text LIKE 'BONUS_%') AS "esBonus",
-        COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint AS count
-      FROM "EventoScan"
-      WHERE "clienteId" = ANY(${clienteIds}::text[])
-        AND "contabilizada" = true
-        AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
-      GROUP BY "clienteId", ("metodoValidacion"::text LIKE 'BONUS_%')
-    `
+    const [visitasResult, pedidosResult] = await Promise.all([
+      prisma.$queryRaw<Array<{
+        clienteId: string
+        esBonus: boolean
+        count: bigint
+      }>>`
+        SELECT
+          "clienteId",
+          ("metodoValidacion"::text LIKE 'BONUS_%') AS "esBonus",
+          COUNT(DISTINCT DATE("timestamp" AT TIME ZONE 'America/Argentina/Buenos_Aires'))::bigint AS count
+        FROM "EventoScan"
+        WHERE "clienteId" = ANY(${clienteIds}::text[])
+          AND "contabilizada" = true
+          AND "tipoEvento" IN ('VISITA', 'BENEFICIO_APLICADO')
+        GROUP BY "clienteId", ("metodoValidacion"::text LIKE 'BONUS_%')
+      `,
+      prisma.$queryRaw<Array<{ clienteId: string; count: bigint }>>`
+        SELECT "clienteId", COUNT(*)::bigint AS count
+        FROM "EventoScan"
+        WHERE "clienteId" = ANY(${clienteIds}::text[])
+          AND "tipoEvento" = 'PEDIDO_TORTA'
+        GROUP BY "clienteId"
+      `,
+    ])
 
     // Indexar por clienteId para O(1) lookup
     const visitasMap = new Map<string, { reales: number; bonus: number }>()
@@ -68,12 +77,18 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const pedidosMap = new Map<string, number>()
+    for (const row of pedidosResult) {
+      pedidosMap.set(row.clienteId, Number(row.count))
+    }
+
     const clientesConEstadisticas = clientes.map(cliente => ({
       ...cliente,
       tienePush: !!cliente.pushSub,
-      pushSub: undefined, // No exponer la suscripción completa al frontend
+      pushSub: undefined,
       visitasReales: visitasMap.get(cliente.id)?.reales ?? 0,
       visitasBonus: visitasMap.get(cliente.id)?.bonus ?? 0,
+      pedidosApp: pedidosMap.get(cliente.id) ?? 0,
     }))
 
     return NextResponse.json({ data: clientesConEstadisticas })

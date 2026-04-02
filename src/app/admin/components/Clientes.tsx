@@ -376,6 +376,9 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   Bonus
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
+                  🛍️ Pedidos App
+                </th>
+                <th className="text-left p-4 text-slate-300 font-semibold">
                   Referidos
                 </th>
                 <th className="text-left p-4 text-slate-300 font-semibold">
@@ -450,6 +453,11 @@ export function Clientes({ adminKey }: { adminKey: string }) {
                   </td>
                   <td className="p-4">
                     <p className="text-purple-400 font-semibold">{(cliente as any).visitasBonus || 0}</p>
+                  </td>
+                  <td className="p-4">
+                    <p className={(cliente as any).pedidosApp > 0 ? 'text-orange-400 font-semibold' : 'text-slate-500'}>
+                      {(cliente as any).pedidosApp || 0}
+                    </p>
                   </td>
                   <td className="p-4">
                     <p className="text-white">{cliente.referidosActivados || 0}</p>
