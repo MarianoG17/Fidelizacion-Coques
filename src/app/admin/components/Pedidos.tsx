@@ -61,6 +61,8 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
   const [diagWooId, setDiagWooId] = useState('')
   const [diagCargando, setDiagCargando] = useState(false)
   const [diagResultado, setDiagResultado] = useState<any>(null)
+  const [sincronizando, setSincronizando] = useState(false)
+  const [syncResultado, setSyncResultado] = useState<any>(null)
   const [cargando, setCargando] = useState(true)
   const [totalMonto, setTotalMonto] = useState(0)
   const [busqueda, setBusqueda] = useState('')
@@ -142,6 +144,24 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
     return n ? `#${n}` : '—'
   }
 
+  async function sincronizarDesdeWoo() {
+    setSincronizando(true)
+    setSyncResultado(null)
+    try {
+      const res = await fetch('/api/admin/sincronizar-pedidos-woo', {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey },
+      })
+      const json = await res.json()
+      setSyncResultado(json)
+      if (json.creados > 0) fetchPedidos()
+    } catch {
+      setSyncResultado({ error: 'Error de conexión' })
+    } finally {
+      setSincronizando(false)
+    }
+  }
+
   async function runDiagnostico() {
     if (!diagWooId.trim()) return
     setDiagCargando(true)
@@ -189,13 +209,32 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
             <span className="ml-3 text-lg font-normal text-orange-400">— {clienteNombre}</span>
           )}
         </h2>
-        {clienteId && onLimpiarFiltro && (
-          <button
-            onClick={onLimpiarFiltro}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm font-semibold transition"
-          >
-            ✕ Ver todos los pedidos
-          </button>
+        <div className="flex gap-2 flex-wrap">
+          {!clienteId && (
+            <button
+              onClick={sincronizarDesdeWoo}
+              disabled={sincronizando}
+              className="px-4 py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition"
+            >
+              {sincronizando ? '⏳ Sincronizando...' : '🔄 Sincronizar desde WooCommerce'}
+            </button>
+          )}
+          {clienteId && onLimpiarFiltro && (
+            <button
+              onClick={onLimpiarFiltro}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm font-semibold transition"
+            >
+              ✕ Ver todos los pedidos
+            </button>
+          )}
+        </div>
+
+        {syncResultado && !sincronizando && (
+          <div className={`w-full mt-2 px-4 py-3 rounded-xl text-sm ${syncResultado.error ? 'bg-red-900/40 text-red-300' : syncResultado.creados > 0 ? 'bg-green-900/40 text-green-300' : 'bg-slate-700 text-slate-300'}`}>
+            {syncResultado.error
+              ? syncResultado.error
+              : `✅ Sincronización completa — ${syncResultado.creados} nuevos registrados, ${syncResultado.omitidos} ya existían, ${syncResultado.sinCliente} sin cliente registrado`}
+          </div>
         )}
       </div>
 
