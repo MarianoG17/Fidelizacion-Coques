@@ -18,6 +18,10 @@ interface DetallePedido {
   dateCreated: string
   dateCompleted: string | null
   total: string
+  discountTotal: string
+  discountTax: string
+  totalTax: string
+  couponLines: Array<{ code: string; discount: string; discountTax: string }>
   currency: string
   billing: {
     firstName: string
@@ -485,13 +489,48 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
                                       </div>
                                     ))}
                                   </div>
-                                  {/* Total */}
-                                  <div className="flex justify-between items-center pt-2 border-t border-slate-700">
-                                    <p className="text-slate-300 font-semibold">Total</p>
-                                    <p className="text-green-400 font-bold text-lg">
-                                      ${parseFloat(det.total).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                    </p>
-                                  </div>
+                                  {/* Totales con desglose */}
+                                  {(() => {
+                                    const totalFinal = parseFloat(det.total)
+                                    const descuento = parseFloat(det.discountTotal) + parseFloat(det.discountTax)
+                                    const totalSinDesc = totalFinal + descuento
+                                    const pctDesc = totalSinDesc > 0 ? (descuento / totalSinDesc) * 100 : 0
+                                    const hayDescuento = descuento > 0
+
+                                    return (
+                                      <div className="pt-2 border-t border-slate-700 space-y-1.5">
+                                        {hayDescuento && (
+                                          <>
+                                            <div className="flex justify-between items-center text-sm">
+                                              <span className="text-slate-400">Subtotal c/ IVA</span>
+                                              <span className="text-slate-300">
+                                                ${totalSinDesc.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                              </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                              <span className="text-slate-400">
+                                                Descuento
+                                                {det.couponLines.length > 0 && (
+                                                  <span className="ml-1.5 text-xs text-orange-400 font-mono">
+                                                    {det.couponLines.map(c => c.code).join(', ')}
+                                                  </span>
+                                                )}
+                                              </span>
+                                              <span className="text-orange-400 font-semibold">
+                                                -{pctDesc.toFixed(0)}% (${descuento.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+                                              </span>
+                                            </div>
+                                          </>
+                                        )}
+                                        <div className="flex justify-between items-center pt-1">
+                                          <p className="text-slate-300 font-semibold">Total c/ IVA</p>
+                                          <p className="text-green-400 font-bold text-lg">
+                                            ${totalFinal.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
                                 </div>
 
                                 {/* Columna derecha: info del pedido */}

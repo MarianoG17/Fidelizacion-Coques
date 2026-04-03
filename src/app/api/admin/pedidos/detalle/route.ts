@@ -34,6 +34,14 @@ export async function GET(req: NextRequest) {
       dateCreated: order.date_created,
       dateCompleted: order.date_completed,
       total: order.total,
+      discountTotal: order.discount_total ?? '0',
+      discountTax: order.discount_tax ?? '0',
+      totalTax: order.total_tax ?? '0',
+      couponLines: (order.coupon_lines ?? []).map((c: any) => ({
+        code: c.code,
+        discount: c.discount,
+        discountTax: c.discount_tax,
+      })),
       currency: order.currency,
       billing: {
         firstName: order.billing?.first_name,

@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendPushNotification } from '@/lib/push'
+import { buildWooHeaders } from '@/lib/woocommerce-headers'
+import { normalizarTelefono } from '@/lib/phone'
+import { evaluarNivel } from '@/lib/beneficios'
 
 /**
  * Job que envía notificaciones push a clientes relacionadas con cumpleaños
@@ -258,6 +261,74 @@ export async function GET(req: Request) {
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // 3. SINCRONIZAR PEDIDOS WOOCOMMERCE → NEON (fallback webhook)
+        // ═══════════════════════════════════════════════════════════════
+        let pedidosCreados = 0
+        try {
+            const wooUrl = process.env.WOOCOMMERCE_URL
+            const wooKey = process.env.WOOCOMMERCE_KEY
+            const wooSecret = process.env.WOOCOMMERCE_SECRET
+
+            if (wooUrl && wooKey && wooSecret) {
+                const wooHeaders = buildWooHeaders(wooKey, wooSecret)
+                const local = await prisma.local.findFirst({ where: { tipo: 'cafeteria' } })
+
+                if (local) {
+                    const allOrders: any[] = []
+                    for (let page = 1; page <= 2; page++) {
+                        try {
+                            const res = await fetch(
+                                `${wooUrl}/wp-json/wc/v3/orders?status=completed&per_page=50&page=${page}&orderby=date&order=desc`,
+                                { headers: wooHeaders }
+                            )
+                            if (!res.ok) break
+                            const orders = await res.json()
+                            if (!orders.length) break
+                            allOrders.push(...orders)
+                        } catch { break }
+                    }
+
+                    const wooIdsEnDB = new Set(
+                        (await prisma.eventoScan.findMany({
+                            where: { tipoEvento: 'PEDIDO_TORTA', notas: { startsWith: 'Pedido WooCommerce #' } },
+                            select: { notas: true },
+                        })).map(e => e.notas?.replace('Pedido WooCommerce #', '').trim())
+                    )
+
+                    for (const order of allOrders) {
+                        if (wooIdsEnDB.has(String(order.id))) continue
+                        const phoneNorm = normalizarTelefono(order.billing?.phone ?? '')
+                        let cli = phoneNorm ? await prisma.cliente.findUnique({ where: { phone: phoneNorm } }) : null
+                        if (!cli && order.billing?.email) {
+                            cli = await prisma.cliente.findUnique({ where: { email: order.billing.email } })
+                        }
+                        if (!cli) continue
+                        const fechaRaw = order.date_completed || order.date_created
+                        const fecha = new Date(fechaRaw.includes('Z') || fechaRaw.includes('+') ? fechaRaw : fechaRaw + 'Z')
+                        const monto = order.total ? parseFloat(order.total) : undefined
+                        await prisma.eventoScan.create({
+                            data: {
+                                timestamp: fecha,
+                                clienteId: cli.id,
+                                localId: local.id,
+                                tipoEvento: 'PEDIDO_TORTA',
+                                metodoValidacion: 'QR',
+                                contabilizada: true,
+                                notas: `Pedido WooCommerce #${order.id}`,
+                                ...(monto ? { monto } : {}),
+                            },
+                        })
+                        await evaluarNivel(cli.id)
+                        pedidosCreados++
+                    }
+                    console.log(`[Job] Pedidos WooCommerce sincronizados: ${pedidosCreados}`)
+                }
+            }
+        } catch (syncError) {
+            console.error('[Job] Error sincronizando pedidos WooCommerce:', syncError)
+        }
+
         return NextResponse.json({
             success: true,
             message: `Job ejecutado correctamente`,
@@ -271,7 +342,8 @@ export async function GET(req: Request) {
                 total: clientesCumple.length,
                 enviadas: enviadasCumple,
                 yaEnviadas: yaEnviadasCumple
-            }
+            },
+            pedidosSincronizados: pedidosCreados,
         })
 
     } catch (error: any) {

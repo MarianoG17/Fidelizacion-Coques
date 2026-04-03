@@ -548,6 +548,78 @@ model ConciliacionAuditoria {
   @@index([confirmadoEn])
 }
 
+// ─── Configuración de Marca (White-Label) ──────────────────────────────────────
+// Permite a nuevos deployments configurar el branding sin tocar código.
+// El app de Coques NO lee de esta tabla — sigue usando brand.config.ts como siempre.
+model ConfiguracionMarca {
+  id                  String   @id @default(uuid())
+
+  // ── Empresa ──────────────────────────────────────────────────────────────────
+  nombreEmpresa       String   @default("Mi Empresa")
+  nombreCompleto      String?  // "Mi Empresa S.A."
+  slogan              String?
+  descripcion         String?
+  dominio             String?  // "app.miempresa.com"
+  sitioWeb            String?
+
+  // ── Branding / Nombres ────────────────────────────────────────────────────────
+  appNombreClientes   String   @default("Mi App")
+  appNombreStaff      String   @default("Mi App Staff")
+  appNombreAdmin      String   @default("Mi App Admin")
+  programaNombre      String   @default("Mi Programa")   // "Mi Empresa Points"
+
+  // ── Colores (nombres de Tailwind: blue, purple, green, red, etc.) ─────────────
+  colorPrimario       String   @default("blue")
+  colorSecundario     String   @default("orange")
+  colorAcento         String   @default("purple")
+
+  // ── Assets ────────────────────────────────────────────────────────────────────
+  logoUrl             String?  // URL pública del logo
+  faviconUrl          String?
+
+  // ── Contacto ──────────────────────────────────────────────────────────────────
+  telefono            String?
+  emailContacto       String?
+  direccion           String?
+
+  // ── Redes Sociales ────────────────────────────────────────────────────────────
+  instagram           String?
+  facebook            String?
+  whatsapp            String?
+  googleMapsReviews   String?  // URL para reseñas de Google Maps
+
+  // ── Emails Transaccionales ────────────────────────────────────────────────────
+  emailFrom           String?  // "noreply@mail.miempresa.com"
+  emailFromNombre     String?  // "Mi Empresa"
+  emailReplyTo        String?
+
+  // ── Módulos / Feature Flags ───────────────────────────────────────────────────
+  moduloNiveles       Boolean  @default(true)
+  moduloBeneficios    Boolean  @default(true)
+  moduloLogros        Boolean  @default(true)
+  moduloReferidos     Boolean  @default(false)
+  moduloMesas         Boolean  @default(false)
+  moduloPresupuestos  Boolean  @default(false)
+  moduloEventos       Boolean  @default(false)
+  moduloFeedback      Boolean  @default(true)
+  moduloPushNotif     Boolean  @default(true)
+  moduloGoogleOAuth   Boolean  @default(false)
+  moduloPasskeys      Boolean  @default(false)
+  moduloWoocommerce   Boolean  @default(false)
+  moduloDeltawash     Boolean  @default(false)
+  moduloExportExcel   Boolean  @default(true)
+
+  // ── Textos Personalizables ────────────────────────────────────────────────────
+  textoBienvenida     String?
+  textoQR             String?
+
+  // ── Estado del Setup ──────────────────────────────────────────────────────────
+  setupCompleto       Boolean  @default(false)  // true cuando se terminó la configuración inicial
+
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+}
+
 // Cache del catálogo de WooCommerce en Neon para evitar llamadas lentas a WooCommerce
 model CatalogoCache {
   id        String   @id // clave fija: "tortas"
