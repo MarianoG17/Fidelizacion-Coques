@@ -22,21 +22,48 @@ function staffColor(staff: string) {
     return STAFF_COLORS[staff] || { bg: 'bg-slate-700', text: 'text-slate-200', dot: 'bg-slate-400' }
 }
 
+function mesActual(): string {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function labelMes(mes: string): string {
+    const [year, month] = mes.split('-')
+    const fecha = new Date(parseInt(year), parseInt(month) - 1, 1)
+    return fecha.toLocaleString('es-AR', { month: 'long', year: 'numeric' })
+}
+
+function mesAnterior(mes: string): string {
+    const [year, month] = mes.split('-')
+    const d = new Date(parseInt(year), parseInt(month) - 2, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function mesSiguiente(mes: string): string {
+    const [year, month] = mes.split('-')
+    const d = new Date(parseInt(year), parseInt(month), 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function StaffStats({ adminKey }: { adminKey: string }) {
+    const [mes, setMes] = useState(mesActual)
     const [totales, setTotales] = useState<StaffTotal[]>([])
     const [porDia, setPorDia] = useState<StaffPorDia[]>([])
     const [cargando, setCargando] = useState(true)
     const [error, setError] = useState('')
 
     useEffect(() => {
-        fetchStats()
-    }, [])
+        fetchStats(mes)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mes])
 
-    async function fetchStats() {
+    async function fetchStats(m: string) {
+        setCargando(true)
+        setError('')
         const key = localStorage.getItem('admin_key')
         if (!key) { setCargando(false); return }
         try {
-            const res = await fetch('/api/admin/staff-stats', { headers: { 'x-admin-key': key } })
+            const res = await fetch(`/api/admin/staff-stats?mes=${m}`, { headers: { 'x-admin-key': key } })
             if (res.ok) {
                 const json = await res.json()
                 setTotales(json.data.totales || [])
@@ -51,11 +78,10 @@ export function StaffStats({ adminKey }: { adminKey: string }) {
         }
     }
 
-    // Group porDia by dia
     const diasUnicos = [...new Set(porDia.map(r => r.dia))].sort((a, b) => b.localeCompare(a))
     const staffMembers = [...new Set([...totales.map(t => t.staff), ...porDia.map(r => r.staff)])].sort()
-
     const totalGeneral = totales.reduce((sum, t) => sum + t.total, 0)
+    const esMesActual = mes === mesActual()
 
     if (cargando) {
         return (
@@ -71,9 +97,34 @@ export function StaffStats({ adminKey }: { adminKey: string }) {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Registros por Vendedora</h2>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <h2 className="text-2xl font-bold text-white">Registros por Vendedora</h2>
 
-            {/* Totales generales */}
+                {/* Selector de mes */}
+                <div className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2">
+                    <button
+                        onClick={() => setMes(mesAnterior(mes))}
+                        className="text-slate-400 hover:text-white transition px-1 text-lg leading-none"
+                        title="Mes anterior"
+                    >
+                        ‹
+                    </button>
+                    <span className="text-white font-semibold text-sm capitalize min-w-[140px] text-center">
+                        {labelMes(mes)}
+                        {esMesActual && <span className="ml-1.5 text-xs text-blue-400 font-normal">actual</span>}
+                    </span>
+                    <button
+                        onClick={() => setMes(mesSiguiente(mes))}
+                        disabled={esMesActual}
+                        className="text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition px-1 text-lg leading-none"
+                        title="Mes siguiente"
+                    >
+                        ›
+                    </button>
+                </div>
+            </div>
+
+            {/* Totales del mes */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-800 rounded-xl p-4">
                     <p className="text-slate-400 text-sm">Total registros</p>
@@ -95,8 +146,8 @@ export function StaffStats({ adminKey }: { adminKey: string }) {
 
             {totalGeneral === 0 && (
                 <div className="bg-slate-800 rounded-xl p-8 text-center text-slate-400">
-                    Todavía no hay registros vinculados a ninguna vendedora.
-                    <p className="text-sm mt-2 text-slate-500">Los nuevos registros con QR de Yesi, Alex o Kari aparecerán aquí.</p>
+                    No hay registros en {labelMes(mes)}.
+                    <p className="text-sm mt-2 text-slate-500">Los registros con QR de Yesi, Alex o Kari aparecerán aquí.</p>
                 </div>
             )}
 
@@ -104,7 +155,9 @@ export function StaffStats({ adminKey }: { adminKey: string }) {
             {diasUnicos.length > 0 && (
                 <div className="bg-slate-800 rounded-2xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-slate-700">
-                        <h3 className="text-lg font-semibold text-white">Registros por día (últimos 30 días)</h3>
+                        <h3 className="text-lg font-semibold text-white capitalize">
+                            Detalle por día — {labelMes(mes)}
+                        </h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full">
