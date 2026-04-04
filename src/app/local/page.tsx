@@ -43,6 +43,10 @@ export default function LocalPage() {
   const [leaderboardData, setLeaderboardData] = useState<{ staff: string; total: number }[]>([])
   const [leaderboardTotal, setLeaderboardTotal] = useState(0)
   const [cargandoLeaderboard, setCargandoLeaderboard] = useState(false)
+  const [leaderboardMes, setLeaderboardMes] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
 
   // Historial de últimos clientes en mostrador (ahora desde servidor)
   const [clientesMostrador, setClientesMostrador] = useState<Array<{
@@ -500,10 +504,11 @@ export default function LocalPage() {
     }
   }
 
-  async function cargarLeaderboard() {
+  async function cargarLeaderboard(mes?: string) {
     setCargandoLeaderboard(true)
+    const mesActual = mes ?? leaderboardMes
     try {
-      const res = await fetch('/api/local/staff-stats', {
+      const res = await fetch(`/api/local/staff-stats?mes=${mesActual}`, {
         headers: { 'x-local-api-key': LOCAL_API_KEY },
       })
       if (res.ok) {
@@ -516,6 +521,20 @@ export default function LocalPage() {
     } finally {
       setCargandoLeaderboard(false)
     }
+  }
+
+  function cambiarMesLeaderboard(delta: number) {
+    const [year, month] = leaderboardMes.split('-').map(Number)
+    const d = new Date(year, month - 1 + delta, 1)
+    const nuevo = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    setLeaderboardMes(nuevo)
+    cargarLeaderboard(nuevo)
+  }
+
+  function labelMesLeaderboard(mes: string) {
+    const [year, month] = mes.split('-')
+    return new Date(parseInt(year), parseInt(month) - 1, 1)
+      .toLocaleString('es-AR', { month: 'long', year: 'numeric' })
   }
 
   async function cerrarSesionMesa(sesionId: string) {
@@ -672,7 +691,25 @@ export default function LocalPage() {
           {vistaLeaderboard ? (
             // ─── Vista Leaderboard ───
             <div className="w-full max-w-sm">
-              <h2 className="text-white text-xl font-bold mb-4 text-center">🏆 Ranking Vendedoras</h2>
+              <h2 className="text-white text-xl font-bold mb-3 text-center">🏆 Ranking Vendedoras</h2>
+              {/* Selector de mes */}
+              <div className="flex items-center justify-center gap-3 mb-4 bg-slate-800 rounded-xl px-4 py-2">
+                <button
+                  onClick={() => cambiarMesLeaderboard(-1)}
+                  className="text-slate-400 hover:text-white transition text-xl px-1"
+                >‹</button>
+                <span className="text-white text-sm font-semibold capitalize min-w-[130px] text-center">
+                  {labelMesLeaderboard(leaderboardMes)}
+                  {leaderboardMes === (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` })() && (
+                    <span className="ml-1 text-xs text-blue-400 font-normal">actual</span>
+                  )}
+                </span>
+                <button
+                  onClick={() => cambiarMesLeaderboard(1)}
+                  disabled={leaderboardMes === (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}` })()}
+                  className="text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition text-xl px-1"
+                >›</button>
+              </div>
               {cargandoLeaderboard ? (
                 <div className="flex justify-center py-8">
                   <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
