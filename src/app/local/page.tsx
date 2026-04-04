@@ -758,7 +758,7 @@ export default function LocalPage() {
                     <p className="text-3xl font-bold text-white">{leaderboardTotal}</p>
                   </div>
                   <button
-                    onClick={cargarLeaderboard}
+                    onClick={() => cargarLeaderboard()}
                     className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl text-sm font-semibold transition"
                   >
                     Actualizar
