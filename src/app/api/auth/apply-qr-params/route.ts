@@ -20,9 +20,15 @@ export async function POST(req: NextRequest) {
     const { fuente, nivel, staff } = await req.json()
     if (!fuente && !nivel && !staff) return NextResponse.json({ ok: true })
 
+    // Fetch current client to avoid overwriting existing staffRegistro
+    const clienteActual = staff
+        ? await prisma.cliente.findUnique({ where: { id: userId }, select: { staffRegistro: true } })
+        : null
+
     const updateData: any = {}
     if (fuente) updateData.fuenteConocimiento = fuente
-    if (staff) updateData.staffRegistro = staff
+    // Only set staffRegistro if client doesn't already have one assigned
+    if (staff && !clienteActual?.staffRegistro) updateData.staffRegistro = staff
 
     if (nivel) {
         const nivelRecord = await prisma.nivel.findFirst({
