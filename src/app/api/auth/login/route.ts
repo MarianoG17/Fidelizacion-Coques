@@ -27,8 +27,16 @@ export async function POST(req: NextRequest) {
 
     const isValid = await bcrypt.compare(validatedData.password, passwordToCompare)
 
+    // Si el cliente existe pero no tiene password (registrado con Google)
+    if (cliente && !cliente.password) {
+      return NextResponse.json(
+        { error: 'Esta cuenta fue creada con Google. Usá "Continuar con Google" para ingresar, o recuperá tu contraseña para habilitar el acceso con email.' },
+        { status: 401 }
+      )
+    }
+
     // Si no existe el cliente o la contraseña es incorrecta
-    if (!cliente || !isValid || !cliente.password) {
+    if (!cliente || !isValid) {
       return NextResponse.json(
         { error: 'Email o contraseña incorrectos' },
         { status: 401 }

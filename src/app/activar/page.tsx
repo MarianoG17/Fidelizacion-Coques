@@ -155,6 +155,11 @@ function ActivarContent() {
           if (res.status === 405) errorMessage = 'Método no permitido. Contacte al administrador.'
           else if (res.status === 400) errorMessage = 'Datos inválidos. Verifique su información.'
         }
+        // Si el email ya está registrado, ir al login con el email pre-llenado
+        if (errorMessage === 'El email ya está registrado') {
+          router.push(`/login?email=${encodeURIComponent(email.trim().toLowerCase())}&hint=ya_registrado`)
+          return
+        }
         throw new Error(errorMessage)
       }
 

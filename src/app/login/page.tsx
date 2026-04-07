@@ -1,15 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [hint, setHint] = useState<string | null>(null)
+
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    const hintParam = searchParams.get('hint')
+    if (emailParam) setEmail(emailParam)
+    if (hintParam) setHint(hintParam)
+  }, [searchParams])
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -98,6 +107,14 @@ export default function LoginPage() {
             Ingresá a tu cuenta de Fidelización Coques
           </p>
         </div>
+
+        {/* Banner cuando viene del registro con email ya existente */}
+        {hint === 'ya_registrado' && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-sm">
+            <p className="font-semibold mb-1">Ya tenés cuenta con ese email</p>
+            <p>Ingresá tu contraseña para acceder. Si la olvidaste, usá <a href="/recuperar-password" className="underline font-semibold">recuperar contraseña</a>.</p>
+          </div>
+        )}
 
         {/* Google Sign In Button */}
         <button
@@ -232,5 +249,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
   )
 }
