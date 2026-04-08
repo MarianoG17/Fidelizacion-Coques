@@ -76,9 +76,15 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
   const [nivelSeleccionado, setNivelSeleccionado] = useState('')
   const [cambiandoNivel, setCambiandoNivel] = useState(false)
 
+  const [beneficios, setBeneficios] = useState<{ id: string; nombre: string; icono: string; usoUnico: boolean }[]>([])
+  const [beneficioSeleccionado, setBeneficioSeleccionado] = useState('')
+  const [aplicando, setAplicando] = useState(false)
+  const [mensajeBeneficio, setMensajeBeneficio] = useState<{ ok: boolean; texto: string } | null>(null)
+
   useEffect(() => {
     fetchClientes()
     fetchNiveles()
+    fetchBeneficios()
   }, [])
 
   async function fetchNiveles() {
@@ -92,6 +98,53 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
       }
     } catch (e) {
       console.error('Error al cargar niveles:', e)
+    }
+  }
+
+  async function fetchBeneficios() {
+    const key = localStorage.getItem('admin_key')
+    if (!key) return
+    try {
+      const res = await fetch('/api/admin/beneficios', { headers: { 'x-admin-key': key } })
+      if (res.ok) {
+        const json = await res.json()
+        setBeneficios(
+          (json.data || [])
+            .filter((b: any) => b.activo)
+            .map((b: any) => ({
+              id: b.id,
+              nombre: b.nombre,
+              icono: b.condiciones?.icono || '🎁',
+              usoUnico: b.condiciones?.usoUnico || false,
+            }))
+        )
+      }
+    } catch (e) {
+      console.error('Error al cargar beneficios:', e)
+    }
+  }
+
+  async function aplicarBeneficio() {
+    if (!beneficioSeleccionado || !actividadesAbiertas) return
+    setAplicando(true)
+    setMensajeBeneficio(null)
+    try {
+      const key = localStorage.getItem('admin_key') || ''
+      const res = await fetch(`/api/admin/clientes/${actividadesAbiertas}/aplicar-beneficio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
+        body: JSON.stringify({ beneficioId: beneficioSeleccionado }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error')
+      setMensajeBeneficio({ ok: true, texto: 'Beneficio aplicado correctamente' })
+      setBeneficioSeleccionado('')
+      // Recargar actividades para reflejar el nuevo evento
+      verActividades(actividadesAbiertas)
+    } catch (e) {
+      setMensajeBeneficio({ ok: false, texto: e instanceof Error ? e.message : 'Error al aplicar' })
+    } finally {
+      setAplicando(false)
     }
   }
 
@@ -241,6 +294,8 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
   function cerrarActividades() {
     setActividadesAbiertas(null)
     setActividadesData(null)
+    setBeneficioSeleccionado('')
+    setMensajeBeneficio(null)
   }
 
   function formatearFecha(timestamp: string): string {
@@ -783,6 +838,40 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
                       </p>
                     </div>
                   </div>
+
+                  {/* Aplicar beneficio manualmente */}
+                  {beneficios.length > 0 && (
+                    <div className="bg-slate-700 rounded-xl p-4 mb-6">
+                      <h4 className="text-white font-semibold mb-1">🎁 Aplicar beneficio manualmente</h4>
+                      <p className="text-slate-400 text-xs mb-3">Para casos en que el staff olvidó aplicarlo. Quedará registrado como usado.</p>
+                      <div className="flex gap-3">
+                        <select
+                          value={beneficioSeleccionado}
+                          onChange={e => { setBeneficioSeleccionado(e.target.value); setMensajeBeneficio(null) }}
+                          className="flex-1 bg-slate-600 text-white rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        >
+                          <option value="">Seleccionar beneficio...</option>
+                          {beneficios.map(b => (
+                            <option key={b.id} value={b.id}>
+                              {b.icono} {b.nombre}{b.usoUnico ? ' (uso único)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={aplicarBeneficio}
+                          disabled={!beneficioSeleccionado || aplicando}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-500 disabled:cursor-not-allowed text-white font-semibold px-4 py-2 rounded-xl transition text-sm whitespace-nowrap"
+                        >
+                          {aplicando ? 'Aplicando...' : 'Aplicar'}
+                        </button>
+                      </div>
+                      {mensajeBeneficio && (
+                        <p className={`mt-2 text-sm font-medium ${mensajeBeneficio.ok ? 'text-green-400' : 'text-red-400'}`}>
+                          {mensajeBeneficio.ok ? '✓' : '✗'} {mensajeBeneficio.texto}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Lista de Actividades */}
                   <div className="space-y-3">
