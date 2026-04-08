@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 
+interface Beneficio {
+    id: string
+    nombre: string
+    icono: string
+    usoUnico: boolean
+}
+
 interface Auto {
     id: string
     patente: string
@@ -70,6 +77,11 @@ export default function ClientePerfilPage() {
     const [cargando, setCargando] = useState(false)
     const [error, setError] = useState('')
 
+    const [beneficios, setBeneficios] = useState<Beneficio[]>([])
+    const [beneficioSeleccionado, setBeneficioSeleccionado] = useState('')
+    const [aplicando, setAplicando] = useState(false)
+    const [mensajeBeneficio, setMensajeBeneficio] = useState<{ ok: boolean; texto: string } | null>(null)
+
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
         if (key) { setAdminKey(key); setAutenticado(true) }
@@ -88,7 +100,43 @@ export default function ClientePerfilPage() {
             .then(json => setCliente(json.data))
             .catch(() => setError('Error al cargar el cliente'))
             .finally(() => setCargando(false))
+
+        fetch('/api/admin/beneficios', { headers: { 'x-admin-key': adminKey } })
+            .then(r => r.json())
+            .then(json => {
+                const lista = (json.data || [])
+                    .filter((b: any) => b.activo)
+                    .map((b: any) => ({
+                        id: b.id,
+                        nombre: b.nombre,
+                        icono: b.condiciones?.icono || '🎁',
+                        usoUnico: b.condiciones?.usoUnico || false,
+                    }))
+                setBeneficios(lista)
+            })
+            .catch(() => {})
     }, [autenticado, adminKey, clienteId])
+
+    async function aplicarBeneficio() {
+        if (!beneficioSeleccionado || !adminKey) return
+        setAplicando(true)
+        setMensajeBeneficio(null)
+        try {
+            const res = await fetch(`/api/admin/clientes/${clienteId}/aplicar-beneficio`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+                body: JSON.stringify({ beneficioId: beneficioSeleccionado }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Error')
+            setMensajeBeneficio({ ok: true, texto: 'Beneficio aplicado correctamente' })
+            setBeneficioSeleccionado('')
+        } catch (e) {
+            setMensajeBeneficio({ ok: false, texto: e instanceof Error ? e.message : 'Error al aplicar' })
+        } finally {
+            setAplicando(false)
+        }
+    }
 
     function login() {
         if (!inputKey) return
@@ -244,6 +292,40 @@ export default function ClientePerfilPage() {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Aplicar beneficio manualmente */}
+                        {beneficios.length > 0 && (
+                            <div className="bg-slate-800 rounded-2xl p-6">
+                                <h3 className="text-lg font-semibold text-white mb-1">🎁 Aplicar beneficio manualmente</h3>
+                                <p className="text-slate-400 text-xs mb-4">Usá esto si el staff olvidó aplicarlo en el momento. Quedará registrado como usado.</p>
+                                <div className="flex gap-3">
+                                    <select
+                                        value={beneficioSeleccionado}
+                                        onChange={e => { setBeneficioSeleccionado(e.target.value); setMensajeBeneficio(null) }}
+                                        className="flex-1 bg-slate-700 text-white rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    >
+                                        <option value="">Seleccionar beneficio...</option>
+                                        {beneficios.map(b => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.icono} {b.nombre}{b.usoUnico ? ' (uso único)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={aplicarBeneficio}
+                                        disabled={!beneficioSeleccionado || aplicando}
+                                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl transition text-sm whitespace-nowrap"
+                                    >
+                                        {aplicando ? 'Aplicando...' : 'Aplicar'}
+                                    </button>
+                                </div>
+                                {mensajeBeneficio && (
+                                    <p className={`mt-3 text-sm font-medium ${mensajeBeneficio.ok ? 'text-green-400' : 'text-red-400'}`}>
+                                        {mensajeBeneficio.ok ? '✓' : '✗'} {mensajeBeneficio.texto}
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>
