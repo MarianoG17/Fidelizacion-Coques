@@ -306,7 +306,7 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'UTC',
+      timeZone: 'America/Argentina/Buenos_Aires',
     })
   }
 
