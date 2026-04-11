@@ -9,6 +9,21 @@ export const maxDuration = 60
 
 type Segmento = 'todos' | 'bronce' | 'plata' | 'oro' | 'sin_nivel' | 'en_riesgo'
 
+interface Destinatario {
+    id: string
+    nombre: string | null
+    email: string | null
+    nivel: string
+    visitas: number
+}
+
+function aplicarVariables(texto: string, d: Destinatario): string {
+    return texto
+        .replace(/\{\{nombre\}\}/g, d.nombre?.split(' ')[0] || 'cliente')
+        .replace(/\{\{nivel\}\}/g, d.nivel || 'Sin nivel')
+        .replace(/\{\{visitas\}\}/g, String(d.visitas))
+}
+
 function buildHtml(cuerpoPers: string): string {
     return `<!DOCTYPE html>
 <html>
@@ -33,28 +48,24 @@ function buildHtml(cuerpoPers: string): string {
 </html>`
 }
 
-async function resolverDestinatarios(segmento: Segmento) {
+async function resolverDestinatarios(segmento: Segmento): Promise<Destinatario[]> {
     const ahora = new Date()
     const hace30 = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000)
     const hace90 = new Date(ahora.getTime() - 90 * 24 * 60 * 60 * 1000)
+
+    let idsBase: string[] | undefined
 
     if (segmento === 'en_riesgo') {
         const recientes = await prisma.eventoScan.groupBy({
             by: ['clienteId'],
             where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace30 } },
         })
-        const idsRecientes = recientes.map(r => r.clienteId)
-
+        const idsRecientes = new Set(recientes.map(r => r.clienteId))
         const anteriores = await prisma.eventoScan.groupBy({
             by: ['clienteId'],
             where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace90, lt: hace30 } },
         })
-        const idsEnRiesgo = anteriores.map(r => r.clienteId).filter(id => !idsRecientes.includes(id))
-
-        return prisma.cliente.findMany({
-            where: { id: { in: idsEnRiesgo }, estado: 'ACTIVO', email: { not: null } },
-            select: { id: true, nombre: true, email: true },
-        })
+        idsBase = anteriores.map(r => r.clienteId).filter(id => !idsRecientes.has(id))
     }
 
     const whereNivel =
@@ -64,10 +75,29 @@ async function resolverDestinatarios(segmento: Segmento) {
         segmento === 'oro' ? { nivel: { nombre: { equals: 'Oro', mode: 'insensitive' as const } } } :
         {}
 
-    return prisma.cliente.findMany({
-        where: { estado: 'ACTIVO', email: { not: null }, ...whereNivel },
-        select: { id: true, nombre: true, email: true },
+    const clientes = await prisma.cliente.findMany({
+        where: {
+            estado: 'ACTIVO',
+            email: { not: null },
+            ...(idsBase ? { id: { in: idsBase } } : {}),
+            ...whereNivel,
+        },
+        select: {
+            id: true,
+            nombre: true,
+            email: true,
+            nivel: { select: { nombre: true } },
+            _count: { select: { eventos: { where: { tipoEvento: 'VISITA', contabilizada: true } } } },
+        },
     })
+
+    return clientes.map(c => ({
+        id: c.id,
+        nombre: c.nombre,
+        email: c.email,
+        nivel: c.nivel?.nombre || 'Sin nivel',
+        visitas: c._count.eventos,
+    }))
 }
 
 // GET — preview: cuántos destinatarios tendría el segmento
@@ -94,12 +124,38 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Faltan campos: asunto, cuerpo' }, { status: 400 })
     }
 
-    // Modo test: enviar solo al email indicado
+    // Modo test: buscar datos reales del email en la DB, o usar valores de ejemplo
     if (testEmail) {
-        const cuerpoPers = cuerpo.replace(/\{\{nombre\}\}/g, '[Nombre]')
+        const clienteReal = await prisma.cliente.findUnique({
+            where: { email: testEmail },
+            select: {
+                id: true,
+                nombre: true,
+                email: true,
+                nivel: { select: { nombre: true } },
+                _count: { select: { eventos: { where: { tipoEvento: 'VISITA', contabilizada: true } } } },
+            },
+        })
+
+        const datosTest: Destinatario = clienteReal
+            ? {
+                id: clienteReal.id,
+                nombre: clienteReal.nombre,
+                email: clienteReal.email,
+                nivel: clienteReal.nivel?.nombre || 'Sin nivel',
+                visitas: clienteReal._count.eventos,
+            }
+            : { id: 'test', nombre: 'María', email: testEmail, nivel: 'Plata', visitas: 8 }
+
+        const cuerpoPers = aplicarVariables(cuerpo, datosTest)
         const html = buildHtml(cuerpoPers)
         const resultado = await sendEmail({ to: testEmail, subject: `[PRUEBA] ${asunto}`, html })
-        return NextResponse.json({ ok: resultado.success, test: true, error: resultado.error })
+        return NextResponse.json({
+            ok: resultado.success,
+            test: true,
+            datosUsados: { nombre: datosTest.nombre?.split(' ')[0] || 'cliente', nivel: datosTest.nivel, visitas: datosTest.visitas },
+            error: resultado.error,
+        })
     }
 
     if (!segmento) {
@@ -118,8 +174,7 @@ export async function POST(req: NextRequest) {
     for (const cliente of destinatarios) {
         if (!cliente.email) continue
 
-        const nombrePersonalizado = cliente.nombre?.split(' ')[0] || 'cliente'
-        const cuerpoPers = cuerpo.replace(/\{\{nombre\}\}/g, nombrePersonalizado)
+        const cuerpoPers = aplicarVariables(cuerpo, cliente)
         const html = buildHtml(cuerpoPers)
 
         const resultado = await sendEmail({ to: cliente.email, subject: asunto, html })
@@ -130,7 +185,6 @@ export async function POST(req: NextRequest) {
             erroresList.push(cliente.email)
         }
 
-        // Pequeña pausa para no saturar la API de Brevo
         await new Promise(r => setTimeout(r, 100))
     }
 

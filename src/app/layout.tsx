@@ -39,8 +39,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {/* ✅ OPTIMIZACIÓN: Preload recursos críticos */}
-        <link rel="preload" href="/api/me" as="fetch" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://coques.com.ar" />
         <link rel="dns-prefetch" href="https://vercel.app" />
 

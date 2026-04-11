@@ -1,6 +1,6 @@
 'use client'
 // src/app/admin/components/Campanas.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const SEGMENTOS = [
     { value: 'todos', label: '📋 Todos los clientes activos' },
@@ -23,8 +23,31 @@ export function Campanas({ adminKey }: { adminKey: string }) {
     const [testEmail, setTestEmail] = useState('')
     const [enviandoTest, setEnviandoTest] = useState(false)
     const [resultadoTest, setResultadoTest] = useState<string | null>(null)
+    const [datosUsados, setDatosUsados] = useState<{ nombre: string; nivel: string; visitas: number } | null>(null)
 
+    const cuerpoRef = useRef<HTMLTextAreaElement>(null)
     const key = typeof window !== 'undefined' ? (localStorage.getItem('admin_key') || adminKey) : adminKey
+
+    const VARIABLES = [
+        { label: '{{nombre}}', desc: 'Primer nombre' },
+        { label: '{{nivel}}', desc: 'Nivel actual' },
+        { label: '{{visitas}}', desc: 'Total visitas' },
+    ]
+
+    function insertarVariable(variable: string) {
+        const el = cuerpoRef.current
+        if (!el) return
+        const start = el.selectionStart
+        const end = el.selectionEnd
+        const nuevo = cuerpo.slice(0, start) + variable + cuerpo.slice(end)
+        setCuerpo(nuevo)
+        setResultado(null)
+        // Restore cursor after variable
+        requestAnimationFrame(() => {
+            el.focus()
+            el.setSelectionRange(start + variable.length, start + variable.length)
+        })
+    }
 
     useEffect(() => {
         cargarPreview()
@@ -58,6 +81,7 @@ export function Campanas({ adminKey }: { adminKey: string }) {
             })
             const data = await res.json()
             setResultadoTest(data.ok ? '✓ Email de prueba enviado' : `✗ Error: ${data.error || 'desconocido'}`)
+            if (data.ok && data.datosUsados) setDatosUsados(data.datosUsados)
         } catch {
             setResultadoTest('✗ Error de conexión')
         } finally {
@@ -143,8 +167,24 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                     />
                 </div>
                 <div>
-                    <label className="block text-slate-300 text-sm mb-2">Cuerpo del email</label>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-slate-300 text-sm">Cuerpo del email</label>
+                        <div className="flex gap-2 flex-wrap justify-end">
+                            {VARIABLES.map(v => (
+                                <button
+                                    key={v.label}
+                                    type="button"
+                                    onClick={() => insertarVariable(v.label)}
+                                    title={v.desc}
+                                    className="bg-slate-600 hover:bg-slate-500 text-blue-300 text-xs px-2 py-1 rounded-lg font-mono transition"
+                                >
+                                    {v.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <textarea
+                        ref={cuerpoRef}
                         value={cuerpo}
                         onChange={e => { setCuerpo(e.target.value); setResultado(null) }}
                         rows={10}
@@ -152,7 +192,7 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                         className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 resize-y font-mono text-sm"
                     />
                     <p className="text-slate-500 text-xs mt-1">
-                        Podés usar saltos de línea normalmente. HTML no soportado, pero el email tendrá diseño automático.
+                        Hacé clic en una variable para insertarla donde está el cursor. Los saltos de línea se respetan.
                     </p>
                 </div>
             </div>
@@ -165,7 +205,7 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                     <input
                         type="email"
                         value={testEmail}
-                        onChange={e => { setTestEmail(e.target.value); setResultadoTest(null) }}
+                        onChange={e => { setTestEmail(e.target.value); setResultadoTest(null); setDatosUsados(null) }}
                         placeholder="tu@email.com"
                         className="flex-1 bg-slate-700 text-white rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     />
@@ -181,6 +221,14 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                     <p className={`text-sm font-medium ${resultadoTest.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>
                         {resultadoTest}
                     </p>
+                )}
+                {datosUsados && resultadoTest?.startsWith('✓') && (
+                    <div className="bg-slate-700/50 rounded-xl px-4 py-3 text-xs text-slate-400 space-y-1">
+                        <p className="text-slate-300 font-semibold mb-1">Valores usados en el email:</p>
+                        <p><span className="font-mono text-blue-300">{'{{nombre}}'}</span> → <span className="text-white">{datosUsados.nombre}</span></p>
+                        <p><span className="font-mono text-blue-300">{'{{nivel}}'}</span> → <span className="text-white">{datosUsados.nivel}</span></p>
+                        <p><span className="font-mono text-blue-300">{'{{visitas}}'}</span> → <span className="text-white">{datosUsados.visitas}</span></p>
+                    </div>
                 )}
             </div>
 
