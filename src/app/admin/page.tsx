@@ -29,12 +29,22 @@ const Pedidos = dynamic(() => import('./components/Pedidos').then(mod => ({ defa
   ssr: false
 })
 
+const Retencion = dynamic(() => import('./components/Retencion').then(mod => ({ default: mod.Retencion })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
+const Campanas = dynamic(() => import('./components/Campanas').then(mod => ({ default: mod.Campanas })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
 export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
     const [validando, setValidando] = useState(false)
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff' | 'setup' | 'retencion' | 'campanas'>('metricas')
     const [pedidosFiltro, setPedidosFiltro] = useState<{ clienteId: string; clienteNombre: string | null } | null>(null)
 
     useEffect(() => {
@@ -162,8 +172,11 @@ export default function AdminPage() {
                             { key: 'beneficios', label: '🎁 Beneficios' },
                             { key: 'feedback', label: '📊 Feedbacks' },
                             { key: 'configuracion', label: '⚙️ Configuración' },
+                            { key: 'setup', label: '🎨 Setup App' },
                             { key: 'cumpleanos', label: '🎂 Cumpleaños' },
                             { key: 'staff', label: '👩‍💼 Vendedoras' },
+                            { key: 'retencion', label: '📈 Retención' },
+                            { key: 'campanas', label: '✉️ Campañas' },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
@@ -183,6 +196,8 @@ export default function AdminPage() {
             {/* Content */}
             <div className="max-w-7xl mx-auto px-4 py-8">
                 {seccionActiva === 'staff' && <StaffStats adminKey={adminKey} />}
+                {seccionActiva === 'retencion' && <Retencion adminKey={adminKey} />}
+                {seccionActiva === 'campanas' && <Campanas adminKey={adminKey} />}
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
                 {seccionActiva === 'clientes' && (
@@ -276,6 +291,22 @@ export default function AdminPage() {
                             className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-8 py-4 rounded-xl font-semibold hover:from-slate-700 hover:to-slate-800 transition inline-flex items-center gap-2"
                         >
                             <span>Ir a Configuración</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+                {seccionActiva === 'setup' && (
+                    <div className="text-center py-12">
+                        <div className="text-4xl mb-4">🎨</div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Setup de la App</h2>
+                        <p className="text-slate-400 mb-6">Configurá el branding, módulos y datos de tu empresa</p>
+                        <button
+                            onClick={() => window.location.href = '/admin/setup'}
+                            className="bg-gradient-to-r from-blue-600 to-violet-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-violet-700 transition inline-flex items-center gap-2"
+                        >
+                            <span>Ir a Setup de la App</span>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
