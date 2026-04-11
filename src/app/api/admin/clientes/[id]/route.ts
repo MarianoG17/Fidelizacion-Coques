@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminAuth } from '@/lib/middleware/admin-auth'
 import { sendPushNotification } from '@/lib/push'
+import { sendEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -281,6 +282,46 @@ export async function PATCH(
           }
         } catch (pushError) {
           console.error('[PATCH cliente] Error enviando push de nivel:', pushError)
+        }
+      }
+
+      // Email de subida de nivel (si tiene email)
+      if (clienteActualizado.email && nuevoNivel) {
+        try {
+          const nombre = clienteActualizado.nombre?.split(' ')[0] || 'cliente'
+          const beneficiosPorNivel: Record<string, string> = {
+            'Plata': '🥈 Descuento del 15% en tu próxima visita y prioridad en atención.',
+            'Oro': '🥇 Descuento del 20%, acceso a ofertas exclusivas y sorpresas especiales.',
+          }
+          const beneficioTexto = beneficiosPorNivel[nuevoNivel.nombre || ''] || 'nuevos beneficios exclusivos.'
+          await sendEmail({
+            to: clienteActualizado.email,
+            subject: `${nivelIcono} ¡Subiste a nivel ${nuevoNivel.nombre} en Coques Bakery!`,
+            html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:-apple-system,sans-serif;background:#f8f8f8;margin:0;padding:20px;">
+  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <div style="background:#1a1a2e;padding:32px;text-align:center;">
+      <h1 style="color:white;margin:0;font-size:24px;">Coques Bakery</h1>
+      <p style="color:#94a3b8;margin:8px 0 0;font-size:14px;">Programa de Fidelización</p>
+    </div>
+    <div style="padding:32px;color:#1e293b;font-size:15px;line-height:1.7;">
+      <p>Hola <strong>${nombre}</strong>,</p>
+      <p>¡Felicitaciones! Alcanzaste el nivel <strong>${nivelIcono} ${nuevoNivel.nombre}</strong> en nuestro programa de puntos.</p>
+      <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:16px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;color:#166534;"><strong>Tus nuevos beneficios:</strong><br>${beneficioTexto}</p>
+      </div>
+      <p>Podés ver todos tus beneficios en la app.<br>¡Gracias por ser parte de Coques Bakery!</p>
+    </div>
+    <div style="background:#f1f5f9;padding:20px;text-align:center;border-top:1px solid #e2e8f0;">
+      <p style="color:#94a3b8;font-size:12px;margin:0;">
+        <a href="https://coques.com.ar" style="color:#6366f1;">coques.com.ar</a>
+      </p>
+    </div>
+  </div>
+</body></html>`,
+          })
+        } catch (emailError) {
+          console.error('[PATCH cliente] Error enviando email de nivel:', emailError)
         }
       }
     }

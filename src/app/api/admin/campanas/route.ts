@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     // Modo test: enviar solo al email indicado
     if (testEmail) {
-        const cuerpoPers = cuerpo.replace(/\{\{nombre\}\}/g, 'vos (prueba)')
+        const cuerpoPers = cuerpo.replace(/\{\{nombre\}\}/g, '[Nombre]')
         const html = buildHtml(cuerpoPers)
         const resultado = await sendEmail({ to: testEmail, subject: `[PRUEBA] ${asunto}`, html })
         return NextResponse.json({ ok: resultado.success, test: true, error: resultado.error })

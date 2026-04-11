@@ -5,6 +5,7 @@ import { sendPushNotification } from '@/lib/push'
 import { buildWooHeaders } from '@/lib/woocommerce-headers'
 import { normalizarTelefono } from '@/lib/phone'
 import { evaluarNivel } from '@/lib/beneficios'
+import { sendEmail } from '@/lib/email'
 
 /**
  * Job que envía notificaciones push a clientes relacionadas con cumpleaños
@@ -329,6 +330,101 @@ export async function GET(req: Request) {
             console.error('[Job] Error sincronizando pedidos WooCommerce:', syncError)
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // 4. EMAIL DE REACTIVACIÓN (clientes sin visita en 30 días)
+        // ═══════════════════════════════════════════════════════════════
+        let emailsReactivacion = 0
+        try {
+            const hace30 = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
+            const hace60 = new Date(hoy.getTime() - 60 * 24 * 60 * 60 * 1000)
+
+            // Clientes que visitaron entre hace 60 y hace 30 días pero NO en los últimos 30 días
+            const recientes = await prisma.eventoScan.groupBy({
+                by: ['clienteId'],
+                where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace30 } },
+            })
+            const idsRecientes = new Set(recientes.map(r => r.clienteId))
+
+            const anteriores = await prisma.eventoScan.groupBy({
+                by: ['clienteId'],
+                where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace60, lt: hace30 } },
+            })
+            const idsParaReactivar = anteriores.map(r => r.clienteId).filter(id => !idsRecientes.has(id))
+
+            if (idsParaReactivar.length > 0) {
+                const clientesReactivar = await prisma.cliente.findMany({
+                    where: {
+                        id: { in: idsParaReactivar },
+                        estado: 'ACTIVO',
+                        email: { not: null },
+                    },
+                    select: { id: true, nombre: true, email: true },
+                })
+
+                for (const cliente of clientesReactivar) {
+                    if (!cliente.email) continue
+
+                    // Verificar que no le hayamos mandado este email en los últimos 30 días
+                    const yaEnviado = await prisma.notificacion.findFirst({
+                        where: {
+                            clienteId: cliente.id,
+                            tipo: 'REACTIVACION_EMAIL',
+                            creadoEn: { gte: hace30 },
+                        },
+                    })
+                    if (yaEnviado) continue
+
+                    const nombre = cliente.nombre?.split(' ')[0] || 'cliente'
+                    const resultado = await sendEmail({
+                        to: cliente.email,
+                        subject: `¡${nombre}, te extrañamos en Coques Bakery! ☕`,
+                        html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:-apple-system,sans-serif;background:#f8f8f8;margin:0;padding:20px;">
+  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <div style="background:#1a1a2e;padding:32px;text-align:center;">
+      <h1 style="color:white;margin:0;font-size:24px;">Coques Bakery</h1>
+      <p style="color:#94a3b8;margin:8px 0 0;font-size:14px;">Programa de Fidelización</p>
+    </div>
+    <div style="padding:32px;color:#1e293b;font-size:15px;line-height:1.7;">
+      <p>Hola <strong>${nombre}</strong>,</p>
+      <p>Hace un tiempo que no te vemos por acá y lo extrañamos 🥐☕</p>
+      <p>Pasate cuando quieras — tus puntos te están esperando y seguís sumando beneficios con cada visita.</p>
+      <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:16px;border-radius:8px;margin:20px 0;">
+        <p style="margin:0;color:#92400e;">¡Acordate de mostrar tu QR al llegar para sumar la visita! 📱</p>
+      </div>
+      <p>¡Esperamos verte pronto!</p>
+    </div>
+    <div style="background:#f1f5f9;padding:20px;text-align:center;border-top:1px solid #e2e8f0;">
+      <p style="color:#94a3b8;font-size:12px;margin:0;">
+        <a href="https://coques.com.ar" style="color:#6366f1;">coques.com.ar</a>
+      </p>
+    </div>
+  </div>
+</body></html>`,
+                    })
+
+                    if (resultado.success) {
+                        emailsReactivacion++
+                        // Registrar para no volver a enviar en 30 días
+                        await prisma.notificacion.create({
+                            data: {
+                                clienteId: cliente.id,
+                                tipo: 'REACTIVACION_EMAIL',
+                                titulo: 'Email de reactivación enviado',
+                                cuerpo: 'Te extrañamos en Coques Bakery',
+                                leida: true,
+                                enviada: true,
+                            } as any,
+                        })
+                    }
+                    await new Promise(r => setTimeout(r, 100))
+                }
+            }
+            console.log(`[Job] Emails de reactivación enviados: ${emailsReactivacion}`)
+        } catch (reactivacionError) {
+            console.error('[Job] Error en emails de reactivación:', reactivacionError)
+        }
+
         return NextResponse.json({
             success: true,
             message: `Job ejecutado correctamente`,
@@ -344,6 +440,7 @@ export async function GET(req: Request) {
                 yaEnviadas: yaEnviadasCumple
             },
             pedidosSincronizados: pedidosCreados,
+            emailsReactivacion,
         })
 
     } catch (error: any) {
