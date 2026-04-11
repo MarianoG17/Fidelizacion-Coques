@@ -23,15 +23,18 @@ export function Campanas({ adminKey }: { adminKey: string }) {
     const [testEmail, setTestEmail] = useState('')
     const [enviandoTest, setEnviandoTest] = useState(false)
     const [resultadoTest, setResultadoTest] = useState<string | null>(null)
-    const [datosUsados, setDatosUsados] = useState<{ nombre: string; nivel: string; visitas: number } | null>(null)
+    const [datosUsados, setDatosUsados] = useState<{ nombre: string; nivel: string; visitas: number; proximo_nivel: string; visitas_para_subir: number; dias_sin_visitar: number } | null>(null)
 
     const cuerpoRef = useRef<HTMLTextAreaElement>(null)
     const key = typeof window !== 'undefined' ? (localStorage.getItem('admin_key') || adminKey) : adminKey
 
     const VARIABLES = [
-        { label: '{{nombre}}', desc: 'Primer nombre' },
-        { label: '{{nivel}}', desc: 'Nivel actual' },
-        { label: '{{visitas}}', desc: 'Total visitas' },
+        { label: '{{nombre}}', desc: 'Primer nombre del cliente' },
+        { label: '{{nivel}}', desc: 'Nivel actual (Bronce, Plata, Oro)' },
+        { label: '{{visitas}}', desc: 'Total de visitas acumuladas' },
+        { label: '{{proximo_nivel}}', desc: 'Nombre del próximo nivel a alcanzar' },
+        { label: '{{visitas_para_subir}}', desc: 'Visitas que le faltan para subir de nivel' },
+        { label: '{{dias_sin_visitar}}', desc: 'Días desde la última visita' },
     ]
 
     function insertarVariable(variable: string) {
@@ -225,9 +228,20 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                 {datosUsados && resultadoTest?.startsWith('✓') && (
                     <div className="bg-slate-700/50 rounded-xl px-4 py-3 text-xs text-slate-400 space-y-1">
                         <p className="text-slate-300 font-semibold mb-1">Valores usados en el email:</p>
-                        <p><span className="font-mono text-blue-300">{'{{nombre}}'}</span> → <span className="text-white">{datosUsados.nombre}</span></p>
-                        <p><span className="font-mono text-blue-300">{'{{nivel}}'}</span> → <span className="text-white">{datosUsados.nivel}</span></p>
-                        <p><span className="font-mono text-blue-300">{'{{visitas}}'}</span> → <span className="text-white">{datosUsados.visitas}</span></p>
+                        {[
+                            ['{{nombre}}', datosUsados.nombre],
+                            ['{{nivel}}', datosUsados.nivel],
+                            ['{{visitas}}', datosUsados.visitas],
+                            ['{{proximo_nivel}}', datosUsados.proximo_nivel],
+                            ['{{visitas_para_subir}}', datosUsados.visitas_para_subir],
+                            ['{{dias_sin_visitar}}', datosUsados.dias_sin_visitar],
+                        ].map(([variable, valor]) => (
+                            <p key={String(variable)}>
+                                <span className="font-mono text-blue-300">{variable}</span>
+                                {' → '}
+                                <span className="text-white">{valor}</span>
+                            </p>
+                        ))}
                     </div>
                 )}
             </div>

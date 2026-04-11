@@ -15,6 +15,9 @@ interface Destinatario {
     email: string | null
     nivel: string
     visitas: number
+    proxNivel: string        // nombre del próximo nivel o 'Nivel máximo'
+    visitasParaSubir: number // 0 si ya está en el máximo
+    diasSinVisitar: number   // días desde la última visita
 }
 
 function aplicarVariables(texto: string, d: Destinatario): string {
@@ -22,6 +25,9 @@ function aplicarVariables(texto: string, d: Destinatario): string {
         .replace(/\{\{nombre\}\}/g, d.nombre?.split(' ')[0] || 'cliente')
         .replace(/\{\{nivel\}\}/g, d.nivel || 'Sin nivel')
         .replace(/\{\{visitas\}\}/g, String(d.visitas))
+        .replace(/\{\{proximo_nivel\}\}/g, d.proxNivel)
+        .replace(/\{\{visitas_para_subir\}\}/g, String(d.visitasParaSubir))
+        .replace(/\{\{dias_sin_visitar\}\}/g, String(d.diasSinVisitar))
 }
 
 function buildHtml(cuerpoPers: string): string {
@@ -48,25 +54,79 @@ function buildHtml(cuerpoPers: string): string {
 </html>`
 }
 
+async function enriquecerDestinatarios(
+    clientes: { id: string; nombre: string | null; email: string | null; nivel: { nombre: string; orden: number; criterios: unknown } | null; _count: { eventos: number } }[],
+    niveles: { nombre: string; orden: number; criterios: unknown }[]
+): Promise<Destinatario[]> {
+    if (clientes.length === 0) return []
+
+    const ahora = new Date()
+    const hace30 = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const ids = clientes.map(c => c.id)
+
+    // Visitas en últimos 30 días por cliente
+    const visitasRecientesGrupo = await prisma.eventoScan.groupBy({
+        by: ['clienteId'],
+        where: { clienteId: { in: ids }, tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace30 } },
+        _count: { clienteId: true },
+    })
+    const visitasRecientesMap = new Map(visitasRecientesGrupo.map(v => [v.clienteId, v._count.clienteId]))
+
+    // Última visita por cliente
+    const ultimasVisitas = await prisma.eventoScan.groupBy({
+        by: ['clienteId'],
+        where: { clienteId: { in: ids }, tipoEvento: 'VISITA', contabilizada: true },
+        _max: { timestamp: true },
+    })
+    const ultimaVisitaMap = new Map(ultimasVisitas.map(v => [v.clienteId, v._max.timestamp]))
+
+    return clientes.map(c => {
+        const nivelActual = niveles.find(n => n.nombre === c.nivel?.nombre)
+        const proxNivelObj = nivelActual ? niveles.find(n => n.orden === nivelActual.orden + 1) : null
+        const visitasRecientes = visitasRecientesMap.get(c.id) || 0
+        const criteriosProx = proxNivelObj?.criterios as { visitas?: number } | null
+        const visitasParaSubir = proxNivelObj
+            ? Math.max(0, (criteriosProx?.visitas || 0) - visitasRecientes)
+            : 0
+
+        const ultimaVisita = ultimaVisitaMap.get(c.id)
+        const diasSinVisitar = ultimaVisita
+            ? Math.floor((ahora.getTime() - ultimaVisita.getTime()) / (1000 * 60 * 60 * 24))
+            : 0
+
+        return {
+            id: c.id,
+            nombre: c.nombre,
+            email: c.email,
+            nivel: c.nivel?.nombre || 'Sin nivel',
+            visitas: c._count.eventos,
+            proxNivel: proxNivelObj?.nombre || 'Nivel máximo',
+            visitasParaSubir,
+            diasSinVisitar,
+        }
+    })
+}
+
 async function resolverDestinatarios(segmento: Segmento): Promise<Destinatario[]> {
     const ahora = new Date()
     const hace30 = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000)
     const hace90 = new Date(ahora.getTime() - 90 * 24 * 60 * 60 * 1000)
 
-    let idsBase: string[] | undefined
-
-    if (segmento === 'en_riesgo') {
-        const recientes = await prisma.eventoScan.groupBy({
-            by: ['clienteId'],
-            where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace30 } },
-        })
-        const idsRecientes = new Set(recientes.map(r => r.clienteId))
-        const anteriores = await prisma.eventoScan.groupBy({
-            by: ['clienteId'],
-            where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace90, lt: hace30 } },
-        })
-        idsBase = anteriores.map(r => r.clienteId).filter(id => !idsRecientes.has(id))
-    }
+    const [niveles, idsEnRiesgo] = await Promise.all([
+        prisma.nivel.findMany({ orderBy: { orden: 'asc' }, select: { nombre: true, orden: true, criterios: true } }),
+        segmento === 'en_riesgo' ? (async () => {
+            const recientes = await prisma.eventoScan.groupBy({
+                by: ['clienteId'],
+                where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace30 } },
+            })
+            const idsRecientes = new Set(recientes.map(r => r.clienteId))
+            const anteriores = await prisma.eventoScan.groupBy({
+                by: ['clienteId'],
+                where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace90, lt: hace30 } },
+            })
+            return anteriores.map(r => r.clienteId).filter(id => !idsRecientes.has(id))
+        })() : Promise.resolve(undefined as string[] | undefined),
+    ])
 
     const whereNivel =
         segmento === 'sin_nivel' ? { nivelId: null } :
@@ -79,25 +139,19 @@ async function resolverDestinatarios(segmento: Segmento): Promise<Destinatario[]
         where: {
             estado: 'ACTIVO',
             email: { not: null },
-            ...(idsBase ? { id: { in: idsBase } } : {}),
+            ...(idsEnRiesgo ? { id: { in: idsEnRiesgo } } : {}),
             ...whereNivel,
         },
         select: {
             id: true,
             nombre: true,
             email: true,
-            nivel: { select: { nombre: true } },
+            nivel: { select: { nombre: true, orden: true, criterios: true } },
             _count: { select: { eventos: { where: { tipoEvento: 'VISITA', contabilizada: true } } } },
         },
     })
 
-    return clientes.map(c => ({
-        id: c.id,
-        nombre: c.nombre,
-        email: c.email,
-        nivel: c.nivel?.nombre || 'Sin nivel',
-        visitas: c._count.eventos,
-    }))
+    return enriquecerDestinatarios(clientes, niveles)
 }
 
 // GET — preview: cuántos destinatarios tendría el segmento
@@ -124,28 +178,27 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Faltan campos: asunto, cuerpo' }, { status: 400 })
     }
 
-    // Modo test: buscar datos reales del email en la DB, o usar valores de ejemplo
     if (testEmail) {
+        const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' }, select: { nombre: true, orden: true, criterios: true } })
+
         const clienteReal = await prisma.cliente.findUnique({
             where: { email: testEmail },
             select: {
                 id: true,
                 nombre: true,
                 email: true,
-                nivel: { select: { nombre: true } },
+                nivel: { select: { nombre: true, orden: true, criterios: true } },
                 _count: { select: { eventos: { where: { tipoEvento: 'VISITA', contabilizada: true } } } },
             },
         })
 
-        const datosTest: Destinatario = clienteReal
-            ? {
-                id: clienteReal.id,
-                nombre: clienteReal.nombre,
-                email: clienteReal.email,
-                nivel: clienteReal.nivel?.nombre || 'Sin nivel',
-                visitas: clienteReal._count.eventos,
-            }
-            : { id: 'test', nombre: 'María', email: testEmail, nivel: 'Plata', visitas: 8 }
+        let datosTest: Destinatario
+        if (clienteReal) {
+            const enriquecidos = await enriquecerDestinatarios([clienteReal], niveles)
+            datosTest = enriquecidos[0]
+        } else {
+            datosTest = { id: 'test', nombre: 'María', email: testEmail, nivel: 'Plata', visitas: 8, proxNivel: 'Oro', visitasParaSubir: 4, diasSinVisitar: 12 }
+        }
 
         const cuerpoPers = aplicarVariables(cuerpo, datosTest)
         const html = buildHtml(cuerpoPers)
@@ -153,7 +206,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             ok: resultado.success,
             test: true,
-            datosUsados: { nombre: datosTest.nombre?.split(' ')[0] || 'cliente', nivel: datosTest.nivel, visitas: datosTest.visitas },
+            datosUsados: {
+                nombre: datosTest.nombre?.split(' ')[0] || 'cliente',
+                nivel: datosTest.nivel,
+                visitas: datosTest.visitas,
+                proximo_nivel: datosTest.proxNivel,
+                visitas_para_subir: datosTest.visitasParaSubir,
+                dias_sin_visitar: datosTest.diasSinVisitar,
+            },
             error: resultado.error,
         })
     }
