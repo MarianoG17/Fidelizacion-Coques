@@ -26,8 +26,8 @@ function aplicarVariables(texto: string, d: Destinatario): string {
         .replace(/\{\{nombre\}\}/g, d.nombre?.split(' ')[0] || 'cliente')
         .replace(/\{\{nivel\}\}/g, d.nivel || 'Sin nivel')
         .replace(/\{\{visitas\}\}/g, String(d.visitas))
-        .replace(/\{\{proximo_nivel\}\}/g, d.proxNivel)
-        .replace(/\{\{visitas_para_subir\}\}/g, String(d.visitasParaSubir))
+        .replace(/\{\{proximo_nivel\}\}/g, d.proxNivel)                               // '' si ya está en el máximo
+        .replace(/\{\{visitas_para_subir\}\}/g, d.proxNivel ? String(d.visitasParaSubir) : '')  // '' si no hay próximo
         .replace(/\{\{dias_sin_visitar\}\}/g, String(d.diasSinVisitar))
         .replace(/\{\{beneficios\}\}/g, d.beneficios)
 }
@@ -56,9 +56,17 @@ function buildHtml(cuerpoPers: string): string {
 </html>`
 }
 
+type NivelData = {
+    nombre: string
+    orden: number
+    criterios: unknown
+    esOculto: boolean
+    beneficios: { beneficio: { nombre: string } }[]
+}
+
 async function enriquecerDestinatarios(
-    clientes: { id: string; nombre: string | null; email: string | null; nivel: { nombre: string; orden: number; criterios: unknown; descripcionBeneficios: string | null } | null; _count: { eventos: number } }[],
-    niveles: { nombre: string; orden: number; criterios: unknown; esOculto: boolean }[]
+    clientes: { id: string; nombre: string | null; email: string | null; nivel: { nombre: string } | null; _count: { eventos: number } }[],
+    niveles: NivelData[]
 ): Promise<Destinatario[]> {
     if (clientes.length === 0) return []
 
@@ -82,8 +90,10 @@ async function enriquecerDestinatarios(
     })
     const ultimaVisitaMap = new Map(ultimasVisitas.map(v => [v.clienteId, v._max.timestamp]))
 
+    // Niveles públicos para calcular siguiente nivel (ignora ocultos como Lobo)
+    const nivelesPublicos = niveles.filter(n => !n.esOculto)
+
     return clientes.map(c => {
-        const nivelesPublicos = niveles.filter(n => !n.esOculto)
         const nivelActual = nivelesPublicos.find(n => n.nombre === c.nivel?.nombre)
         const proxNivelObj = nivelActual ? nivelesPublicos.find(n => n.orden === nivelActual.orden + 1) : null
         const visitasRecientes = visitasRecientesMap.get(c.id) || 0
@@ -97,16 +107,20 @@ async function enriquecerDestinatarios(
             ? Math.floor((ahora.getTime() - ultimaVisita.getTime()) / (1000 * 60 * 60 * 24))
             : 0
 
+        // Beneficios reales de la tabla Beneficio (incluye niveles ocultos para los que los tienen)
+        const nivelData = niveles.find(n => n.nombre === c.nivel?.nombre)
+        const beneficios = nivelData?.beneficios.map(nb => nb.beneficio.nombre).join('\n') || ''
+
         return {
             id: c.id,
             nombre: c.nombre,
             email: c.email,
             nivel: c.nivel?.nombre || 'Sin nivel',
             visitas: c._count.eventos,
-            proxNivel: proxNivelObj?.nombre || 'Nivel máximo',
+            proxNivel: proxNivelObj?.nombre || '',   // vacío si ya está en el nivel público más alto
             visitasParaSubir,
             diasSinVisitar,
-            beneficios: c.nivel?.descripcionBeneficios || '',
+            beneficios,
         }
     })
 }
@@ -117,7 +131,7 @@ async function resolverDestinatarios(segmento: Segmento): Promise<Destinatario[]
     const hace90 = new Date(ahora.getTime() - 90 * 24 * 60 * 60 * 1000)
 
     const [niveles, idsEnRiesgo] = await Promise.all([
-        prisma.nivel.findMany({ orderBy: { orden: 'asc' }, select: { nombre: true, orden: true, criterios: true, esOculto: true, descripcionBeneficios: true } }),
+        prisma.nivel.findMany({ orderBy: { orden: 'asc' }, select: { nombre: true, orden: true, criterios: true, esOculto: true, beneficios: { select: { beneficio: { select: { nombre: true } } } } } }),
         segmento === 'en_riesgo' ? (async () => {
             const recientes = await prisma.eventoScan.groupBy({
                 by: ['clienteId'],
@@ -150,7 +164,7 @@ async function resolverDestinatarios(segmento: Segmento): Promise<Destinatario[]
             id: true,
             nombre: true,
             email: true,
-            nivel: { select: { nombre: true, orden: true, criterios: true, descripcionBeneficios: true } },
+            nivel: { select: { nombre: true } },
             _count: { select: { eventos: { where: { tipoEvento: 'VISITA', contabilizada: true } } } },
         },
     })
@@ -183,7 +197,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (testEmail) {
-        const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' }, select: { nombre: true, orden: true, criterios: true, esOculto: true, descripcionBeneficios: true } })
+        const niveles = await prisma.nivel.findMany({ orderBy: { orden: 'asc' }, select: { nombre: true, orden: true, criterios: true, esOculto: true, beneficios: { select: { beneficio: { select: { nombre: true } } } } } })
 
         const clienteReal = await prisma.cliente.findUnique({
             where: { email: testEmail },
@@ -191,7 +205,7 @@ export async function POST(req: NextRequest) {
                 id: true,
                 nombre: true,
                 email: true,
-                nivel: { select: { nombre: true, orden: true, criterios: true, descripcionBeneficios: true } },
+                nivel: { select: { nombre: true } },
                 _count: { select: { eventos: { where: { tipoEvento: 'VISITA', contabilizada: true } } } },
             },
         })
@@ -201,7 +215,7 @@ export async function POST(req: NextRequest) {
             const enriquecidos = await enriquecerDestinatarios([clienteReal], niveles)
             datosTest = enriquecidos[0]
         } else {
-            datosTest = { id: 'test', nombre: 'María', email: testEmail, nivel: 'Plata', visitas: 8, proxNivel: 'Oro', visitasParaSubir: 4, diasSinVisitar: 12, beneficios: '15% de descuento en tu próxima visita' }
+            datosTest = { id: 'test', nombre: 'María', email: testEmail, nivel: 'Plata', visitas: 8, proxNivel: 'Oro', visitasParaSubir: 4, diasSinVisitar: 12, beneficios: '10% de bienvenida\nCafé de cortesía' }
         }
 
         const cuerpoPers = aplicarVariables(cuerpo, datosTest)
@@ -214,8 +228,8 @@ export async function POST(req: NextRequest) {
                 nombre: datosTest.nombre?.split(' ')[0] || 'cliente',
                 nivel: datosTest.nivel,
                 visitas: datosTest.visitas,
-                proximo_nivel: datosTest.proxNivel,
-                visitas_para_subir: datosTest.visitasParaSubir,
+                proximo_nivel: datosTest.proxNivel || '(en nivel máximo)',
+                visitas_para_subir: datosTest.proxNivel ? datosTest.visitasParaSubir : '(en nivel máximo)',
                 dias_sin_visitar: datosTest.diasSinVisitar,
                 beneficios: datosTest.beneficios,
             },
