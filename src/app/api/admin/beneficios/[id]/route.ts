@@ -238,6 +238,18 @@ export async function DELETE(
             )
         }
 
+        const permanent = req.nextUrl.searchParams.get('permanent') === 'true'
+
+        if (permanent) {
+            // Hard delete: eliminar relaciones y el registro
+            await prisma.nivelBeneficio.deleteMany({ where: { beneficioId: params.id } })
+            await prisma.beneficio.delete({ where: { id: params.id } })
+            return NextResponse.json({
+                message: 'Beneficio eliminado permanentemente',
+                info: `Este beneficio fue usado ${beneficio._count.eventos} veces`,
+            })
+        }
+
         // Soft delete: marcar como inactivo
         const beneficioEliminado = await prisma.beneficio.update({
             where: { id: params.id },

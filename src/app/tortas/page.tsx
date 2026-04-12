@@ -81,7 +81,7 @@ function TortasPageContent() {
   const [addOnsSeleccionados, setAddOnsSeleccionados] = useState<{ [key: string]: Array<{ sku: string | undefined, etiqueta: string, id: string }> }>({})
   const [camposTextoValores, setCamposTextoValores] = useState<{ [nombreCampo: string]: string }>({})
   const [cargandoVariaciones, setCargandoVariaciones] = useState(false)
-  const [nivelCliente, setNivelCliente] = useState<{ nivel: string, descuento: number } | null>(null)
+  const [nivelCliente, setNivelCliente] = useState<{ nivel: string, descuento: number, beneficioNombre?: string } | null>(null)
 
   useEffect(() => {
     cargarTortas()
@@ -114,10 +114,26 @@ function TortasPageContent() {
 
       if (res.ok) {
         const data = await res.json()
-        if (data.data.nivel) {
+        let descuento = data.data.nivel?.descuentoPedidosTortas || 0
+        let beneficioNombre: string | undefined
+
+        // Verificar si hay un beneficio de descuento único disponible (ej: bienvenida)
+        for (const b of (data.data.beneficiosActivos || [])) {
+          const cond = b.condiciones
+          if (cond?.usoUnico && cond?.descuento > 0) {
+            const pct = Math.round(cond.descuento * 100)
+            if (pct > descuento) {
+              descuento = pct
+              beneficioNombre = b.nombre
+            }
+          }
+        }
+
+        if (data.data.nivel || beneficioNombre) {
           setNivelCliente({
-            nivel: data.data.nivel.nombre,
-            descuento: data.data.nivel.descuentoPedidosTortas || 0
+            nivel: data.data.nivel?.nombre || '',
+            descuento,
+            beneficioNombre,
           })
         }
       }
@@ -999,7 +1015,7 @@ function TortasPageContent() {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <p className="text-sm font-semibold text-purple-700">
-                          🎁 Beneficio Nivel {nivelCliente.nivel}
+                          🎁 {nivelCliente.beneficioNombre || `Beneficio Nivel ${nivelCliente.nivel}`}
                         </p>
                         <p className="text-xs text-purple-600">
                           {nivelCliente.descuento}% de descuento en tu pedido

@@ -103,10 +103,20 @@ export default function BeneficiosAdminPage() {
     }
 
     async function handleEliminar(id: string) {
-        if (!confirm('¿Estás seguro de desactivar este beneficio?')) return
+        const beneficio = beneficios.find(b => b.id === id)
+        const yaInactivo = !beneficio?.activo
+
+        const mensaje = yaInactivo
+            ? '¿Eliminar este beneficio permanentemente? Esta acción no se puede deshacer.'
+            : '¿Desactivar este beneficio?'
+        if (!confirm(mensaje)) return
+
+        const url = yaInactivo
+            ? `/api/admin/beneficios/${id}?permanent=true`
+            : `/api/admin/beneficios/${id}`
 
         try {
-            const res = await fetch(`/api/admin/beneficios/${id}`, {
+            const res = await fetch(url, {
                 method: 'DELETE',
                 headers: {
                     'x-admin-key': adminKey,

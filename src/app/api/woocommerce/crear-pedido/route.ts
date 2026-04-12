@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         include: {
           nivel: {
             select: {
+              id: true,
               nombre: true,
               descuentoPedidosTortas: true,
             }
@@ -92,6 +93,34 @@ export async function POST(req: NextRequest) {
       }
 
       descuentoPorcentaje = cliente.nivel?.descuentoPedidosTortas || 0
+    }
+
+    // Verificar si hay un beneficio de descuento único disponible (ej: bienvenida 10%)
+    let beneficioAplicado: { id: string; nombre: string } | null = null
+    if (!modoStaff && cliente?.nivel?.id) {
+      const beneficiosNivel = await prisma.nivelBeneficio.findMany({
+        where: { nivelId: (cliente.nivel as any).id, beneficio: { activo: true } },
+        select: { beneficio: { select: { id: true, nombre: true, condiciones: true } } },
+      })
+
+      for (const nb of beneficiosNivel) {
+        const b = nb.beneficio
+        const cond = b.condiciones as any
+        if (!cond?.usoUnico && !cond?.maxPorCliente) continue
+        if (!cond?.descuento || cond.descuento <= 0) continue
+
+        const pct = Math.round(cond.descuento * 100)
+        if (pct <= descuentoPorcentaje) continue // nivel ya da igual o más
+
+        const usos = await prisma.eventoScan.count({
+          where: { clienteId: cliente.id, beneficioId: b.id },
+        })
+        if (usos > 0) continue // ya fue usado
+
+        descuentoPorcentaje = pct
+        beneficioAplicado = { id: b.id, nombre: b.nombre }
+        break
+      }
     }
 
     const wooUrl = process.env.WOOCOMMERCE_URL
@@ -481,10 +510,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Agregar metadata del descuento para referencia (sin usar cupones)
-    if (descuentoMontoTotal > 0 && cliente?.nivel) {
+    if (descuentoMontoTotal > 0) {
+      const descuentoLabel = beneficioAplicado
+        ? `${beneficioAplicado.nombre} - ${descuentoPorcentaje}%`
+        : `Nivel ${cliente?.nivel?.nombre} - ${descuentoPorcentaje}%`
       orderData.meta_data.push({
-        key: 'descuento_nivel_fidelizacion',
-        value: `${cliente.nivel.nombre} - ${descuentoPorcentaje}% = -$${descuentoMontoTotal.toFixed(2)}`
+        key: 'descuento_fidelizacion',
+        value: `${descuentoLabel} = -$${descuentoMontoTotal.toFixed(2)}`
       })
     }
 
@@ -530,6 +562,24 @@ export async function POST(req: NextRequest) {
     const order = await response.json()
 
     console.log(`[WooCommerce Crear Pedido] Pedido creado exitosamente: ${order.id}`)
+
+    // Registrar uso del beneficio de bienvenida si fue aplicado
+    if (beneficioAplicado && cliente?.id) {
+      try {
+        await prisma.eventoScan.create({
+          data: {
+            clienteId: cliente.id,
+            tipoEvento: 'BENEFICIO_APLICADO',
+            beneficioId: beneficioAplicado.id,
+            notas: `${beneficioAplicado.nombre} - pedido web #${order.id}`,
+            contabilizada: false,
+          } as any,
+        })
+        console.log(`[Crear Pedido] ✅ Beneficio registrado: ${beneficioAplicado.nombre}`)
+      } catch (e) {
+        console.error('[Crear Pedido] Error registrando beneficio:', e)
+      }
+    }
 
     // Formatear respuesta
     const pedidoCreado = {

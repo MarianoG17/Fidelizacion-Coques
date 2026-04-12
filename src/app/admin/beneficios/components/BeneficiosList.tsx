@@ -153,9 +153,10 @@ export function BeneficiosList({ beneficios, onEditar, onEliminar }: BeneficiosL
                                         </button>
                                         <button
                                             onClick={() => onEliminar(beneficio.id)}
-                                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                                            title={beneficio.activo ? 'Desactivar' : 'Eliminar permanentemente'}
+                                            className={`px-3 py-1 text-white rounded-lg text-sm font-semibold transition-colors ${beneficio.activo ? 'bg-red-600 hover:bg-red-700' : 'bg-red-800 hover:bg-red-900'}`}
                                         >
-                                            🗑️
+                                            {beneficio.activo ? '🗑️' : '❌'}
                                         </button>
                                     </div>
                                 </td>
