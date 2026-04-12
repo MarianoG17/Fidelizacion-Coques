@@ -23,7 +23,7 @@ export function Campanas({ adminKey }: { adminKey: string }) {
     const [testEmail, setTestEmail] = useState('')
     const [enviandoTest, setEnviandoTest] = useState(false)
     const [resultadoTest, setResultadoTest] = useState<string | null>(null)
-    const [datosUsados, setDatosUsados] = useState<{ nombre: string; nivel: string; visitas: number; proximo_nivel: string; visitas_para_subir: number; dias_sin_visitar: number } | null>(null)
+    const [datosUsados, setDatosUsados] = useState<{ nombre: string; nivel: string; visitas: number; proximo_nivel: string; visitas_para_subir: number; dias_sin_visitar: number; beneficios: string } | null>(null)
 
     const cuerpoRef = useRef<HTMLTextAreaElement>(null)
     const key = typeof window !== 'undefined' ? (localStorage.getItem('admin_key') || adminKey) : adminKey
@@ -35,6 +35,7 @@ export function Campanas({ adminKey }: { adminKey: string }) {
         { label: '{{proximo_nivel}}', desc: 'Nombre del próximo nivel a alcanzar' },
         { label: '{{visitas_para_subir}}', desc: 'Visitas que le faltan para subir de nivel' },
         { label: '{{dias_sin_visitar}}', desc: 'Días desde la última visita' },
+        { label: '{{beneficios}}', desc: 'Descripción de beneficios del nivel actual' },
     ]
 
     function insertarVariable(variable: string) {
@@ -235,6 +236,7 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                             ['{{proximo_nivel}}', datosUsados.proximo_nivel],
                             ['{{visitas_para_subir}}', datosUsados.visitas_para_subir],
                             ['{{dias_sin_visitar}}', datosUsados.dias_sin_visitar],
+                            ['{{beneficios}}', datosUsados.beneficios],
                         ].map(([variable, valor]) => (
                             <p key={String(variable)}>
                                 <span className="font-mono text-blue-300">{variable}</span>
