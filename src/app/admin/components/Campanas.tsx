@@ -11,6 +11,121 @@ const SEGMENTOS = [
     { value: 'en_riesgo', label: '⚠️ En riesgo (no vinieron en 30+ días)' },
 ]
 
+const PLANTILLAS = [
+    {
+        label: '🥉 Bronce',
+        segmento: 'bronce',
+        asunto: '{{nombre}}, tu beneficio de bienvenida te está esperando 🎁',
+        cuerpo: `Hola {{nombre}},
+
+Gracias por unirte al programa de fidelización de Coques. Ya sos parte del club y eso tiene ventajas reales desde el primer día.
+
+✅ TUS BENEFICIOS ACTIVOS:
+{{beneficios}}
+
+🎁 RECORDÁ: tenés activado el 10% de descuento de bienvenida. Lo podés usar en tu próxima visita o en cualquier compra por nuestra web. ¡Usalo cuando quieras, es tuyo!
+
+🌐 ¿SABÍAS QUE PODÉS SUMAR VISITAS DESDE CASA?
+Cada compra que hacés por nuestra web equivale a 3 visitas al programa. Es la forma más rápida de subir de nivel sin moverte de tu casa.
+
+📈 TU PRÓXIMO OBJETIVO: nivel {{proximo_nivel}}
+Te faltan solo {{visitas_para_subir}} visitas para desbloquear beneficios exclusivos. ¡Estás muy cerca!
+
+Cada vez que venís o comprás online sumás puntos. Mientras más seguido, más rápido subís.
+
+¡Nos vemos pronto!
+El equipo de Coques 🍰`,
+    },
+    {
+        label: '🥈 Plata',
+        segmento: 'plata',
+        asunto: '{{nombre}}, sos Plata 🥈 — mirá todo lo que desbloqueaste',
+        cuerpo: `Hola {{nombre}},
+
+Llegaste al nivel Plata y eso no es casualidad: es el resultado de tu fidelidad. Queremos que sepas todo lo que tenés disponible hoy mismo.
+
+🥈 TUS BENEFICIOS PLATA:
+{{beneficios}}
+
+Estos beneficios están activos en cada visita. No necesitás hacer nada especial para usarlos, nosotros los aplicamos automáticamente.
+
+🌐 COMPRÁ ONLINE Y SUMÁ MÁS RÁPIDO
+¿No podés venir esta semana? Cada compra por nuestra web cuenta como 3 visitas. Es la manera más inteligente de mantener tu nivel y seguir sumando.
+
+🥇 ¿TE IMAGINÁS EN ORO?
+Solo te faltan {{visitas_para_subir}} visitas para llegar al nivel {{proximo_nivel}} y acceder a beneficios aún más exclusivos.
+
+Llevás {{visitas}} visitas con nosotros. Eso dice mucho.
+
+¡Hasta la próxima!
+El equipo de Coques 🍰`,
+    },
+    {
+        label: '🥇 Oro',
+        segmento: 'oro',
+        asunto: '{{nombre}}, sos Oro 🥇 — esto es lo que significa para vos',
+        cuerpo: `Hola {{nombre}},
+
+Oro no es solo un nivel, es el reconocimiento a tu fidelidad. Sos parte del grupo más exclusivo de Coques y queremos que lo sientas en cada visita.
+
+🥇 TUS BENEFICIOS EXCLUSIVOS ORO:
+{{beneficios}}
+
+Cada vez que venís, estas ventajas están ahí para vos. Sin condiciones, sin fecha de vencimiento, sin trámites.
+
+🌐 RECORDÁ: LAS COMPRAS WEB TAMBIÉN CUENTAN
+Cada pedido online equivale a 3 visitas al programa, así mantenés tu nivel Oro activo incluso en las semanas que no podés pasar por el local.
+
+💛 LLEVÁS {{visitas}} VISITAS CON NOSOTROS
+Eso es algo que valoramos enormemente. Gracias por elegirnos una y otra vez.
+
+Nos vemos pronto,
+El equipo de Coques 🍰`,
+    },
+    {
+        label: '⚠️ Reactivación',
+        segmento: 'en_riesgo',
+        asunto: '{{nombre}}, hace {{dias_sin_visitar}} días que no te vemos 👀',
+        cuerpo: `Hola {{nombre}},
+
+Hace {{dias_sin_visitar}} días que no pasás por Coques y la verdad es que te extrañamos.
+
+Como cliente {{nivel}}, tus beneficios siguen activos y esperándote:
+{{beneficios}}
+
+No queremos que los pierdas. Cada visita cuenta para mantener tu nivel y seguir sumando.
+
+🌐 ¿NO PODÉS VENIR ESTA SEMANA?
+Hacé un pedido online — cada compra equivale a 3 visitas al programa y te ayuda a mantener tu nivel {{nivel}} activo.
+
+Volvé cuando puedas, acá te esperamos.
+
+El equipo de Coques 🍰`,
+    },
+    {
+        label: '🎂 Cumpleaños',
+        segmento: 'todos',
+        asunto: '{{nombre}}, ¡tu semana de cumple arranca en 7 días! 🎂',
+        cuerpo: `Hola {{nombre}},
+
+Dentro de una semana es tu cumpleaños y en Coques lo queremos celebrar con vos.
+
+🎁 TU BENEFICIO DE CUMPLEAÑOS:
+Durante los 3 días anteriores y los 3 días posteriores a tu cumpleaños tenés activo un beneficio especial exclusivo para vos.
+
+No hace falta que hagas nada: cuando venís al local en esos días, el equipo lo aplica automáticamente. ¡Solo avisá que es tu semana de cumple!
+
+📅 ¿CUÁNDO USARLO?
+Tu ventana es de 7 días: 3 antes, el día de tu cumple y 3 después. Elegí el momento que más te convenga.
+
+🌐 ¿NO PODÉS VENIR? TAMBIÉN PODÉS CELEBRAR ONLINE
+Si querés hacer un pedido especial para tu cumpleaños, recordá que cada compra web suma como 3 visitas al programa.
+
+¡Que sea una semana increíble!
+El equipo de Coques 🍰`,
+    },
+]
+
 export function Campanas({ adminKey }: { adminKey: string }) {
     const [segmento, setSegmento] = useState('todos')
     const [asunto, setAsunto] = useState('')
@@ -121,6 +236,31 @@ export function Campanas({ adminKey }: { adminKey: string }) {
                 <p className="text-slate-400 text-sm mt-1">
                     Enviá comunicaciones a tus clientes. Podés usar <code className="bg-slate-700 px-1 rounded text-blue-300">{'{{nombre}}'}</code> para personalizar.
                 </p>
+            </div>
+
+            {/* Plantillas */}
+            <div className="bg-slate-800 rounded-2xl p-6 space-y-3">
+                <h3 className="text-white font-semibold">Plantillas predefinidas</h3>
+                <p className="text-slate-400 text-xs">Cargá una plantilla como punto de partida y editala a tu gusto.</p>
+                <div className="flex flex-wrap gap-2">
+                    {PLANTILLAS.map(p => (
+                        <button
+                            key={p.label}
+                            type="button"
+                            onClick={() => {
+                                setSegmento(p.segmento)
+                                setAsunto(p.asunto)
+                                setCuerpo(p.cuerpo)
+                                setResultado(null)
+                                setResultadoTest(null)
+                                setDatosUsados(null)
+                            }}
+                            className="bg-slate-700 hover:bg-slate-600 text-white text-sm px-3 py-2 rounded-xl transition"
+                        >
+                            {p.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Segmento */}
