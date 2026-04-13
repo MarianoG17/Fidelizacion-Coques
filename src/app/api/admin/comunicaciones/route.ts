@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminAuth } from '@/lib/middleware/admin-auth'
+import { sendEmail } from '@/lib/email'
+import { aplicarVars, buildHtmlPlantilla } from '@/lib/email-plantillas'
 
 export const dynamic = 'force-dynamic'
 
@@ -110,6 +112,48 @@ export async function DELETE(req: NextRequest) {
     }
     await prisma.plantillaEmail.deleteMany({ where: { id } })
     return NextResponse.json({ ok: true })
+}
+
+// POST — envía un email de prueba de una plantilla automática
+export async function POST(req: NextRequest) {
+    const authError = requireAdminAuth(req)
+    if (authError) return authError
+
+    const { id, testEmail } = await req.json()
+    if (!id || !(id in DEFAULTS)) {
+        return NextResponse.json({ error: 'ID de plantilla inválido' }, { status: 400 })
+    }
+    if (!testEmail?.trim()) {
+        return NextResponse.json({ error: 'Falta el email de destino' }, { status: 400 })
+    }
+
+    const def = DEFAULTS[id]
+    const row = await prisma.plantillaEmail.findUnique({ where: { id } }).catch(() => null)
+    const asunto = row?.asunto ?? def.asunto
+    const cuerpo = row?.cuerpo ?? def.cuerpo
+
+    // Datos de prueba: usar cliente real si existe, sino ficticios
+    const clienteReal = await prisma.cliente.findFirst({
+        where: { email: testEmail.trim() },
+        select: { nombre: true },
+    }).catch(() => null)
+    const nombre = clienteReal?.nombre?.split(' ')[0] || 'María'
+
+    // Para feedback_email reemplazar {{estrellas}} con un bloque visual de prueba
+    const estrellasTest = `<p style="font-size:28px;letter-spacing:4px;margin:12px 0;">⭐⭐⭐⭐⭐</p><p style="font-size:12px;color:#94a3b8;">(vista previa — los links reales se generan al enviar)</p>`
+    const cuerpoFinal = cuerpo.replace(/\{\{estrellas\}\}/g, estrellasTest)
+
+    const vars = { nombre }
+    const asuntoFinal = aplicarVars(asunto, vars)
+    const html = buildHtmlPlantilla(aplicarVars(cuerpoFinal, vars))
+
+    const resultado = await sendEmail({
+        to: testEmail.trim(),
+        subject: `[PRUEBA] ${asuntoFinal}`,
+        html,
+    })
+
+    return NextResponse.json({ ok: resultado.success, error: resultado.error })
 }
 
 // PATCH — guarda cambios de una plantilla

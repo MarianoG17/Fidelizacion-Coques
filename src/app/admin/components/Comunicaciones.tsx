@@ -196,6 +196,9 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
     const [guardando, setGuardando] = useState(false)
     const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
     const [configAbierto, setConfigAbierto] = useState<string | null>(null)
+    const [testEmail, setTestEmail] = useState('')
+    const [enviandoTest, setEnviandoTest] = useState(false)
+    const [resultadoTest, setResultadoTest] = useState<string | null>(null)
 
     useEffect(() => { cargar() }, [])
 
@@ -227,6 +230,24 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
             setMensaje({ tipo: 'error', texto: d.error || 'Error al guardar' })
         }
         setGuardando(false)
+    }
+
+    async function enviarTest() {
+        if (!editando || !testEmail.trim()) return
+        setEnviandoTest(true)
+        setResultadoTest(null)
+        try {
+            const res = await fetch('/api/admin/comunicaciones', {
+                method: 'POST',
+                headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: editando.id, testEmail: testEmail.trim() }),
+            })
+            const data = await res.json()
+            setResultadoTest(data.ok ? '✓ Email de prueba enviado' : `✗ Error: ${data.error || 'desconocido'}`)
+        } catch {
+            setResultadoTest('✗ Error de conexión')
+        }
+        setEnviandoTest(false)
     }
 
     async function restaurar(id: string) {
@@ -347,7 +368,7 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
                 <div className="bg-slate-800 rounded-2xl p-6 border border-blue-500/30">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-white font-bold text-lg">Editando: {editando.nombre}</h3>
-                        <button onClick={() => setEditando(null)} className="text-slate-400 hover:text-white">✕</button>
+                        <button onClick={() => { setEditando(null); setResultadoTest(null) }} className="text-slate-400 hover:text-white">✕</button>
                     </div>
 
                     {/* Trigger info en el editor */}
@@ -435,7 +456,7 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
                             {guardando ? 'Guardando…' : 'Guardar cambios'}
                         </button>
                         <button
-                            onClick={() => setEditando(null)}
+                            onClick={() => { setEditando(null); setResultadoTest(null) }}
                             className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-colors"
                         >
                             Cancelar
@@ -447,6 +468,32 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
                             {mensaje.texto}
                         </div>
                     )}
+
+                    {/* Envío de prueba */}
+                    <div className="mt-6 pt-5 border-t border-slate-700">
+                        <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Enviar prueba</p>
+                        <div className="flex gap-2">
+                            <input
+                                type="email"
+                                placeholder="tucorreo@ejemplo.com"
+                                value={testEmail}
+                                onChange={e => { setTestEmail(e.target.value); setResultadoTest(null) }}
+                                className="flex-1 bg-slate-900 text-white rounded-xl px-4 py-2.5 border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+                            />
+                            <button
+                                onClick={enviarTest}
+                                disabled={!testEmail.trim() || enviandoTest}
+                                className="px-4 py-2.5 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors whitespace-nowrap"
+                            >
+                                {enviandoTest ? 'Enviando…' : '📧 Enviar prueba'}
+                            </button>
+                        </div>
+                        {resultadoTest && (
+                            <p className={`mt-2 text-sm font-medium ${resultadoTest.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>
+                                {resultadoTest}
+                            </p>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
