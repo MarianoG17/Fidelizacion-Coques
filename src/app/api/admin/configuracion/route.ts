@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
         feedbackDiasPedidoTorta: config.feedbackDiasPedidoTorta,
         feedbackFrecuenciaDias: config.feedbackFrecuenciaDias,
         feedbackMinEstrellas: config.feedbackMinEstrellas,
+        reactivacionDiasInactividad: (config as any).reactivacionDiasInactividad ?? 30,
         googleMapsUrl: config.googleMapsUrl,
         pushHabilitado: config.pushHabilitado,
         pushAutoListo: config.pushAutoListo,
@@ -59,6 +60,7 @@ export async function PUT(req: NextRequest) {
       feedbackDiasPedidoTorta,
       feedbackFrecuenciaDias,
       feedbackMinEstrellas,
+      reactivacionDiasInactividad,
       googleMapsUrl,
       pushHabilitado,
       pushAutoListo,
@@ -93,6 +95,10 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Estrellas mínimas debe estar entre 1 y 5' }, { status: 400 })
     }
 
+    if (reactivacionDiasInactividad && (reactivacionDiasInactividad < 7 || reactivacionDiasInactividad > 180)) {
+      return NextResponse.json({ error: 'Días de inactividad debe estar entre 7 y 180' }, { status: 400 })
+    }
+
     // Obtener config actual
     const configActual = await prisma.configuracionApp.findFirst()
 
@@ -112,6 +118,7 @@ export async function PUT(req: NextRequest) {
         feedbackDiasPedidoTorta,
         feedbackFrecuenciaDias,
         feedbackMinEstrellas,
+        reactivacionDiasInactividad,
         googleMapsUrl,
         pushHabilitado,
         pushAutoListo,
@@ -140,6 +147,7 @@ export async function PUT(req: NextRequest) {
         feedbackDiasPedidoTorta: configActualizada.feedbackDiasPedidoTorta,
         feedbackFrecuenciaDias: configActualizada.feedbackFrecuenciaDias,
         feedbackMinEstrellas: configActualizada.feedbackMinEstrellas,
+        reactivacionDiasInactividad: (configActualizada as any).reactivacionDiasInactividad ?? 30,
         googleMapsUrl: configActualizada.googleMapsUrl,
         pushHabilitado: configActualizada.pushHabilitado,
         pushAutoListo: configActualizada.pushAutoListo,

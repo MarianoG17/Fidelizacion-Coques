@@ -332,15 +332,16 @@ export async function GET(req: Request) {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // 4. EMAIL DE REACTIVACIÓN (clientes sin visita en 30 días)
+        // 4. EMAIL DE REACTIVACIÓN (clientes sin visita según config)
         // ═══════════════════════════════════════════════════════════════
         let emailsReactivacion = 0
         const plantillaReactivacion = await getPlantilla('reactivacion')
         try {
-            const hace30 = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
-            const hace60 = new Date(hoy.getTime() - 60 * 24 * 60 * 60 * 1000)
+            const diasInactividad = (config as any).reactivacionDiasInactividad ?? 30
+            const hace30 = new Date(hoy.getTime() - diasInactividad * 24 * 60 * 60 * 1000)
+            const hace60 = new Date(hoy.getTime() - diasInactividad * 2 * 24 * 60 * 60 * 1000)
 
-            // Clientes que visitaron entre hace 60 y hace 30 días pero NO en los últimos 30 días
+            // Clientes que visitaron entre hace (2x) y hace (1x) días pero NO en los últimos (1x) días
             const recientes = await prisma.eventoScan.groupBy({
                 by: ['clienteId'],
                 where: { tipoEvento: 'VISITA', contabilizada: true, timestamp: { gte: hace30 } },

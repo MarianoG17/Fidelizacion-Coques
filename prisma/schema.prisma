@@ -462,6 +462,9 @@ model ConfiguracionApp {
   feedbackDiasPedidoTorta     Int      @default(1)    // Días después de entrega de torta
   feedbackFrecuenciaDias      Int      @default(7)    // Mínimo entre feedbacks
   feedbackMinEstrellas        Int      @default(4)    // Estrellas mínimas para redirect Google Maps
+
+  // Sistema de Reactivación
+  reactivacionDiasInactividad Int      @default(30)   // Días sin visitar para disparar email de reactivación
   
   // Sistema de Niveles
   nivelesPeriodoDias          Int      @default(30)   // Período de días para evaluar visitas en niveles

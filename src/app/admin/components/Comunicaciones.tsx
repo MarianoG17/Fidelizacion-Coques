@@ -13,6 +13,13 @@ interface Plantilla {
     esDefault: boolean
 }
 
+interface AppConfig {
+    feedbackTiempoVisitaMinutos: number
+    feedbackFrecuenciaDias: number
+    feedbackMinEstrellas: number
+    reactivacionDiasInactividad: number
+}
+
 const ETIQUETAS_VARS: Record<string, string> = {
     '{{nombre}}': 'Nombre del cliente',
     '{{nivel}}': 'Nivel actual',
@@ -31,7 +38,7 @@ const TRIGGERS: Record<string, { icono: string; descripcion: string; configKey?:
         icono: '💤',
         descripcion: 'Se envía una vez por día a clientes que no visitaron en un período prolongado.',
         configKey: 'reactivacion',
-        configLabel: 'Días sin visitar → ⚙️ Configuración',
+        configLabel: 'Configurar días de inactividad',
     },
     cumpleanos_7dias: {
         icono: '🎂',
@@ -41,8 +48,145 @@ const TRIGGERS: Record<string, { icono: string; descripcion: string; configKey?:
         icono: '⭐',
         descripcion: 'Se envía a clientes sin notificaciones push, pasado el tiempo de espera post-visita.',
         configKey: 'feedback',
-        configLabel: 'Tiempo de espera y frecuencia → ⚙️ Configuración',
+        configLabel: 'Configurar tiempo de espera y frecuencia',
     },
+}
+
+function MiniConfig({
+    configKey,
+    adminKey,
+    onClose,
+}: {
+    configKey: string
+    adminKey: string
+    onClose: () => void
+}) {
+    const [config, setConfig] = useState<AppConfig | null>(null)
+    const [valores, setValores] = useState<Partial<AppConfig>>({})
+    const [guardando, setGuardando] = useState(false)
+    const [msg, setMsg] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+
+    useEffect(() => {
+        fetch('/api/admin/configuracion', { headers: { 'x-admin-key': adminKey } })
+            .then(r => r.json())
+            .then(d => {
+                setConfig(d.config)
+                setValores(d.config)
+            })
+    }, [adminKey])
+
+    async function guardar() {
+        setGuardando(true)
+        setMsg(null)
+        const res = await fetch('/api/admin/configuracion', {
+            method: 'PUT',
+            headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify(valores),
+        })
+        const data = await res.json()
+        if (res.ok) {
+            setConfig(data.config)
+            setValores(data.config)
+            setMsg({ tipo: 'ok', texto: 'Configuración guardada.' })
+        } else {
+            setMsg({ tipo: 'error', texto: data.error || 'Error al guardar' })
+        }
+        setGuardando(false)
+    }
+
+    if (!config) return (
+        <div className="mt-2 p-3 bg-slate-900 rounded-xl text-center">
+            <div className="animate-spin inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+        </div>
+    )
+
+    return (
+        <div className="mt-2 p-4 bg-slate-900 rounded-xl border border-blue-500/20 space-y-3">
+            {configKey === 'reactivacion' && (
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1">Días sin visitar para enviar el email</label>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="number"
+                            min={7}
+                            max={180}
+                            value={valores.reactivacionDiasInactividad ?? 30}
+                            onChange={e => setValores(v => ({ ...v, reactivacionDiasInactividad: Number(e.target.value) }))}
+                            className="w-24 bg-slate-800 text-white rounded-lg px-3 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+                        />
+                        <span className="text-slate-500 text-xs">días (entre 7 y 180)</span>
+                    </div>
+                </div>
+            )}
+
+            {configKey === 'feedback' && (
+                <>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">Tiempo de espera post-visita (minutos)</label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min={1}
+                                max={60}
+                                value={valores.feedbackTiempoVisitaMinutos ?? 10}
+                                onChange={e => setValores(v => ({ ...v, feedbackTiempoVisitaMinutos: Number(e.target.value) }))}
+                                className="w-24 bg-slate-800 text-white rounded-lg px-3 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-slate-500 text-xs">minutos (1–60)</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">Frecuencia mínima entre encuestas (días)</label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min={1}
+                                max={90}
+                                value={valores.feedbackFrecuenciaDias ?? 7}
+                                onChange={e => setValores(v => ({ ...v, feedbackFrecuenciaDias: Number(e.target.value) }))}
+                                className="w-24 bg-slate-800 text-white rounded-lg px-3 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-slate-500 text-xs">días (1–90)</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1">Estrellas mínimas para redirigir a Google Maps</label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                min={1}
+                                max={5}
+                                value={valores.feedbackMinEstrellas ?? 4}
+                                onChange={e => setValores(v => ({ ...v, feedbackMinEstrellas: Number(e.target.value) }))}
+                                className="w-24 bg-slate-800 text-white rounded-lg px-3 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-slate-500 text-xs">estrellas (1–5)</span>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {msg && (
+                <p className={`text-xs ${msg.tipo === 'ok' ? 'text-green-400' : 'text-red-400'}`}>{msg.texto}</p>
+            )}
+
+            <div className="flex gap-2 pt-1">
+                <button
+                    onClick={guardar}
+                    disabled={guardando}
+                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors"
+                >
+                    {guardando ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button
+                    onClick={onClose}
+                    className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs transition-colors"
+                >
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    )
 }
 
 export function Comunicaciones({ adminKey }: { adminKey: string }) {
@@ -51,6 +195,7 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
     const [editando, setEditando] = useState<Plantilla | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+    const [configAbierto, setConfigAbierto] = useState<string | null>(null)
 
     useEffect(() => { cargar() }, [])
 
@@ -137,14 +282,30 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
 
                                         {/* Trigger info */}
                                         {trigger && (
-                                            <div className="flex items-start gap-2 mt-2 mb-3 bg-slate-700/40 rounded-xl px-3 py-2">
-                                                <span className="text-base shrink-0">{trigger.icono}</span>
-                                                <div className="min-w-0">
-                                                    <p className="text-slate-300 text-xs leading-relaxed">{trigger.descripcion}</p>
-                                                    {trigger.configLabel && (
-                                                        <p className="text-slate-500 text-xs mt-0.5">{trigger.configLabel}</p>
-                                                    )}
+                                            <div className="mt-2 mb-3 bg-slate-700/40 rounded-xl px-3 py-2">
+                                                <div className="flex items-start gap-2">
+                                                    <span className="text-base shrink-0">{trigger.icono}</span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-slate-300 text-xs leading-relaxed">{trigger.descripcion}</p>
+                                                        {trigger.configKey && (
+                                                            <button
+                                                                onClick={() => setConfigAbierto(configAbierto === p.id ? null : p.id)}
+                                                                className="mt-1 text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                                                            >
+                                                                <span>⚙️</span>
+                                                                <span>{trigger.configLabel}</span>
+                                                                <span className="text-slate-500">{configAbierto === p.id ? '▲' : '▼'}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                {configAbierto === p.id && trigger.configKey && (
+                                                    <MiniConfig
+                                                        configKey={trigger.configKey}
+                                                        adminKey={adminKey}
+                                                        onClose={() => setConfigAbierto(null)}
+                                                    />
+                                                )}
                                             </div>
                                         )}
 
@@ -191,14 +352,30 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
 
                     {/* Trigger info en el editor */}
                     {TRIGGERS[editando.id] && (
-                        <div className="flex items-start gap-2 mb-5 bg-slate-700/40 rounded-xl px-3 py-2.5">
-                            <span className="text-base shrink-0">{TRIGGERS[editando.id].icono}</span>
-                            <div>
-                                <p className="text-slate-300 text-xs leading-relaxed">{TRIGGERS[editando.id].descripcion}</p>
-                                {TRIGGERS[editando.id].configLabel && (
-                                    <p className="text-slate-500 text-xs mt-0.5">{TRIGGERS[editando.id].configLabel}</p>
-                                )}
+                        <div className="mb-5 bg-slate-700/40 rounded-xl px-3 py-2.5">
+                            <div className="flex items-start gap-2">
+                                <span className="text-base shrink-0">{TRIGGERS[editando.id].icono}</span>
+                                <div className="flex-1">
+                                    <p className="text-slate-300 text-xs leading-relaxed">{TRIGGERS[editando.id].descripcion}</p>
+                                    {TRIGGERS[editando.id].configKey && (
+                                        <button
+                                            onClick={() => setConfigAbierto(configAbierto === editando.id ? null : editando.id)}
+                                            className="mt-1 text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                                        >
+                                            <span>⚙️</span>
+                                            <span>{TRIGGERS[editando.id].configLabel}</span>
+                                            <span className="text-slate-500">{configAbierto === editando.id ? '▲' : '▼'}</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+                            {configAbierto === editando.id && TRIGGERS[editando.id].configKey && (
+                                <MiniConfig
+                                    configKey={TRIGGERS[editando.id].configKey!}
+                                    adminKey={adminKey}
+                                    onClose={() => setConfigAbierto(null)}
+                                />
+                            )}
                         </div>
                     )}
 
