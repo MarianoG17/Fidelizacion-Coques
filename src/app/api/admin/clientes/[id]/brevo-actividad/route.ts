@@ -11,7 +11,7 @@ const BREVO_BASE = 'https://api.brevo.com/v3'
 // Prioridad para mostrar el estado más relevante de un mensaje
 const PRIORIDAD_EVENTOS = ['spam', 'hardBounce', 'unsubscribed', 'clicks', 'opened', 'delivered', 'softBounce', 'deferred', 'blocked', 'request', 'invalid_email']
 
-export const EVENT_LABELS: Record<string, { label: string; icono: string; color: string }> = {
+const EVENT_LABELS: Record<string, { label: string; icono: string; color: string }> = {
     delivered:     { label: 'Entregado',         icono: '📬', color: 'text-green-400' },
     opened:        { label: 'Abierto',           icono: '👀', color: 'text-blue-400' },
     clicks:        { label: 'Click en link',     icono: '🔗', color: 'text-purple-400' },
