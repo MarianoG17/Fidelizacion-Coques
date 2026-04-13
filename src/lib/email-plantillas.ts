@@ -2,7 +2,7 @@
 // Helper para leer plantillas de email de la DB con fallback a defaults
 import { prisma } from './prisma'
 
-type PlantillaId = 'bienvenida' | 'reactivacion' | 'cumpleanos_7dias'
+type PlantillaId = 'bienvenida' | 'reactivacion' | 'cumpleanos_7dias' | 'feedback_email'
 
 interface Plantilla {
     asunto: string
@@ -56,6 +56,19 @@ No hace falta que hagas nada: cuando venís al local en esos días, el equipo lo
 ¿No podés venir? Recordá que cada compra por nuestra web suma como 3 visitas al programa.
 
 ¡Que sea una semana increíble!`,
+    },
+    feedback_email: {
+        activa: true,
+        asunto: '{{nombre}}, ¿cómo estuvo tu visita? ☕',
+        cuerpo: `Hola {{nombre}},
+
+Gracias por visitarnos 😊
+
+¿Cómo estuvo tu experiencia en Coques? Hacé click en las estrellas para calificarnos:
+
+{{estrellas}}
+
+¡Tu opinión nos ayuda a seguir mejorando!`,
     },
 }
 

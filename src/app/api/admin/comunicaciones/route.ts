@@ -56,6 +56,20 @@ No hace falta que hagas nada: cuando venís al local en esos días, el equipo lo
 ¡Que sea una semana increíble!`,
         variables: ['{{nombre}}'],
     },
+    feedback_email: {
+        nombre: 'Encuesta de satisfacción (post-visita)',
+        asunto: '{{nombre}}, ¿cómo estuvo tu visita? ☕',
+        cuerpo: `Hola {{nombre}},
+
+Gracias por visitarnos 😊
+
+¿Cómo estuvo tu experiencia en Coques? Hacé click en las estrellas para calificarnos:
+
+{{estrellas}}
+
+¡Tu opinión nos ayuda a seguir mejorando!`,
+        variables: ['{{nombre}}', '{{estrellas}}'],
+    },
 }
 
 // GET — devuelve todas las plantillas (DB o defaults)

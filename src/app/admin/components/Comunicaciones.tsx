@@ -18,6 +18,7 @@ const ETIQUETAS_VARS: Record<string, string> = {
     '{{nivel}}': 'Nivel actual',
     '{{dias_antes}}': 'Días antes del cumple',
     '{{dias_despues}}': 'Días después del cumple',
+    '{{estrellas}}': 'Botones de calificación (generados automáticamente)',
 }
 
 export function Comunicaciones({ adminKey }: { adminKey: string }) {
