@@ -27,6 +27,23 @@ interface Evento {
     local: { nombre: string } | null
 }
 
+interface BrevoEvento {
+    tipo: 'transaccional' | 'campana'
+    messageId: string
+    asunto: string
+    fecha: string
+    evento: string
+    eventoFecha: string
+    link: string | null
+    todosEventos: { name: string; time: string }[]
+}
+
+interface BrevoLabel {
+    label: string
+    icono: string
+    color: string
+}
+
 interface Cliente {
     id: string
     nombre: string | null
@@ -82,6 +99,13 @@ export default function ClientePerfilPage() {
     const [aplicando, setAplicando] = useState(false)
     const [mensajeBeneficio, setMensajeBeneficio] = useState<{ ok: boolean; texto: string } | null>(null)
 
+    // Brevo
+    const [brevoActividad, setBrevoActividad] = useState<BrevoEvento[] | null>(null)
+    const [brevoLabels, setBrevoLabels] = useState<Record<string, BrevoLabel>>({})
+    const [cargandoBrevo, setCargandoBrevo] = useState(false)
+    const [brevoError, setBrevoError] = useState<string | null>(null)
+    const [brevoExpandido, setBrevoExpandido] = useState<string | null>(null)
+
     useEffect(() => {
         const key = localStorage.getItem('admin_key')
         if (key) { setAdminKey(key); setAutenticado(true) }
@@ -116,6 +140,29 @@ export default function ClientePerfilPage() {
             })
             .catch(() => {})
     }, [autenticado, adminKey, clienteId])
+
+    async function cargarBrevo() {
+        setCargandoBrevo(true)
+        setBrevoError(null)
+        try {
+            const res = await fetch(`/api/admin/clientes/${clienteId}/brevo-actividad`, {
+                headers: { 'x-admin-key': adminKey },
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Error')
+            if (data.sinEmail) {
+                setBrevoError('Este cliente no tiene email registrado')
+                setBrevoActividad([])
+            } else {
+                setBrevoActividad(data.actividad)
+                setBrevoLabels(data.labels || {})
+            }
+        } catch (e) {
+            setBrevoError(e instanceof Error ? e.message : 'Error al consultar Brevo')
+        } finally {
+            setCargandoBrevo(false)
+        }
+    }
 
     async function aplicarBeneficio() {
         if (!beneficioSeleccionado || !adminKey) return
@@ -294,6 +341,95 @@ export default function ClientePerfilPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Actividad de Emails (Brevo) */}
+                        <div className="bg-slate-800 rounded-2xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white">📧 Actividad de emails</h3>
+                                    <p className="text-slate-500 text-xs mt-0.5">Historial de envíos, aperturas y clicks via Brevo</p>
+                                </div>
+                                {brevoActividad === null && (
+                                    <button
+                                        onClick={cargarBrevo}
+                                        disabled={cargandoBrevo}
+                                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        {cargandoBrevo ? 'Cargando…' : 'Cargar actividad'}
+                                    </button>
+                                )}
+                                {brevoActividad !== null && (
+                                    <button
+                                        onClick={cargarBrevo}
+                                        disabled={cargandoBrevo}
+                                        className="text-slate-400 hover:text-white text-xs transition-colors"
+                                    >
+                                        {cargandoBrevo ? '…' : '↻ Actualizar'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {brevoError && (
+                                <p className="text-slate-400 text-sm">{brevoError}</p>
+                            )}
+
+                            {brevoActividad !== null && !brevoError && brevoActividad.length === 0 && (
+                                <p className="text-slate-500 text-sm">Sin actividad registrada en Brevo.</p>
+                            )}
+
+                            {brevoActividad !== null && brevoActividad.length > 0 && (
+                                <div className="space-y-1">
+                                    {brevoActividad.map((item, i) => {
+                                        const lbl = brevoLabels[item.evento] ?? { label: item.evento, icono: '📧', color: 'text-slate-300' }
+                                        const key = `${item.messageId}-${i}`
+                                        const isExpanded = brevoExpandido === key
+                                        return (
+                                            <div key={key} className="border-b border-slate-700/40 last:border-0 pb-1">
+                                                <button
+                                                    onClick={() => setBrevoExpandido(isExpanded ? null : key)}
+                                                    className="w-full flex items-start justify-between text-sm py-2 text-left hover:opacity-80 transition-opacity"
+                                                >
+                                                    <div className="flex items-start gap-2 min-w-0">
+                                                        <span className="shrink-0 text-base leading-tight">{lbl.icono}</span>
+                                                        <div className="min-w-0">
+                                                            <p className="text-white truncate leading-snug text-sm">{item.asunto}</p>
+                                                            <p className={`text-xs font-medium ${lbl.color}`}>
+                                                                {lbl.label}{item.tipo === 'campana' ? ' · campaña' : ''}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                                                        <p className="text-slate-400 text-xs whitespace-nowrap">
+                                                            {new Date(item.eventoFecha || item.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                                        </p>
+                                                        <span className="text-slate-600 text-xs">{isExpanded ? '▲' : '▼'}</span>
+                                                    </div>
+                                                </button>
+
+                                                {isExpanded && item.todosEventos.length > 0 && (
+                                                    <div className="ml-7 mb-2 bg-slate-700/30 rounded-xl px-3 py-2 space-y-1">
+                                                        {item.todosEventos.map((e, j) => {
+                                                            const el = brevoLabels[e.name] ?? { label: e.name, icono: '·', color: 'text-slate-400' }
+                                                            return (
+                                                                <div key={j} className="flex items-center gap-2">
+                                                                    <span className={`text-xs font-medium ${el.color}`}>{el.icono} {el.label}</span>
+                                                                    <span className="text-slate-500 text-xs">
+                                                                        {new Date(e.time).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                                    </span>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                        {item.link && (
+                                                            <p className="text-slate-500 text-xs truncate mt-1">🔗 {item.link}</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
 
                         {/* Aplicar beneficio manualmente */}
                         {beneficios.length > 0 && (
