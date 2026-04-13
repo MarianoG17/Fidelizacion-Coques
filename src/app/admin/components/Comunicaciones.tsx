@@ -21,6 +21,30 @@ const ETIQUETAS_VARS: Record<string, string> = {
     '{{estrellas}}': 'Botones de calificación (generados automáticamente)',
 }
 
+// Info del trigger de cada mail automático
+const TRIGGERS: Record<string, { icono: string; descripcion: string; configKey?: string; configLabel?: string }> = {
+    bienvenida: {
+        icono: '🎉',
+        descripcion: 'Se envía cuando un cliente completa su registro (nombre + teléfono verificado).',
+    },
+    reactivacion: {
+        icono: '💤',
+        descripcion: 'Se envía una vez por día a clientes que no visitaron en un período prolongado.',
+        configKey: 'reactivacion',
+        configLabel: 'Días sin visitar → ⚙️ Configuración',
+    },
+    cumpleanos_7dias: {
+        icono: '🎂',
+        descripcion: 'Se envía exactamente 7 días antes del cumpleaños del cliente (cron diario 8 AM).',
+    },
+    feedback_email: {
+        icono: '⭐',
+        descripcion: 'Se envía a clientes sin notificaciones push, pasado el tiempo de espera post-visita.',
+        configKey: 'feedback',
+        configLabel: 'Tiempo de espera y frecuencia → ⚙️ Configuración',
+    },
+}
+
 export function Comunicaciones({ adminKey }: { adminKey: string }) {
     const [plantillas, setPlantillas] = useState<Plantilla[]>([])
     const [loading, setLoading] = useState(true)
@@ -62,10 +86,6 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
 
     async function restaurar(id: string) {
         if (!confirm('¿Restaurar el texto original de esta plantilla?')) return
-        // Guardar strings vacíos no tiene sentido — la forma de "restaurar" es eliminar la row del DB
-        // Hacemos un PATCH con los defaults (que el API resolverá a defaults si el cuerpo es idéntico)
-        // En la práctica, el admin puede editar y volver al texto que quiera.
-        // Para restaurar de verdad, simplemente borramos la entrada — lo hacemos vía un DELETE especial
         const res = await fetch(`/api/admin/comunicaciones?id=${id}`, {
             method: 'DELETE',
             headers: { 'x-admin-key': adminKey },
@@ -85,8 +105,8 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-white">Comunicaciones automáticas</h2>
-                <p className="text-slate-400 mt-1">Editá el asunto y el cuerpo de los emails que se envían automáticamente.</p>
+                <h2 className="text-2xl font-bold text-white">Emails automáticos</h2>
+                <p className="text-slate-400 mt-1">Se envían sin intervención manual. Podés activarlos, pausarlos y editar su contenido.</p>
             </div>
 
             {mensaje && (
@@ -98,47 +118,66 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
             {/* Lista de plantillas */}
             {!editando && (
                 <div className="grid gap-4">
-                    {plantillas.map(p => (
-                        <div key={p.id} className={`bg-slate-800 rounded-2xl p-6 border ${p.activa ? 'border-slate-700/50' : 'border-red-800/40 opacity-60'}`}>
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="text-white font-semibold">{p.nombre}</h3>
-                                        {p.esDefault && (
-                                            <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-400">texto original</span>
+                    {plantillas.map(p => {
+                        const trigger = TRIGGERS[p.id]
+                        return (
+                            <div key={p.id} className={`bg-slate-800 rounded-2xl p-6 border ${p.activa ? 'border-slate-700/50' : 'border-red-800/40 opacity-60'}`}>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        {/* Título y badges */}
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h3 className="text-white font-semibold">{p.nombre}</h3>
+                                            {p.esDefault && (
+                                                <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-400">texto original</span>
+                                            )}
+                                            {!p.activa && (
+                                                <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">pausado</span>
+                                            )}
+                                        </div>
+
+                                        {/* Trigger info */}
+                                        {trigger && (
+                                            <div className="flex items-start gap-2 mt-2 mb-3 bg-slate-700/40 rounded-xl px-3 py-2">
+                                                <span className="text-base shrink-0">{trigger.icono}</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-slate-300 text-xs leading-relaxed">{trigger.descripcion}</p>
+                                                    {trigger.configLabel && (
+                                                        <p className="text-slate-500 text-xs mt-0.5">{trigger.configLabel}</p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         )}
-                                        {!p.activa && (
-                                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">inactiva</span>
+
+                                        <p className="text-slate-400 text-sm truncate">Asunto: {p.asunto}</p>
+                                        <p className="text-slate-500 text-xs mt-1 line-clamp-2 whitespace-pre-wrap">{p.cuerpo.slice(0, 120)}…</p>
+                                        {p.updatedAt && (
+                                            <p className="text-slate-600 text-xs mt-2">
+                                                Última edición: {new Date(p.updatedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </p>
                                         )}
                                     </div>
-                                    <p className="text-slate-400 text-sm truncate">Asunto: {p.asunto}</p>
-                                    <p className="text-slate-500 text-xs mt-1 line-clamp-2 whitespace-pre-wrap">{p.cuerpo.slice(0, 120)}…</p>
-                                    {p.updatedAt && (
-                                        <p className="text-slate-600 text-xs mt-2">
-                                            Última edición: {new Date(p.updatedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="flex gap-2 shrink-0">
-                                    {!p.esDefault && (
+
+                                    <div className="flex gap-2 shrink-0">
+                                        {!p.esDefault && (
+                                            <button
+                                                onClick={() => restaurar(p.id)}
+                                                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm transition-colors"
+                                                title="Restaurar texto original"
+                                            >
+                                                ↩ Restaurar
+                                            </button>
+                                        )}
                                         <button
-                                            onClick={() => restaurar(p.id)}
-                                            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm transition-colors"
-                                            title="Restaurar texto original"
+                                            onClick={() => { setEditando({ ...p }); setMensaje(null) }}
+                                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
                                         >
-                                            ↩ Restaurar
+                                            ✏️ Editar
                                         </button>
-                                    )}
-                                    <button
-                                        onClick={() => { setEditando({ ...p }); setMensaje(null) }}
-                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors"
-                                    >
-                                        ✏️ Editar
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             )}
 
@@ -149,6 +188,19 @@ export function Comunicaciones({ adminKey }: { adminKey: string }) {
                         <h3 className="text-white font-bold text-lg">Editando: {editando.nombre}</h3>
                         <button onClick={() => setEditando(null)} className="text-slate-400 hover:text-white">✕</button>
                     </div>
+
+                    {/* Trigger info en el editor */}
+                    {TRIGGERS[editando.id] && (
+                        <div className="flex items-start gap-2 mb-5 bg-slate-700/40 rounded-xl px-3 py-2.5">
+                            <span className="text-base shrink-0">{TRIGGERS[editando.id].icono}</span>
+                            <div>
+                                <p className="text-slate-300 text-xs leading-relaxed">{TRIGGERS[editando.id].descripcion}</p>
+                                {TRIGGERS[editando.id].configLabel && (
+                                    <p className="text-slate-500 text-xs mt-0.5">{TRIGGERS[editando.id].configLabel}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Variables disponibles */}
                     <div className="mb-5">

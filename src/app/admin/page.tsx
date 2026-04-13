@@ -34,12 +34,7 @@ const Retencion = dynamic(() => import('./components/Retencion').then(mod => ({ 
   ssr: false
 })
 
-const Campanas = dynamic(() => import('./components/Campanas').then(mod => ({ default: mod.Campanas })), {
-  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
-  ssr: false
-})
-
-const Comunicaciones = dynamic(() => import('./components/Comunicaciones').then(mod => ({ default: mod.Comunicaciones })), {
+const Emails = dynamic(() => import('./components/Emails').then(mod => ({ default: mod.Emails })), {
   loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
   ssr: false
 })
@@ -49,7 +44,7 @@ export default function AdminPage() {
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
     const [validando, setValidando] = useState(false)
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff' | 'setup' | 'retencion' | 'campanas' | 'comunicaciones'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff' | 'setup' | 'retencion' | 'emails'>('metricas')
     const [pedidosFiltro, setPedidosFiltro] = useState<{ clienteId: string; clienteNombre: string | null } | null>(null)
 
     useEffect(() => {
@@ -181,8 +176,7 @@ export default function AdminPage() {
                             { key: 'cumpleanos', label: '🎂 Cumpleaños' },
                             { key: 'staff', label: '👩‍💼 Vendedoras' },
                             { key: 'retencion', label: '📈 Retención' },
-                            { key: 'campanas', label: '✉️ Campañas' },
-                            { key: 'comunicaciones', label: '📧 Comunicaciones' },
+                            { key: 'emails', label: '📧 Emails' },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
@@ -203,8 +197,7 @@ export default function AdminPage() {
             <div className="max-w-7xl mx-auto px-4 py-8">
                 {seccionActiva === 'staff' && <StaffStats adminKey={adminKey} />}
                 {seccionActiva === 'retencion' && <Retencion adminKey={adminKey} />}
-                {seccionActiva === 'campanas' && <Campanas adminKey={adminKey} />}
-                {seccionActiva === 'comunicaciones' && <Comunicaciones adminKey={adminKey} />}
+                {seccionActiva === 'emails' && <Emails adminKey={adminKey} />}
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
                 {seccionActiva === 'clientes' && (
