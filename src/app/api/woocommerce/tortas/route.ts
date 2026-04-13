@@ -60,12 +60,7 @@ function extraerRendimiento(descripcion: string): string | null {
  * Productos de edición especial Pascuas (se muestran antes de las tortas clásicas)
  * Formato: { id: WooCommerce ID, sku: SKU Ayres }
  */
-const PRODUCTOS_PASCUAS: { id: number; sku: string }[] = [
-  { id: 2349, sku: '95' },   // Rosca de Pascua
-  { id: 2347, sku: '559' },  // Huevo en gajos (6 unidades)
-  { id: 2345, sku: '558' },  // Huevo con sello dorado
-  { id: 2343, sku: '557' },  // Gallina de chocolate
-]
+const PRODUCTOS_PASCUAS: { id: number; sku: string }[] = []
 
 /**
  * Mapeo de versiones mini por producto (para opciones de tamaño)
