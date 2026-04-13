@@ -6,6 +6,7 @@ import { buildWooHeaders } from '@/lib/woocommerce-headers'
 import { normalizarTelefono } from '@/lib/phone'
 import { evaluarNivel } from '@/lib/beneficios'
 import { sendEmail } from '@/lib/email'
+import { getPlantilla, aplicarVars, buildHtmlPlantilla } from '@/lib/email-plantillas'
 
 /**
  * Job que envía notificaciones push a clientes relacionadas con cumpleaños
@@ -334,6 +335,7 @@ export async function GET(req: Request) {
         // 4. EMAIL DE REACTIVACIÓN (clientes sin visita en 30 días)
         // ═══════════════════════════════════════════════════════════════
         let emailsReactivacion = 0
+        const plantillaReactivacion = await getPlantilla('reactivacion')
         try {
             const hace30 = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000)
             const hace60 = new Date(hoy.getTime() - 60 * 24 * 60 * 60 * 1000)
@@ -374,33 +376,13 @@ export async function GET(req: Request) {
                     })
                     if (yaEnviado) continue
 
+                    if (!plantillaReactivacion.activa) continue
                     const nombre = cliente.nombre?.split(' ')[0] || 'cliente'
+                    const vars = { nombre }
                     const resultado = await sendEmail({
                         to: cliente.email,
-                        subject: `¡${nombre}, te extrañamos en Coques Bakery! ☕`,
-                        html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,sans-serif;background:#f8f8f8;margin:0;padding:20px;">
-  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-    <div style="background:#1a1a2e;padding:32px;text-align:center;">
-      <h1 style="color:white;margin:0;font-size:24px;">Coques Bakery</h1>
-      <p style="color:#94a3b8;margin:8px 0 0;font-size:14px;">Programa de Fidelización</p>
-    </div>
-    <div style="padding:32px;color:#1e293b;font-size:15px;line-height:1.7;">
-      <p>Hola <strong>${nombre}</strong>,</p>
-      <p>Hace un tiempo que no te vemos por acá y lo extrañamos 🥐☕</p>
-      <p>Pasate cuando quieras — tus puntos te están esperando y seguís sumando beneficios con cada visita.</p>
-      <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:16px;border-radius:8px;margin:20px 0;">
-        <p style="margin:0;color:#92400e;">¡Acordate de mostrar tu QR al llegar para sumar la visita! 📱</p>
-      </div>
-      <p>¡Esperamos verte pronto!</p>
-    </div>
-    <div style="background:#f1f5f9;padding:20px;text-align:center;border-top:1px solid #e2e8f0;">
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        <a href="https://coques.com.ar" style="color:#6366f1;">coques.com.ar</a>
-      </p>
-    </div>
-  </div>
-</body></html>`,
+                        subject: aplicarVars(plantillaReactivacion.asunto, vars),
+                        html: buildHtmlPlantilla(aplicarVars(plantillaReactivacion.cuerpo, vars)),
                     })
 
                     if (resultado.success) {
@@ -429,6 +411,7 @@ export async function GET(req: Request) {
         // 5. EMAIL DE AVISO DE CUMPLEAÑOS (7 días antes)
         // ═══════════════════════════════════════════════════════════════
         let emailsCumple7Dias = 0
+        const plantillaCumple = await getPlantilla('cumpleanos_7dias')
         try {
             const en7Dias = new Date(hoy)
             en7Dias.setDate(en7Dias.getDate() + 7)
@@ -462,38 +445,13 @@ export async function GET(req: Request) {
                 })
                 if (yaEnviado) continue
 
+                if (!plantillaCumple.activa) continue
                 const nombre = cliente.nombre?.split(' ')[0] || 'cliente'
-
+                const vars = { nombre, dias_antes: String(diasAntes), dias_despues: String(diasDespues) }
                 const resultado = await sendEmail({
                     to: cliente.email,
-                    subject: `${nombre}, ¡tu semana de cumple arranca en 7 días! 🎂`,
-                    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,sans-serif;background:#f8f8f8;margin:0;padding:20px;">
-  <div style="max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-    <div style="background:#1a1a2e;padding:32px;text-align:center;">
-      <h1 style="color:white;margin:0;font-size:24px;">Coques Bakery</h1>
-      <p style="color:#94a3b8;margin:8px 0 0;font-size:14px;">Programa de Fidelización</p>
-    </div>
-    <div style="padding:32px;color:#1e293b;font-size:15px;line-height:1.7;">
-      <p>Hola <strong>${nombre}</strong>,</p>
-      <p>Dentro de una semana es tu cumpleaños y en Coques lo queremos celebrar con vos. 🎂</p>
-      <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:16px;border-radius:8px;margin:20px 0;">
-        <p style="margin:0 0 8px;font-weight:700;color:#92400e;">🎁 TU BENEFICIO DE CUMPLEAÑOS</p>
-        <p style="margin:0;color:#92400e;">Durante los ${diasAntes} días anteriores y los ${diasDespues} días posteriores a tu cumpleaños tenés activo un beneficio especial exclusivo para vos.</p>
-      </div>
-      <p>No hace falta que hagas nada: cuando venís al local en esos días, el equipo lo aplica automáticamente. <strong>Solo avisá que es tu semana de cumple.</strong></p>
-      <p style="margin-top:24px;">📅 <strong>Tu ventana:</strong> ${diasAntes} días antes + el día de tu cumple + ${diasDespues} días después. Elegí el momento que más te convenga.</p>
-      <p>🌐 <strong>¿No podés venir?</strong> Recordá que cada compra por nuestra web suma como 3 visitas al programa.</p>
-      <p style="margin-top:24px;">¡Que sea una semana increíble!</p>
-    </div>
-    <div style="background:#f1f5f9;padding:20px;text-align:center;border-top:1px solid #e2e8f0;">
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        Recibís este email porque sos parte del programa de puntos de Coques Bakery.<br>
-        <a href="https://coques.com.ar" style="color:#6366f1;">coques.com.ar</a>
-      </p>
-    </div>
-  </div>
-</body></html>`,
+                    subject: aplicarVars(plantillaCumple.asunto, vars),
+                    html: buildHtmlPlantilla(aplicarVars(plantillaCumple.cuerpo, vars)),
                 })
 
                 if (resultado.success) {

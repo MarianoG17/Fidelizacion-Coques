@@ -548,6 +548,17 @@ model ConciliacionAuditoria {
   @@index([confirmadoEn])
 }
 
+// ─── Plantillas de Email ────────────────────────────────────────────────────────
+model PlantillaEmail {
+  id        String   @id  // 'bienvenida' | 'reactivacion' | 'cumpleanos_7dias'
+  nombre    String
+  asunto    String
+  cuerpo    String
+  activa    Boolean  @default(true)
+  variables String[] @default([])
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Configuración de Marca (White-Label) ──────────────────────────────────────
 // Permite a nuevos deployments configurar el branding sin tocar código.
 // El app de Coques NO lee de esta tabla — sigue usando brand.config.ts como siempre.

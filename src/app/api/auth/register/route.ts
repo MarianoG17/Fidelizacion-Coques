@@ -6,6 +6,7 @@ import { generarSecretoOTP } from '@/lib/otp'
 import { evaluarNivel } from '@/lib/beneficios'
 import { evaluarLogros } from '@/lib/logros'
 import { sendEmail } from '@/lib/email'
+import { getPlantilla, aplicarVars, buildHtmlPlantilla } from '@/lib/email-plantillas'
 import { normalizarTelefono } from '@/lib/phone'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
@@ -244,86 +245,13 @@ export async function POST(req: NextRequest) {
 
     // Enviar email de bienvenida con Brevo
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.coques.com.ar'
-
+      const plantilla = await getPlantilla('bienvenida')
+      const nombre = validatedData.nombre?.split(' ')[0] || 'cliente'
+      const cuerpoFinal = aplicarVars(plantilla.cuerpo, { nombre })
       await sendEmail({
         to: validatedData.email,
-        subject: '¡Bienvenido a Coques Bakery! 🎉',
-        html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #9333ea; margin: 0;">¡Bienvenido a Coques Bakery!</h1>
-              </div>
-              
-              <p style="font-size: 16px;">Hola <strong>${validatedData.nombre}</strong>,</p>
-              
-              <p>¡Gracias por registrarte en nuestro programa de fidelización! 🎉</p>
-              
-              <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin: 25px 0;">
-                <h3 style="color: #9333ea; margin-top: 0;">¿Qué podés hacer ahora?</h3>
-                <ul style="line-height: 1.8;">
-                  <li>✨ Acumulá visitas y subí de nivel (Bronce → Plata → Oro)</li>
-                  <li>🎁 Desbloqueá beneficios exclusivos</li>
-                  <li>👥 Referí amigos y ganás visitas bonus</li>
-                  <li>📱 Mostrá tu QR en el local para sumar puntos</li>
-                </ul>
-              </div>
-
-              ${validatedData.codigoReferido ? `
-              <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
-                <p style="margin: 0; color: #065f46;">
-                  <strong>🎊 ¡Bonus de bienvenida!</strong><br/>
-                  Fuiste referido por alguien especial, así que tu amigo recibió una visita bonus. ¡Gracias por confiar en nosotros!
-                </p>
-              </div>
-              ` : ''}
-
-              <div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; margin: 25px 0;">
-                <h3 style="color: #1d4ed8; margin-top: 0;">📲 Instalá la app en tu celular</h3>
-                <p style="margin: 0 0 10px 0; font-size: 14px; color: #1e40af;">Así la tenés siempre a mano, como cualquier app.</p>
-                <p style="margin: 0 0 6px 0; font-size: 14px; color: #374151;"><strong>Android:</strong> Abrí en Chrome → menú ⋮ → "Agregar a pantalla de inicio"</p>
-                <p style="margin: 0; font-size: 14px; color: #374151;"><strong>iPhone:</strong> Abrí en Safari → botón compartir → "Agregar a pantalla de inicio"</p>
-              </div>
-
-              <div style="text-align: center; margin: 35px 0;">
-                <a href="${appUrl}/pass"
-                   style="display: inline-block;
-                          padding: 14px 28px;
-                          background-color: #9333ea;
-                          color: white;
-                          text-decoration: none;
-                          border-radius: 8px;
-                          font-weight: bold;
-                          font-size: 16px;">
-                  Ver mi Pase de Fidelización
-                </a>
-              </div>
-
-              <div style="border-top: 1px solid #e5e7eb; margin-top: 40px; padding-top: 20px;">
-                <p style="color: #6b7280; font-size: 14px; margin: 5px 0;">
-                  <strong>Datos de tu cuenta:</strong>
-                </p>
-                <p style="color: #6b7280; font-size: 14px; margin: 5px 0;">
-                  📧 Email: ${validatedData.email}<br/>
-                  📱 Teléfono: ${validatedData.phone}<br/>
-                  🥉 Nivel inicial: Bronce
-                </p>
-              </div>
-
-              <div style="margin-top: 30px; padding: 15px; background-color: #f9fafb; border-radius: 6px;">
-                <p style="color: #6b7280; font-size: 13px; margin: 0;">
-                  Si olvidás tu contraseña, podés recuperarla desde <a href="${appUrl}/recuperar-password" style="color: #9333ea;">este enlace</a>.
-                </p>
-              </div>
-
-              <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;" />
-              
-              <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-                Coques Bakery - Programa de Fidelización<br/>
-                <a href="${appUrl}" style="color: #9333ea; text-decoration: none;">Visitá nuestra app</a>
-              </p>
-            </div>
-          `,
+        subject: aplicarVars(plantilla.asunto, { nombre }),
+        html: buildHtmlPlantilla(cuerpoFinal),
       })
 
       console.log(`[Registro] Email de bienvenida procesado para: ${validatedData.email}`)

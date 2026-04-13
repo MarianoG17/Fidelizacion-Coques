@@ -39,12 +39,17 @@ const Campanas = dynamic(() => import('./components/Campanas').then(mod => ({ de
   ssr: false
 })
 
+const Comunicaciones = dynamic(() => import('./components/Comunicaciones').then(mod => ({ default: mod.Comunicaciones })), {
+  loading: () => <div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div></div>,
+  ssr: false
+})
+
 export default function AdminPage() {
     const [autenticado, setAutenticado] = useState(false)
     const [adminKey, setAdminKey] = useState('')
     const [error, setError] = useState('')
     const [validando, setValidando] = useState(false)
-    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff' | 'setup' | 'retencion' | 'campanas'>('metricas')
+    const [seccionActiva, setSeccionActiva] = useState<'metricas' | 'eventos' | 'clientes' | 'pedidos' | 'beneficios' | 'niveles' | 'configuracion' | 'feedback' | 'cumpleanos' | 'staff' | 'setup' | 'retencion' | 'campanas' | 'comunicaciones'>('metricas')
     const [pedidosFiltro, setPedidosFiltro] = useState<{ clienteId: string; clienteNombre: string | null } | null>(null)
 
     useEffect(() => {
@@ -177,6 +182,7 @@ export default function AdminPage() {
                             { key: 'staff', label: '👩‍💼 Vendedoras' },
                             { key: 'retencion', label: '📈 Retención' },
                             { key: 'campanas', label: '✉️ Campañas' },
+                            { key: 'comunicaciones', label: '📧 Comunicaciones' },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
@@ -198,6 +204,7 @@ export default function AdminPage() {
                 {seccionActiva === 'staff' && <StaffStats adminKey={adminKey} />}
                 {seccionActiva === 'retencion' && <Retencion adminKey={adminKey} />}
                 {seccionActiva === 'campanas' && <Campanas adminKey={adminKey} />}
+                {seccionActiva === 'comunicaciones' && <Comunicaciones adminKey={adminKey} />}
                 {seccionActiva === 'metricas' && <Metricas adminKey={adminKey} />}
                 {seccionActiva === 'eventos' && <EventosEspeciales adminKey={adminKey} />}
                 {seccionActiva === 'clientes' && (
