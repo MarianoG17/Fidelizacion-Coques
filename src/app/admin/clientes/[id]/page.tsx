@@ -262,7 +262,7 @@ export default function ClientePerfilPage() {
                                     <p className="text-slate-400 mb-1">Cumpleaños</p>
                                     <p className="text-white">
                                         {cliente.fechaCumpleanos
-                                            ? new Date(cliente.fechaCumpleanos).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' })
+                                            ? new Date(cliente.fechaCumpleanos).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', timeZone: 'UTC' })
                                             : '—'}
                                     </p>
                                 </div>
@@ -334,7 +334,7 @@ export default function ClientePerfilPage() {
                                                 {ev.local && <p className="text-slate-500 text-xs">{ev.local.nombre}</p>}
                                             </div>
                                             <p className="text-slate-400 text-xs whitespace-nowrap ml-4">
-                                                {new Date(ev.timestamp).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
+                                                {new Date(ev.timestamp).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' })}
                                             </p>
                                         </div>
                                     ))}
@@ -400,7 +400,7 @@ export default function ClientePerfilPage() {
                                                     </div>
                                                     <div className="flex items-center gap-2 shrink-0 ml-3">
                                                         <p className="text-slate-400 text-xs whitespace-nowrap">
-                                                            {new Date(item.eventoFecha || item.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
+                                                            {new Date(item.eventoFecha || item.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'UTC' })}
                                                         </p>
                                                         <span className="text-slate-600 text-xs">{isExpanded ? '▲' : '▼'}</span>
                                                     </div>
@@ -414,7 +414,7 @@ export default function ClientePerfilPage() {
                                                                 <div key={j} className="flex items-center gap-2">
                                                                     <span className={`text-xs font-medium ${el.color}`}>{el.icono} {el.label}</span>
                                                                     <span className="text-slate-500 text-xs">
-                                                                        {new Date(e.time).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
+                                                                        {new Date(e.time).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                                                                     </span>
                                                                 </div>
                                                             )
