@@ -1033,7 +1033,7 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0 ml-3">
                                   <p className="text-slate-400 text-xs whitespace-nowrap">
-                                    {new Date(item.eventoFecha || item.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                    {new Date(item.eventoFecha || item.fecha).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
                                   </p>
                                   <span className="text-slate-600 text-xs">{isExpanded ? '▲' : '▼'}</span>
                                 </div>
@@ -1047,7 +1047,7 @@ export function Clientes({ adminKey, onVerPedidos }: { adminKey: string; onVerPe
                                       <div key={j} className="flex items-center gap-2">
                                         <span className={`text-xs font-medium ${el.color}`}>{el.icono} {el.label}</span>
                                         <span className="text-slate-500 text-xs">
-                                          {new Date(e.time).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                          {new Date(e.time).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
                                         </span>
                                       </div>
                                     )

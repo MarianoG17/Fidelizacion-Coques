@@ -133,7 +133,7 @@ export function Pedidos({ adminKey, clienteId, clienteNombre, onLimpiarFiltro }:
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'UTC',
+      timeZone: 'America/Argentina/Buenos_Aires',
     })
   }
 
