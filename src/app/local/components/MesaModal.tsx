@@ -46,7 +46,7 @@ export default function MesaModal({ mesa, onClose, onCerrarSesion, onAplicarBene
                       {sesion.cliente.nivel} • {sesion.cliente.phone}
                     </p>
                     <p className="text-xs text-purple-600 mt-1">
-                      ⏱️ {sesion.duracionMinutos} minutos en la mesa
+                      ⏱️ Ingresó: {new Date(sesion.inicioSesion).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                     </p>
                   </div>
                   <button
